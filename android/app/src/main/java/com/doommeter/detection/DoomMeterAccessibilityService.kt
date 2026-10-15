@@ -22,6 +22,7 @@ class DoomMeterAccessibilityService : AccessibilityService() {
     private lateinit var tracker: SurfaceTracker
     private var evaluationScheduled = false
     private var disconnectedEmitted = false
+    private val activity = ActivityReporter(System::currentTimeMillis, DetectionHub::emit)
 
     private val evaluate = Runnable {
         evaluationScheduled = false
@@ -69,6 +70,10 @@ class DoomMeterAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // Any event from a Platform app proves the service still sees it, feed or not.
+        event?.packageName?.toString()?.let { AdapterRegistry.platformByPackage[it] }?.let {
+            activity.onActivity(it)
+        }
         when (event?.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
