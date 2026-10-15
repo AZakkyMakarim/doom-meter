@@ -73,6 +73,58 @@ describe('engine.restore', () => {
     expect(ended[0].state.platforms.tiktok.watchedVideos).toBe(10);
   });
 
+  describe('when events arrived under the default rollover hour before restore', () => {
+    // 02:00 on the 16th: the default rollover hour (4) calls it Day 15, a rollover hour of 0 Day 16.
+    const saved16 = {
+      ...saved,
+      day: '2026-10-16',
+    };
+
+    it('merges the saved counts once the configured rollover hour puts them in the current Day', () => {
+      const { engine, ended } = setup(at(16, 2));
+      engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: at(16, 2) });
+      engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: at(16, 2) + 6000 });
+      engine.configure({ rolloverHour: 0 });
+      engine.restore(saved16);
+
+      const state = engine.getState();
+      expect(state.day).toBe('2026-10-16');
+      expect(state.platforms.tiktok.watchedVideos).toBe(10);
+      expect(state.platforms.tiktok.watchTimeMs).toBe(600_000);
+      expect(state.platforms.youtube.watchedVideos).toBe(2);
+      expect(ended).toHaveLength(0);
+    });
+
+    it('never lowers a live count below what was saved or what it already is', () => {
+      const { engine } = setup(at(16, 2));
+      engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: at(16, 2) });
+      engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: at(16, 2) + 6000 });
+      engine.configure({ rolloverHour: 0 });
+      engine.restore({
+        day: '2026-10-16',
+        platforms: {
+          instagram: { watchedVideos: 0, watchTimeMs: 0 },
+          youtube: { watchedVideos: 0, watchTimeMs: 0 },
+          tiktok: { watchedVideos: 0, watchTimeMs: 0 },
+        },
+      });
+
+      const { platforms } = engine.getState();
+      expect(platforms.tiktok.watchedVideos).toBe(1);
+      expect(platforms.tiktok.watchTimeMs).toBe(6000);
+    });
+
+    it('still ignores a saved Day that is not the effective current Day', () => {
+      const { engine } = setup(at(16, 2));
+      engine.handle({ type: 'screenOn', at: at(16, 2) });
+      engine.configure({ rolloverHour: 0 });
+      engine.restore(saved); // 2026-10-15
+
+      expect(engine.getState().day).toBe('2026-10-16');
+      expect(engine.getState().totals).toEqual({ watchedVideos: 0, watchTimeMs: 0 });
+    });
+  });
+
   it('ignores negative or non-finite numbers in a snapshot', () => {
     const { engine } = setup(at(15, 12));
     engine.restore({

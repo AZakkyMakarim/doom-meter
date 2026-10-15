@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { whenDaysSaved } from '../detection/runtime';
 import { dayStore } from '../storage/deviceDayStore';
+import { readStoredDays } from './storedDays';
 import type { DayRecord } from '../storage';
 
 export interface StoredDays {
@@ -24,8 +26,8 @@ export function useStoredDays(limit: number, refreshKey: string): StoredDays {
 
   useEffect(() => {
     let cancelled = false;
-    dayStore
-      .listDays(limit)
+    // The Day that just ended is written as the rollover happens; wait for that write.
+    readStoredDays({ settled: whenDaysSaved, listDays: dayStore.listDays }, limit)
       .then(records => {
         if (!cancelled)
           setResult({

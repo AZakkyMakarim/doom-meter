@@ -10,6 +10,7 @@ const PLATFORM_EVENTS = [
   'detectionFailed',
   'usageForegroundStarted',
   'usageForegroundEnded',
+  'accessibilityActivity',
 ] as const;
 const SCREEN_EVENTS = ['screenOn', 'screenOff'] as const;
 

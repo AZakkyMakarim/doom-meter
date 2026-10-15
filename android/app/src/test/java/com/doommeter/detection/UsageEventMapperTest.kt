@@ -38,6 +38,56 @@ class UsageEventMapperTest {
     }
 
     @Test
+    fun `a first look over a long window reports only the app that is still in the foreground`() {
+        val events =
+            UsageEventMapper.mapCurrentForeground(
+                listOf(
+                    UsageRecord("com.tt", true, 1_000),
+                    UsageRecord("com.tt", false, 2_000),
+                    UsageRecord("com.yt", true, 3_000),
+                ),
+                platforms,
+            )
+        assertEquals(
+            listOf("usageForegroundStarted:youtube:3000"),
+            events.map { "${it.type}:${it.platform}:${it.at}" },
+        )
+    }
+
+    @Test
+    fun `a first look reports the start of an app that has been in the foreground a long time`() {
+        val events =
+            UsageEventMapper.mapCurrentForeground(
+                listOf(UsageRecord("com.tt", true, 5)),
+                platforms,
+            )
+        assertEquals(listOf(5L), events.map { it.at })
+        assertEquals(RawEvent.USAGE_FOREGROUND_STARTED, events.single().type)
+    }
+
+    @Test
+    fun `a first look reports nothing when every Platform app has left, or none was seen`() {
+        assertTrue(
+            UsageEventMapper.mapCurrentForeground(
+                    listOf(UsageRecord("com.tt", true, 1_000), UsageRecord("com.tt", false, 2_000)),
+                    platforms,
+                )
+                .isEmpty(),
+        )
+        assertTrue(UsageEventMapper.mapCurrentForeground(emptyList(), platforms).isEmpty())
+    }
+
+    @Test
+    fun `a first look settles records given out of order by their time`() {
+        val events =
+            UsageEventMapper.mapCurrentForeground(
+                listOf(UsageRecord("com.tt", false, 2_000), UsageRecord("com.tt", true, 1_000)),
+                platforms,
+            )
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
     fun `the json carries the type, the Platform and the time, nothing else`() {
         val json =
             UsageEventMapper.map(listOf(UsageRecord("com.tt", true, 7)), platforms).single().toJson()

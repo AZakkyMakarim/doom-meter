@@ -8,7 +8,8 @@ import com.facebook.react.bridge.ReactContext
 /**
  * Carries raw events from the AccessibilityService to JavaScript, where the Counting engine
  * lives. Events raised before JavaScript is listening (the service woke a cold app process) wait
- * in a small bounded buffer and are flushed when JavaScript calls ready().
+ * in a small bounded buffer and are flushed when JavaScript calls ready(). Once anything waits,
+ * later events queue behind it, so events always arrive in the order they happened.
  */
 object DetectionHub {
     const val EVENT_NAME = "DoomMeterRawEvent"
@@ -16,28 +17,23 @@ object DetectionHub {
     private const val MAX_BUFFERED = 200
 
     private val lock = Any()
-    private val buffer = ArrayDeque<String>()
     private var context: ReactContext? = null
+    private val queue =
+        EventQueue(MAX_BUFFERED) { json ->
+            val target = context
+            target != null && send(target, json)
+        }
 
     fun emit(event: RawEvent) {
         val json = event.toJson()
-        synchronized(lock) {
-            val target = context
-            if (target == null || !send(target, json)) {
-                if (buffer.size >= MAX_BUFFERED) buffer.removeFirst()
-                buffer.addLast(json)
-            }
-        }
+        synchronized(lock) { queue.offer(json) }
     }
 
     /** JavaScript is listening: flush anything that arrived earlier and send the rest live. */
     fun markReady(reactContext: ReactContext) {
         synchronized(lock) {
             context = reactContext
-            while (buffer.isNotEmpty()) {
-                if (!send(reactContext, buffer.first())) break
-                buffer.removeFirst()
-            }
+            queue.flush()
         }
     }
 

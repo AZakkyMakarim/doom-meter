@@ -11,7 +11,8 @@ export interface SettingsStore {
   /**
    * Validate, apply and save a change. A valid change is in force and announced to
    * listeners at once; the returned promise resolves when it is saved. An invalid
-   * change leaves everything as it was and returns the reason.
+   * change leaves everything as it was and returns the reason. A change made before
+   * the saved settings are read is merged on top of them, never over them.
    */
   update(patch: SettingsPatch): Promise<SettingsResult>;
   subscribe(listener: (settings: Settings) => void): () => void;
@@ -25,17 +26,28 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
   const { store } = options;
   const listeners = new Set<(settings: Settings) => void>();
   let current: Settings = DEFAULT_SETTINGS;
-  let changedSinceStart = false;
+  let loaded = false;
+  let loading: Promise<Settings> | null = null;
+  /** Everything changed before the saved settings arrived; wins only for the keys it names. */
+  let earlyPatch: SettingsPatch = {};
+  let earlySaveFailed = false;
   let writes: Promise<unknown> = Promise.resolve();
 
   function notify() {
     listeners.forEach((listener) => listener(current));
   }
 
-  return {
-    get: () => current,
+  /** Queues a save of the settings as they are now. */
+  function save(): Promise<unknown> {
+    const json = JSON.stringify(current);
+    const write = writes.then(() => store.set(SETTINGS_KEY, json));
+    writes = write.catch(() => undefined);
+    return write;
+  }
 
-    async load() {
+  /** Reads the saved settings once and merges any early change on top of them. */
+  function ensureLoaded(): Promise<Settings> {
+    loading ??= (async () => {
       let saved: Settings = DEFAULT_SETTINGS;
       try {
         const raw = await store.get(SETTINGS_KEY);
@@ -43,26 +55,45 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
       } catch {
         // Unreadable or corrupt: start from the defaults.
       }
-      // Anything the user changed while the read was running wins over the saved copy.
-      if (!changedSinceStart) {
-        current = saved;
-        notify();
+      const hadEarlyChange = Object.keys(earlyPatch).length > 0;
+      const merged = applyPatch(saved, earlyPatch);
+      current = merged.ok ? merged.settings : saved;
+      loaded = true;
+      earlyPatch = {};
+      notify();
+      if (hadEarlyChange) {
+        try {
+          await save();
+        } catch {
+          earlySaveFailed = true;
+        }
       }
       return current;
-    },
+    })();
+    return loading;
+  }
+
+  return {
+    get: () => current,
+
+    load: ensureLoaded,
 
     async update(patch) {
       const result = applyPatch(current, patch);
       if (!result.ok) return result;
       current = result.settings;
-      changedSinceStart = true;
       notify();
-      const json = JSON.stringify(current);
-      const write = writes.then(() => store.set(SETTINGS_KEY, json));
-      writes = write.catch(() => undefined);
       try {
-        await write;
-        return result;
+        if (loaded) {
+          await save();
+        } else {
+          // The saved copy has not been read yet: remember the change, and let the load
+          // merge it over what was saved and write the merged result.
+          earlyPatch = { ...earlyPatch, ...patch };
+          await ensureLoaded();
+          if (earlySaveFailed) throw new Error('save failed');
+        }
+        return { ok: true, settings: current };
       } catch {
         return { ok: false, error: 'Could not save this setting on the device.' };
       }
