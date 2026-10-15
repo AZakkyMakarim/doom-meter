@@ -278,6 +278,11 @@ describe('configurable rollover hour', () => {
 describe('no manual reset', () => {
   it('exposes no reset in the engine interface', () => {
     const { engine } = setup();
-    expect(Object.keys(engine).sort()).toEqual(['configure', 'getState', 'handle']);
+    expect(Object.keys(engine).sort()).toEqual([
+      'configure',
+      'getState',
+      'handle',
+      'restore',
+    ]);
   });
 });
