@@ -8,15 +8,15 @@ const at = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).getTime()
 
 function stateOf(
   day: string,
-  tiktok: { watchedVideos: number; watchTimeMs: number; detectionHealthy?: boolean },
+  tiktok: { watchedVideos: number; watchTimeMs: number; detectionHealthy?: boolean; incomplete?: boolean },
 ): EngineState {
-  const zero = { watchedVideos: 0, watchTimeMs: 0, detectionHealthy: true };
+  const zero = { watchedVideos: 0, watchTimeMs: 0, detectionHealthy: true, incomplete: false };
   return {
     day,
     platforms: {
       instagram: zero,
       youtube: zero,
-      tiktok: { detectionHealthy: true, ...tiktok },
+      tiktok: { detectionHealthy: true, incomplete: false, ...tiktok },
     },
     totals: { watchedVideos: tiktok.watchedVideos, watchTimeMs: tiktok.watchTimeMs },
     tier: 0,

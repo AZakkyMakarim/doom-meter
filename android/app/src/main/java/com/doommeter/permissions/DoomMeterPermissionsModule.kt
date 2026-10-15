@@ -1,15 +1,14 @@
 package com.doommeter.permissions
 
-import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import com.doommeter.detection.DoomMeterAccessibilityService
+import com.doommeter.detection.UsageAccess
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -94,25 +93,7 @@ class DoomMeterPermissionsModule(private val reactContext: ReactApplicationConte
         return enabled && list.split(':').any { ComponentName.unflattenFromString(it) == ours }
     }
 
-    @Suppress("DEPRECATION")
-    private fun hasUsageAccess(): Boolean {
-        val ops = reactContext.getSystemService(AppOpsManager::class.java) ?: return false
-        val mode =
-            if (Build.VERSION.SDK_INT >= 29) {
-                ops.unsafeCheckOpNoThrow(
-                    AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    Process.myUid(),
-                    reactContext.packageName,
-                )
-            } else {
-                ops.checkOpNoThrow(
-                    AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    Process.myUid(),
-                    reactContext.packageName,
-                )
-            }
-        return mode == AppOpsManager.MODE_ALLOWED
-    }
+    private fun hasUsageAccess(): Boolean = UsageAccess.isGranted(reactContext)
 
     companion object {
         const val NAME = "DoomMeterPermissions"

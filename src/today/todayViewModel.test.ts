@@ -10,6 +10,7 @@ function state(
     watchedVideos: platforms[key]?.[0] ?? 0,
     watchTimeMs: platforms[key]?.[1] ?? 0,
     detectionHealthy: !unhealthy.includes(key),
+    incomplete: unhealthy.includes(key),
   });
   const p = { instagram: make('instagram'), youtube: make('youtube'), tiktok: make('tiktok') };
   return {
@@ -79,7 +80,7 @@ describe('Today view model', () => {
 
   it('flags a Platform whose detection stopped responding', () => {
     const vm = todayViewModelFor(state({ tiktok: [3, 60_000] }, 0, ['tiktok']));
-    expect(vm.rows[2].warning).toBe('Detection stopped responding. The count may be low.');
+    expect(vm.rows[2].warning).toBe('Detection not responding.');
     expect(vm.rows[0].warning).toBeNull();
   });
 

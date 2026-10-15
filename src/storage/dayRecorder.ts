@@ -68,7 +68,7 @@ export function createDayRecorder(options: DayRecorderOptions): DayRecorder {
       for (const p of PLATFORMS) incomplete[p] = false;
     }
     for (const p of PLATFORMS) {
-      if (!state.platforms[p].detectionHealthy) incomplete[p] = true;
+      if (!state.platforms[p].detectionHealthy || state.platforms[p].incomplete) incomplete[p] = true;
     }
   }
 

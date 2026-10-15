@@ -10,6 +10,11 @@ import com.doommeter.detection.registrations.YouTubeRegistration
  * This file does not change when a Platform is added.
  */
 object AdapterRegistry {
+    /** Android package name to engine Platform id, for every registered adapter. */
+    val platformByPackage: Map<String, String> by lazy {
+        adapters.flatMap { adapter -> adapter.packageNames.map { it to adapter.platform } }.toMap()
+    }
+
     val adapters: List<PlatformAdapter> by lazy {
         listOfNotNull(
             TikTokRegistration.adapter(),

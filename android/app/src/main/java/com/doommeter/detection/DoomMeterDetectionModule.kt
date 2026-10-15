@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -16,6 +17,10 @@ import com.facebook.react.bridge.ReactMethod
  */
 class DoomMeterDetectionModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
+
+    private val usageSource by lazy {
+        UsageForegroundSource(reactContext, AdapterRegistry.platformByPackage)
+    }
 
     override fun getName(): String = NAME
 
@@ -51,6 +56,23 @@ class DoomMeterDetectionModule(private val reactContext: ReactApplicationContext
     @ReactMethod
     fun ready() {
         DetectionHub.markReady(reactContext)
+    }
+
+    /**
+     * Foreground changes of the Platform apps since the last call, as raw event JSON, oldest
+     * first. Empty unless Usage Access is granted. JavaScript polls this; the engine uses the
+     * time only while video detection is failing.
+     */
+    @ReactMethod
+    fun pollUsageEvents(promise: Promise) {
+        val events = Arguments.createArray()
+        try {
+            usageSource.poll().forEach { events.pushString(it.toJson()) }
+        } catch (e: Exception) {
+            // A failed read is just a quiet poll; the next one tries again.
+            Log.w(NAME, "Could not read UsageStats", e)
+        }
+        promise.resolve(events)
     }
 
     @ReactMethod
