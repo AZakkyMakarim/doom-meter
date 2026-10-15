@@ -377,6 +377,17 @@ describe('7-day chart', () => {
     expect(chart.summary).toContain('1 video, 1 minute 0 seconds in total.');
   });
 
+  it('colours bars by the thresholds it is given', () => {
+    const day = record(TODAY, { youtube: [12, 5] });
+    const custom = {
+      videos: [5, 10, 20, 40],
+      minutes: [10, 30, 60, 120],
+    } as const;
+    const tierOf = (thresholds?: typeof custom) =>
+      weekChartFor([day], { today: TODAY, thresholds }).bars[6].tierLabel;
+    expect(tierOf(custom)).not.toBe(tierOf());
+  });
+
   it('labels every bar with its value, never colour alone', () => {
     const chart = weekChartFor([record(TODAY, { tiktok: [47, 38] })], {
       today: TODAY,
