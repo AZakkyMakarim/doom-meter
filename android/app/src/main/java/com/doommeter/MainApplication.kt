@@ -2,6 +2,7 @@ package com.doommeter
 
 import android.app.Application
 import com.doommeter.detection.DoomMeterDetectionPackage
+import com.doommeter.insets.DoomMeterInsetsPackage
 import com.doommeter.overlay.DoomMeterOverlayPackage
 import com.doommeter.permissions.DoomMeterPermissionsPackage
 import com.facebook.react.PackageList
@@ -20,6 +21,7 @@ class MainApplication : Application(), ReactApplication {
           add(DoomMeterOverlayPackage())
           add(DoomMeterDetectionPackage())
           add(DoomMeterPermissionsPackage())
+          add(DoomMeterInsetsPackage())
         },
     )
   }

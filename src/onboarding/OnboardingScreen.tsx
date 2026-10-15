@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../design/tokens';
+import { useSafeAreaPadding } from '../design/useSafeAreaPadding';
 import type { PermissionId, PermissionStatus } from '../permissions/permissionState';
 import { onboardingStepViewModel, onboardingSteps } from './onboardingFlow';
 
@@ -22,6 +23,7 @@ const UNKNOWN: PermissionStatus = {
 
 /** First run: a welcome with the privacy statement, then one screen per permission. */
 export function OnboardingScreen({ status, onOpenSettings, onFinish }: OnboardingScreenProps) {
+  const screenPadding = useSafeAreaPadding({ top: 24, bottom: 48, horizontal: 16 });
   const current = status ?? UNKNOWN;
   const steps = onboardingSteps(current);
   const [index, setIndex] = useState(0);
@@ -39,7 +41,7 @@ export function OnboardingScreen({ status, onOpenSettings, onFinish }: Onboardin
   };
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, screenPadding]}>
       <StatusBar barStyle="light-content" />
       <Text style={styles.progress}>{`Step ${index + 1} of ${steps.length}`}</Text>
       {step === 'intro' && (
@@ -91,9 +93,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.appBg,
   },
   container: {
-    paddingHorizontal: 16,
-    paddingTop: (StatusBar.currentHeight ?? 0) + 24,
-    paddingBottom: 48,
     gap: 16,
   },
   progress: {
@@ -172,7 +171,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     backgroundColor: colors.card,
   },
   secondaryLabel: {

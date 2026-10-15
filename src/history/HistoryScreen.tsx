@@ -2,12 +2,12 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
-  StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { colors } from '../design/tokens';
+import { useSafeAreaPadding } from '../design/useSafeAreaPadding';
 import type { EngineState } from '../engine';
 import { historyViewModelFor, recordsWithLiveDay } from './historyViewModel';
 import type { DayRowViewModel } from './historyViewModel';
@@ -65,6 +65,8 @@ function keyForRow(row: DayRowViewModel) {
 
 /** History: one row per Day with its count, time, and Tier. Virtualized for long histories. */
 export function HistoryScreen({ state }: { state: EngineState }) {
+  // The bottom bar under this list owns the gesture-bar space (MASTER 8).
+  const screenPadding = useSafeAreaPadding({ top: 24, bottom: 24, horizontal: 16 }, false);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const stored = useStoredDays(limit, state.day);
   const { thresholds } = useSettings();
@@ -85,7 +87,7 @@ export function HistoryScreen({ state }: { state: EngineState }) {
   return (
     <FlatList
       style={styles.list}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, screenPadding]}
       data={vm.rows}
       renderItem={renderRow}
       keyExtractor={keyForRow}
@@ -120,9 +122,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.appBg,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: (StatusBar.currentHeight ?? 0) + 24,
-    paddingBottom: 24,
     gap: 8,
   },
   title: {

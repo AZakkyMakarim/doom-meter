@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { colors } from './src/design/tokens';
+import { useSafeAreaPadding } from './src/design/useSafeAreaPadding';
 import { detectionNative } from './src/detection/detectionBridge';
 import { debugClock, getDetectionRunner, whenRestored } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
@@ -24,6 +25,9 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Settings' },
 ] as const;
 type ScreenKey = (typeof NAV_ITEMS)[number]['key'];
+
+/** The bottom bar sits under the scroll area and handles the bottom inset itself. */
+const SCREEN_PADDING = { top: 24, bottom: 24, horizontal: 16 };
 
 function Button({
   label,
@@ -49,6 +53,9 @@ function Button({
 }
 
 function App() {
+  // Edge to edge: keep content clear of the status bar, cutout and gesture bar (MASTER 8).
+  // The bottom bar below the scroll area owns the bottom inset, so only the sides and top here.
+  const screenPadding = useSafeAreaPadding(SCREEN_PADDING, false);
   const runner = getDetectionRunner();
   const simulator = useRef(createSimulator(runner, debugClock)).current;
   // Settings are applied to the engine and the pill by the detection runtime; this only shows them.
@@ -141,7 +148,7 @@ function App() {
 
   return (
     <View style={styles.root}>
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, screenPadding]}>
       <StatusBar barStyle="light-content" />
       {banner !== null && <PermissionBanner banner={banner} onFix={permissions.openSettings} />}
       {screen === 'settings' ? (
@@ -227,9 +234,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.appBg,
   },
   container: {
-    paddingHorizontal: 16,
-    paddingTop: (StatusBar.currentHeight ?? 0) + 24,
-    paddingBottom: 48,
     gap: 16,
   },
   sectionTitle: {
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     backgroundColor: colors.card,
   },
   buttonPressed: {
