@@ -45,19 +45,29 @@ export interface PillViewModel {
   compact: boolean;
   /** How far the pill may be dragged down from its top-edge anchor, in dp. */
   dragRangeDp: number;
+  /** Where the pill sits below its top-edge anchor, in dp (the Settings position). */
+  positionDp: number;
   /** The expanded panel opened by tapping the pill (MASTER 6.2). */
   panel: PanelViewModel;
 }
 
 export interface PillOptions {
   compact?: boolean;
+  /** Haptic on entering a higher Tier. Default true. */
+  haptics?: boolean;
+  /** Position below the top-edge anchor in dp. Default 0. */
+  positionDp?: number;
 }
 
 /**
- * User preferences the presenter applies when a caller passes no options. The Settings
- * screen switches compact mode here, so the detection runner needs no change.
+ * User preferences the presenter applies when a caller passes no options. Settings
+ * writes them here, so the detection runner needs no change.
  */
-const pillPreferences: PillOptions = { compact: false };
+const pillPreferences: PillOptions = { compact: false, haptics: true, positionDp: 0 };
+
+export function setPillPreferences(preferences: PillOptions): void {
+  Object.assign(pillPreferences, preferences);
+}
 
 export function setCompactMode(compact: boolean): void {
   pillPreferences.compact = compact;
@@ -68,7 +78,8 @@ export function isCompactMode(): boolean {
 }
 
 /** The pill hugs the top edge: dragging moves it vertically within this band (MASTER 6.1). */
-const DRAG_RANGE_DP = 160;
+export const PILL_DRAG_RANGE_DP = 160;
+const DRAG_RANGE_DP = PILL_DRAG_RANGE_DP;
 
 interface TierStyle {
   label: string;
@@ -173,6 +184,7 @@ export function pillViewModelFor(
     haptic: 'none',
     compact: options.compact ?? false,
     dragRangeDp: DRAG_RANGE_DP,
+    positionDp: Math.min(DRAG_RANGE_DP, Math.max(0, options.positionDp ?? 0)),
     panel: panelViewModelFor(state),
   };
 }
@@ -184,11 +196,12 @@ export function pillViewModelFor(
 export function createPillPresenter(): (state: EngineState, options?: PillOptions) => PillViewModel {
   let previous: Tier | null = null;
   return (state, options) => {
-    const pill = pillViewModelFor(state, options ?? pillPreferences);
+    const applied = options ?? pillPreferences;
+    const pill = pillViewModelFor(state, applied);
     if (previous !== null && pill.tier !== previous) {
       const increased = pill.tier > previous;
       pill.tierChange = increased ? 'increase' : 'decrease';
-      pill.haptic = increased ? TIER_STYLES[pill.tier].haptic : 'none';
+      pill.haptic = increased && applied.haptics !== false ? TIER_STYLES[pill.tier].haptic : 'none';
     }
     previous = pill.tier;
     return pill;

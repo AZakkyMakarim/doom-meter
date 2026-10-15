@@ -4,9 +4,34 @@ import { colors } from './src/design/tokens';
 import { detectionNative } from './src/detection/detectionBridge';
 import { debugClock, getDetectionRunner, whenRestored } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
-import { isCompactMode, pillViewModelFor, setCompactMode } from './src/overlay/pillViewModel';
+import { pillViewModelFor } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
+import { settingsStore } from './src/settings/deviceSettings';
+import { SettingsScreen } from './src/settings/SettingsScreen';
 import { TodayScreen } from './src/today/TodayScreen';
+
+type Tab = 'today' | 'settings';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: 'settings', label: 'Settings' },
+];
+
+function TabBar({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
+  return (
+    <View style={styles.tabBar} accessibilityRole="tablist">
+      {TABS.map(({ id, label }) => (
+        <Pressable
+          key={id}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tab === id }}
+          onPress={() => onChange(id)}
+          style={styles.tab}>
+          <Text style={[styles.tabLabel, tab === id && styles.tabLabelActive]}>{label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 function Button({
   label,
@@ -34,11 +59,18 @@ function Button({
 function App() {
   const runner = getDetectionRunner();
   const simulator = useRef(createSimulator(runner, debugClock)).current;
-  const [enabled, setEnabled] = useState(true);
+  const [tab, setTab] = useState<Tab>('today');
+  // Settings are applied to the engine and the pill by the detection runtime; this only shows them.
+  const [settings, setSettings] = useState(() => settingsStore.get());
+  const enabled = settings.overlayEnabled;
   const [permitted, setPermitted] = useState(false);
   const [accessible, setAccessible] = useState(false);
-  const [compact, setCompact] = useState(isCompactMode);
   const [state, setState] = useState(() => runner.getState());
+
+  useEffect(() => {
+    setSettings(settingsStore.get());
+    return settingsStore.subscribe(setSettings);
+  }, []);
 
   const refreshPermissions = useCallback(async () => {
     setPermitted(await overlay.hasPermission());
@@ -66,23 +98,37 @@ function App() {
 
   const toggleOverlay = () => {
     if (!enabled && !permitted) overlay.requestPermission();
-    runner.setPillEnabled(!enabled);
-    setEnabled(!enabled);
+    settingsStore.update({ overlayEnabled: !enabled });
   };
 
   // The empty-state call to action only ever switches the overlay on.
   const enableOverlay = () => {
     if (!permitted) overlay.requestPermission();
-    runner.setPillEnabled(true);
-    setEnabled(true);
+    settingsStore.update({ overlayEnabled: true });
+  };
+
+  const fixPermission = (id: 'overlay' | 'accessibility') => {
+    if (id === 'overlay') overlay.requestPermission();
+    else detectionNative.openAccessibilitySettings();
   };
 
   const pill = pillViewModelFor(state);
   const showing = enabled && permitted;
 
   return (
+    <View style={styles.root}>
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <StatusBar barStyle="light-content" />
+      {tab === 'settings' ? (
+        <SettingsScreen
+          settings={settings}
+          onUpdate={(patch) => settingsStore.update(patch)}
+          overlayGranted={permitted}
+          accessibilityOn={accessible}
+          onFixPermission={fixPermission}
+        />
+      ) : (
+        <>
       <TodayScreen state={state} overlayActive={showing} onEnableOverlay={enableOverlay} />
 
       <Text style={styles.sectionTitle}>Setup</Text>
@@ -132,20 +178,40 @@ function App() {
       <View style={styles.row}>
         <Button label="End simulated session" onPress={() => simulator.stop()} />
       </View>
-      <View style={styles.row}>
-        <Button
-          label={compact ? 'Compact pill: on' : 'Compact pill: off'}
-          onPress={() => {
-            setCompactMode(!compact);
-            setCompact(!compact);
-          }}
-        />
-      </View>
+        </>
+      )}
     </ScrollView>
+    <TabBar tab={tab} onChange={setTab} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.appBg,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  tab: {
+    flex: 1,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    color: colors.textMuted,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    color: colors.text,
+    fontWeight: '700',
+  },
   scroll: {
     flex: 1,
     backgroundColor: colors.appBg,

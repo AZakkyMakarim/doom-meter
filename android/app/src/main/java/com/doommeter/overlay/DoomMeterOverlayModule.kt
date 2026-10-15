@@ -10,6 +10,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
  * Thin JS bridge for the Overlay pill. JavaScript owns every rule (the Counting engine and the
@@ -19,7 +20,16 @@ class DoomMeterOverlayModule(private val reactContext: ReactApplicationContext) 
     ReactContextBaseJavaModule(reactContext) {
 
     private val main = Handler(Looper.getMainLooper())
-    private val pill = OverlayPill(reactContext.applicationContext)
+    private val pill =
+        OverlayPill(reactContext.applicationContext) { positionDp -> emitMoved(positionDp) }
+
+    /** Tells JavaScript where a finished drag left the pill, so it can save the position. */
+    private fun emitMoved(positionDp: Float) {
+        if (!reactContext.hasActiveReactInstance()) return
+        reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit(MOVED_EVENT, positionDp.toDouble())
+    }
 
     override fun getName(): String = NAME
 
@@ -63,5 +73,6 @@ class DoomMeterOverlayModule(private val reactContext: ReactApplicationContext) 
 
     companion object {
         const val NAME = "DoomMeterOverlay"
+        const val MOVED_EVENT = "DoomMeterPillMoved"
     }
 }
