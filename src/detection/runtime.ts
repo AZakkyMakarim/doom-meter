@@ -74,17 +74,24 @@ export function startDetection(): void {
   overlay.onMoved((dp) => {
     settingsStore.update({ positionDp: positionFromDrag(dp) });
   });
-  // The saved rollover hour must be in force before the current Day is looked up.
-  // Events that arrive before the saved counts are loaded are added on top of them.
+  active.subscribe(() => recorder.observe(active.getState(), active.activePlatform() === null));
+  AppState.addEventListener('change', (next) => {
+    if (next !== 'active') recorder.flush();
+  });
+  // The saved rollover hour must be in force before any event is counted or the current Day
+  // is looked up, so detection is only switched on after settings and saved counts are back.
+  // Native buffers raw events until `ready()`, so nothing is lost while this runs.
   restored = settingsStore
     .load()
     .catch(() => undefined)
     .then(() => recorder.restoreInto(engine, debugClock.now()))
     .catch(() => undefined);
-  active.subscribe(() => recorder.observe(active.getState(), active.activePlatform() === null));
-  AppState.addEventListener('change', (next) => {
-    if (next !== 'active') recorder.flush();
-  });
+  restored.then(startFeeds);
+}
+
+/** Starts feeding native events and UsageStats polls into the engine. */
+function startFeeds(): void {
+  const active = getDetectionRunner();
   DeviceEventEmitter.addListener(RAW_EVENT_NAME, (json: unknown) => {
     if (typeof json !== 'string') return;
     const event = parseRawEvent(json);

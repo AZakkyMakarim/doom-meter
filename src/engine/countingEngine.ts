@@ -311,16 +311,36 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
 
   /** Add the counts saved for a Day back in after a process restart. */
   function restore(counts: DaySnapshot) {
+    // Whether live counts already overlap the saved ones: events were counted under a Day
+    // label chosen before the configured rollover hour was known, and the recorder may
+    // already have saved those, so adding would count them twice.
+    let overlapping = false;
     if (window === null) {
       window = { key: counts.day, end: dayEndFor(counts.day, rolloverHour) };
     } else if (window.key !== counts.day) {
-      return;
+      const effective = dayWindowAt(Math.max(clock.now(), lastAt), rolloverHour);
+      if (effective.key !== counts.day) return;
+      // The window carries a stale label: the saved Day is the current Day under the
+      // configured rollover hour. Relabel it instead of dropping the saved counts.
+      window = effective;
+      overlapping = true;
     }
     for (const platform of PLATFORMS) {
       const saved = counts.platforms[platform];
       if (!saved) continue;
-      platforms[platform].watchedVideos += validCount(saved.watchedVideos);
-      platforms[platform].watchTimeMs += validTime(saved.watchTimeMs);
+      if (overlapping) {
+        platforms[platform].watchedVideos = Math.max(
+          platforms[platform].watchedVideos,
+          validCount(saved.watchedVideos),
+        );
+        platforms[platform].watchTimeMs = Math.max(
+          platforms[platform].watchTimeMs,
+          validTime(saved.watchTimeMs),
+        );
+      } else {
+        platforms[platform].watchedVideos += validCount(saved.watchedVideos);
+        platforms[platform].watchTimeMs += validTime(saved.watchTimeMs);
+      }
       // A saved "complete" never clears a failure seen live; a saved "incomplete" sticks.
       if (saved.incomplete === true) platforms[platform].incomplete = true;
     }
