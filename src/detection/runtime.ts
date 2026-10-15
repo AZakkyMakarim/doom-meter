@@ -1,7 +1,11 @@
 import { AppState, DeviceEventEmitter } from 'react-native';
 import { createCountingEngine } from '../engine';
 import { overlay } from '../overlay/overlayBridge';
+import { setPillPreferences } from '../overlay/pillViewModel';
 import { createSkewClock } from '../overlay/simulator';
+import { applySettings } from '../settings/applySettings';
+import { settingsStore } from '../settings/deviceSettings';
+import { positionFromDrag } from '../settings/settings';
 import { createDayRecorder } from '../storage';
 import { dayStore } from '../storage/deviceDayStore';
 import { detectionNative, RAW_EVENT_NAME } from './detectionBridge';
@@ -41,8 +45,26 @@ export function startDetection(): void {
   if (started) return;
   started = true;
   const active = getDetectionRunner();
+  // Settings reach the engine, the pill and the recorder at startup and on every change.
+  settingsStore.subscribe((settings) =>
+    applySettings(settings, {
+      engine,
+      runner: active,
+      setPillPreferences,
+      setRecorderRolloverHour: recorder.setRolloverHour,
+    }),
+  );
+  // Dragging the pill saves its new position, so the Settings control stays in step.
+  overlay.onMoved((dp) => {
+    settingsStore.update({ positionDp: positionFromDrag(dp) });
+  });
+  // The saved rollover hour must be in force before the current Day is looked up.
   // Events that arrive before the saved counts are loaded are added on top of them.
-  restored = recorder.restoreInto(engine, debugClock.now()).catch(() => undefined);
+  restored = settingsStore
+    .load()
+    .catch(() => undefined)
+    .then(() => recorder.restoreInto(engine, debugClock.now()))
+    .catch(() => undefined);
   active.subscribe(() => recorder.observe(active.getState(), active.activePlatform() === null));
   AppState.addEventListener('change', (next) => {
     if (next !== 'active') recorder.flush();
