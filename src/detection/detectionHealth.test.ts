@@ -1,8 +1,6 @@
 ﻿import type { EngineEvent } from '../engine';
-import { SILENT_AFTER_MS, createDetectionHealthMonitor } from './detectionHealth';
+import { createDetectionHealthMonitor } from './detectionHealth';
 import type { HealthInput } from './detectionHealth';
-
-const MIN = 60_000;
 
 function setup() {
   const monitor = createDetectionHealthMonitor();
