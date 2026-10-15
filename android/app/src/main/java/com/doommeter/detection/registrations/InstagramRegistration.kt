@@ -1,11 +1,9 @@
 package com.doommeter.detection.registrations
 
 import com.doommeter.detection.PlatformAdapter
+import com.doommeter.detection.adapters.InstagramAdapter
 
-/**
- * Registration point for Instagram Reels (doom-meter-v9k.5). Return the adapter instance here,
- * e.g. `InstagramAdapter()`, once it exists in `adapters/`.
- */
+/** Registration point for Instagram Reels (doom-meter-v9k.5). */
 object InstagramRegistration {
-    fun adapter(): PlatformAdapter? = null
+    fun adapter(): PlatformAdapter? = InstagramAdapter()
 }
