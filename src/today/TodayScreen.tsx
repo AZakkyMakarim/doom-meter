@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../design/tokens';
 import { platformColors } from '../design/platformTokens';
 import type { EngineState } from '../engine';
+import { WeekChartCard } from '../history/WeekChartCard';
 import { todayViewModelFor } from './todayViewModel';
 import type { PlatformRowViewModel, TodayViewModel } from './todayViewModel';
 
@@ -119,6 +120,7 @@ export function TodayScreen({ state, overlayActive, onEnableOverlay }: TodayScre
           </View>
         </>
       )}
+      <WeekChartCard state={state} />
     </View>
   );
 }
