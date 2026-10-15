@@ -144,7 +144,7 @@ Same top anchor, grows downward (spring, 220ms). Contains:
 1. Mood avatar (96) + tier name large (`display`) in tier color.
 2. Total count and total time.
 3. Breakdown rows per platform: platform chip · count · time · proportion bar (bar has numeric label, not color-only).
-4. Session context: "since 06:12" · "Reset session" (secondary button).
+4. Day context: "today" (the Day rolls over at 04:00 local time, configurable). No manual reset; see `CONTEXT.md` → Day.
 5. Close affordance (explicit close button, not only swipe).
 
 ### 6.3 Tier Transition
