@@ -1,7 +1,7 @@
-# Deteksi lewat AccessibilityService
+# Detection via AccessibilityService
 
-Tidak ada API resmi dari Instagram, YouTube, atau TikTok untuk mengetahui video yang ditonton. Kami memakai AccessibilityService untuk membaca event UI dan menurunkan Watched video dan Short-form surface aktif. UsageStats hanya dipakai sebagai fallback Watch time bila deteksi gagal.
+Instagram, YouTube, and TikTok offer no official API to learn which video is being watched. We use an AccessibilityService to read UI events and derive Watched videos and the active Short-form surface. UsageStats is used only as a Watch time fallback when detection fails.
 
-Trade-off yang diterima: izin sangat sensitif, Google Play membatasi penggunaan AccessibilityService, dan selektor UI bisa rusak setiap aplikasi target update. Karena itu hanya agregat yang disimpan (tanpa konten atau judul video), data tidak pernah meninggalkan device, dan hari dengan deteksi gagal ditandai "tidak lengkap" di History.
+Accepted trade-offs: the permission is highly sensitive, Google Play restricts AccessibilityService use, and UI selectors can break whenever a target app updates. To limit the exposure, only aggregates are stored (no content or video titles), no data ever leaves the device, and days with failed detection are marked "incomplete" in History.
 
-Alternatif ditolak: input manual (tidak masuk akal untuk produk ini) dan UsageStats saja (tidak bisa menghitung jumlah video).
+Rejected alternatives: manual input (makes no sense for this product) and UsageStats alone (cannot count videos).

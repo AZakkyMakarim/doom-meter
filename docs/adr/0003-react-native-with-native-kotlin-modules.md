@@ -1,5 +1,5 @@
-# React Native untuk UI, modul Kotlin untuk overlay dan deteksi
+# React Native for UI, native Kotlin modules for overlay and detection
 
-Layar dalam aplikasi (Today, History, Settings) ditulis dengan React Native. Overlay pill (di atas `WindowManager`) dan AccessibilityService ditulis native Kotlin, karena keduanya tidak bisa dijalankan dari lapisan JS.
+The in-app screens (Today, History, Settings) are written in React Native. The Overlay pill (on top of `WindowManager`) and the AccessibilityService are written in native Kotlin, since neither can run from the JS layer.
 
-Trade-off yang diterima: satu lapisan jembatan tambahan untuk Android-only, sebagai ganti ekosistem font, ikon (Phosphor), dan chart JS serta pintu terbuka bila platform lain dipertimbangkan kelak (lihat 0001). Alternatif yang ditimbang: Kotlin + Compose penuh, dan Flutter.
+Accepted trade-off: an extra bridge layer for an Android-only app, in exchange for the JS ecosystem for fonts, icons (Phosphor), and charts, and an open door should other platforms be considered later (see 0001). Alternatives weighed: full Kotlin + Compose, and Flutter.

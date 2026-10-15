@@ -1,3 +1,3 @@
-# Android saja untuk v1
+# Android only for v1
 
-iOS tidak mengizinkan aplikasi menggambar di atas aplikasi lain dan tidak mengizinkan aplikasi pihak ketiga mengamati apa yang sedang ditonton di aplikasi lain. Inti produk (Overlay pill di atas Instagram, YouTube, TikTok, plus deteksi video) hanya mungkin di Android, jadi v1 hanya Android. iOS akan menjadi produk berbeda dengan fitur jauh terbatas (Live Activity tanpa deteksi otomatis) dan tidak direncanakan.
+iOS does not allow apps to draw over other apps, and does not let third-party apps observe what is being watched in another app. The core of the product (the Overlay pill over Instagram, YouTube, and TikTok, plus video detection) is only possible on Android, so v1 is Android only. iOS would be a fundamentally different product with far fewer features (a Live Activity without automatic detection) and is not planned.
