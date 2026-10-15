@@ -27,7 +27,14 @@ export type EngineEvent =
   /** Video detection for a Platform is responding again. */
   | { type: 'detectionHealthy'; platform: Platform; at?: number }
   /** Video detection for a Platform stopped responding. */
-  | { type: 'detectionFailed'; platform: Platform; at?: number };
+  | { type: 'detectionFailed'; platform: Platform; at?: number }
+  /**
+   * UsageStats says the Platform's app came to the foreground. Counts as Watch time only
+   * while detection for that Platform is failed; never as a Watched video.
+   */
+  | { type: 'usageForegroundStarted'; platform: Platform; at?: number }
+  /** UsageStats says the Platform's app left the foreground. */
+  | { type: 'usageForegroundEnded'; platform: Platform; at?: number };
 
 export interface PlatformState {
   /** Watched videos: videos that stayed on screen for at least the threshold. */
@@ -35,6 +42,11 @@ export interface PlatformState {
   /** Watch time in milliseconds. */
   watchTimeMs: number;
   detectionHealthy: boolean;
+  /**
+   * Detection failed for this Platform at some point in the Day, so counts may be low.
+   * Sticky for the Day; a new Day starts incomplete only if detection is still down.
+   */
+  incomplete: boolean;
 }
 
 export interface Totals {
@@ -73,7 +85,10 @@ export interface DaySummary {
 /** The counts saved for a Day, used to pick the Day back up after the process restarts. */
 export interface DaySnapshot {
   day: string;
-  platforms: Record<Platform, Pick<PlatformState, 'watchedVideos' | 'watchTimeMs'>>;
+  platforms: Record<
+    Platform,
+    Pick<PlatformState, 'watchedVideos' | 'watchTimeMs'> & { incomplete?: boolean }
+  >;
 }
 
 export interface EngineConfig {

@@ -1,5 +1,8 @@
 import { createCountingEngine } from '../engine';
 import type { Clock, CountingEngine, EngineEvent, EngineState, Platform } from '../engine';
+import { createDetectionHealthMonitor } from './detectionHealth';
+import type { HealthInput } from './detectionHealth';
+import type { RawDetectionEvent } from './rawEvent';
 import { createPillPresenter } from '../overlay/pillViewModel';
 import type { PillViewModel } from '../overlay/pillViewModel';
 
@@ -20,7 +23,9 @@ export interface DetectionRunnerOptions {
 
 export interface DetectionRunner {
   /** Feed one raw event from a detection adapter (or the debug simulator). */
-  handle(event: EngineEvent): void;
+  handle(event: RawDetectionEvent): void;
+  /** Let time pass for the detection health rules; call every so often. */
+  tick(): void;
   getState(): EngineState;
   /** The Platform whose Short-form surface is active in the foreground, if any. */
   activePlatform(): Platform | null;
@@ -45,6 +50,7 @@ export function createDetectionRunner(options: DetectionRunnerOptions): Detectio
   const tickMs = options.tickMs ?? DEFAULT_TICK_MS;
   const engine = options.engine ?? createCountingEngine({ clock });
   const listeners = new Set<() => void>();
+  const health = createDetectionHealthMonitor();
 
   let presenter = createPillPresenter();
   let active: Platform | null = null;
@@ -86,8 +92,18 @@ export function createDetectionRunner(options: DetectionRunnerOptions): Detectio
   }
 
   return {
-    handle(event) {
-      engine.handle(event);
+    tick() {
+      health.tick(clock.now()).forEach((derived: EngineEvent) => engine.handle(derived));
+      refresh();
+    },
+    handle(raw) {
+      const event = { ...raw, at: raw.at ?? clock.now() } as HealthInput;
+      // Facts about the Accessibility service are for the health rules only.
+      if (event.type !== 'accessibilityConnected' && event.type !== 'accessibilityDisconnected') {
+        engine.handle(event);
+      }
+      // The health rules may decide detection failed or recovered; the engine owns what that means.
+      health.observe(event).forEach((derived: EngineEvent) => engine.handle(derived));
       switch (event.type) {
         case 'surfaceFocusGained':
           active = event.platform;

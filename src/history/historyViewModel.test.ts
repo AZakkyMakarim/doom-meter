@@ -42,6 +42,7 @@ function engineState(
     watchedVideos: platforms[key]?.[0] ?? 0,
     watchTimeMs: (platforms[key]?.[1] ?? 0) * MIN,
     detectionHealthy: !unhealthy.includes(key),
+    incomplete: unhealthy.includes(key),
   });
   const p = {
     instagram: make('instagram'),

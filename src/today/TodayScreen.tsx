@@ -5,7 +5,11 @@ import type { EngineState } from '../engine';
 import type { NotCountingNotice } from '../permissions/permissionState';
 import { WeekChartCard } from '../history/WeekChartCard';
 import { todayViewModelFor } from './todayViewModel';
-import type { PlatformRowViewModel, TodayViewModel } from './todayViewModel';
+import type {
+  DetectionWarningViewModel,
+  PlatformRowViewModel,
+  TodayViewModel,
+} from './todayViewModel';
 
 /** Mood avatars ship as Android drawables (the overlay uses the same ones). */
 function Avatar({ name, size }: { name: string; size: number }) {
@@ -47,6 +51,22 @@ function PlatformRow({ row }: { row: PlatformRowViewModel }) {
   );
 }
 
+/** Names the Platform whose detection is not responding. Text first, colour second. */
+function DetectionWarning({ warning }: { warning: DetectionWarningViewModel }) {
+  return (
+    <View
+      style={styles.warningCard}
+      accessible
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={warning.accessibilityLabel}>
+      <Text style={styles.warningKicker}>Warning</Text>
+      <Text style={styles.warningTitle}>{warning.title}</Text>
+      <Text style={styles.warningMessage}>{warning.message}</Text>
+    </View>
+  );
+}
+
 function Summary({ vm }: { vm: TodayViewModel }) {
   return (
     <View style={styles.card} accessible accessibilityLabel={vm.summaryLabel}>
@@ -63,6 +83,7 @@ function Summary({ vm }: { vm: TodayViewModel }) {
           <Text style={styles.badgeText}>{vm.tierLabel}</Text>
         </View>
       </View>
+      {vm.incompleteNote !== null && <Text style={styles.warning}>{vm.incompleteNote}</Text>}
     </View>
   );
 }
@@ -102,6 +123,8 @@ export interface TodayScreenProps {
   onEnableOverlay: () => void;
   /** Set while a required permission is off: the empty state says so instead of "nothing watched". */
   notCountingNotice?: NotCountingNotice | null;
+  /** Whether Usage Access is granted, so a detection warning can say what still counts. */
+  usageAccess?: boolean;
 }
 
 /** The home screen: today's count, Watch time, Tier badge, and per-Platform breakdown. */
@@ -110,13 +133,17 @@ export function TodayScreen({
   overlayActive,
   onEnableOverlay,
   notCountingNotice = null,
+  usageAccess = false,
 }: TodayScreenProps) {
-  const vm = todayViewModelFor(state);
+  const vm = todayViewModelFor(state, { usageAccess });
   return (
     <View style={styles.screen}>
       <Text accessibilityRole="header" style={styles.title}>
         Today
       </Text>
+      {vm.warnings.map((warning) => (
+        <DetectionWarning key={warning.platform} warning={warning} />
+      ))}
       {vm.isEmpty ? (
         <EmptyState
           vm={vm}
@@ -273,6 +300,33 @@ const styles = StyleSheet.create({
     color: colors.sev[1],
     fontSize: 13,
     lineHeight: 18,
+  },
+  warningCard: {
+    backgroundColor: colors.card,
+    borderWidth: 2,
+    borderColor: colors.sev[1],
+    borderRadius: 16,
+    padding: 16,
+    gap: 4,
+  },
+  warningKicker: {
+    color: colors.sev[1],
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  warningTitle: {
+    color: colors.text,
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+  },
+  warningMessage: {
+    color: colors.textMuted,
+    fontSize: 16,
+    lineHeight: 24,
   },
   emptyAvatar: {
     alignItems: 'center',

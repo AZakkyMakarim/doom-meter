@@ -39,3 +39,7 @@ _Avoid_: icon, emoji
 **Overlay pill**:
 The small pop-up at the top of the screen showing the **Mood avatar**, **Watched video** count, **Watch time**, and **Tier** label. Shown only while a **Short-form surface** is active in the foreground; hidden otherwise.
 _Avoid_: widget, notification, HUD
+
+**Detection failure**:
+Video detection for a **Platform** has stopped working (see ADR 0005). No new **Watched video** is counted for that **Platform** while it lasts; its **Watch time** keeps rising through UsageStats when Usage Access is granted. The **Day** is marked incomplete for that **Platform** and the app warns, naming it.
+_Avoid_: outage, crash

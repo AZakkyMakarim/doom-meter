@@ -25,5 +25,10 @@ data class RawEvent(
         const val VIDEO_CHANGED = "videoChanged"
         const val SCREEN_ON = "screenOn"
         const val SCREEN_OFF = "screenOff"
+        const val USAGE_FOREGROUND_STARTED = "usageForegroundStarted"
+        const val USAGE_FOREGROUND_ENDED = "usageForegroundEnded"
+        const val ACCESSIBILITY_CONNECTED = "accessibilityConnected"
+        /** The service went away; [platform] is the Platform app in the foreground, if any. */
+        const val ACCESSIBILITY_DISCONNECTED = "accessibilityDisconnected"
     }
 }

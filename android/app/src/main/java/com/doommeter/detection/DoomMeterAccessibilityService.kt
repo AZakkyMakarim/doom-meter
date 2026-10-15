@@ -21,6 +21,7 @@ class DoomMeterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var tracker: SurfaceTracker
     private var evaluationScheduled = false
+    private var disconnectedEmitted = false
 
     private val evaluate = Runnable {
         evaluationScheduled = false
@@ -49,6 +50,10 @@ class DoomMeterAccessibilityService : AccessibilityService() {
                 emit = DetectionHub::emit,
             )
         DetectionHub.ensureReact(application)
+        disconnectedEmitted = false
+        DetectionHub.emit(
+            RawEvent(type = RawEvent.ACCESSIBILITY_CONNECTED, at = System.currentTimeMillis()),
+        )
 
         registerReceiver(
             screenReceiver,
@@ -75,7 +80,31 @@ class DoomMeterAccessibilityService : AccessibilityService() {
         if (::tracker.isInitialized) tracker.reset()
     }
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        // The user switched the service off (or the system stopped it).
+        emitDisconnected()
+        return super.onUnbind(intent)
+    }
+
+    /**
+     * Tells JavaScript the service is gone, naming the Platform app that was in the foreground.
+     * JavaScript decides what that means for the Day; this only reports the fact, once.
+     */
+    private fun emitDisconnected() {
+        if (disconnectedEmitted) return
+        disconnectedEmitted = true
+        val platform = if (::tracker.isInitialized) tracker.foregroundPlatform else null
+        DetectionHub.emit(
+            RawEvent(
+                type = RawEvent.ACCESSIBILITY_DISCONNECTED,
+                platform = platform,
+                at = System.currentTimeMillis(),
+            ),
+        )
+    }
+
     override fun onDestroy() {
+        emitDisconnected()
         handler.removeCallbacks(evaluate)
         if (::tracker.isInitialized) tracker.reset()
         if (receiverRegistered) {
