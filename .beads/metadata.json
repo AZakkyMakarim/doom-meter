@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "doom_meter",
+  "project_id": "65e8598c-4638-4d6f-a909-46d383e0f95c"
+}
