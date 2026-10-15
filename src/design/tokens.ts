@@ -14,5 +14,7 @@ export const colors = {
   action: '#F8FAFC',
   onAction: '#0B0D14',
   focusRing: '#FFFFFF',
+  /** Platform chip colors (MASTER 3); always paired with a label. */
+  platform: { instagram: '#E1306C', youtube: '#FF3D3D', tiktok: '#25F4EE' },
   sev: ['#34D399', '#FACC15', '#FB923C', '#F87171', '#FF4D8D'],
 } as const;

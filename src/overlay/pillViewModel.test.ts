@@ -1,6 +1,11 @@
 import { createCountingEngine } from '../engine';
 import type { EngineState, Tier } from '../engine';
-import { createPillPresenter, pillViewModelFor } from './pillViewModel';
+import {
+  createPillPresenter,
+  isCompactMode,
+  pillViewModelFor,
+  setCompactMode,
+} from './pillViewModel';
 
 const MIN = 60_000;
 const TIER_VIDEOS = [0, 10, 30, 60, 120];
@@ -153,5 +158,44 @@ describe('createPillPresenter (what changed since the last update)', () => {
     const pill = present(stateAtTier(0));
     expect(pill.tierChange).toBe('decrease');
     expect(pill.haptic).toBe('none');
+  });
+});
+
+describe('compact mode and panel (MASTER 6.1, 6.2)', () => {
+  it('is the full pill by default', () => {
+    expect(pillViewModelFor(stateAtTier(1)).compact).toBe(false);
+  });
+
+  it('keeps the same numbers and screen reader label in compact mode', () => {
+    const full = pillViewModelFor(stateAtTier(2));
+    const compact = pillViewModelFor(stateAtTier(2), { compact: true });
+    expect(compact.compact).toBe(true);
+    expect(compact.countText).toBe(full.countText);
+    expect(compact.contentDescription).toBe(full.contentDescription);
+  });
+
+  it('carries the panel and the drag range so native holds no rules', () => {
+    const pill = pillViewModelFor(stateAtTier(3));
+    expect(pill.panel.tierName).toBe('Cooked');
+    expect(pill.dragRangeDp).toBeGreaterThan(0);
+  });
+
+  it('the presenter follows the compact option on every update', () => {
+    const present = createPillPresenter();
+    expect(present(stateAtTier(0), { compact: true }).compact).toBe(true);
+    expect(present(stateAtTier(0)).compact).toBe(false);
+  });
+
+  describe('compact preference', () => {
+    afterEach(() => setCompactMode(false));
+
+    it('applies to the presenter when no options are passed', () => {
+      const present = createPillPresenter();
+      setCompactMode(true);
+      expect(isCompactMode()).toBe(true);
+      expect(present(stateAtTier(0)).compact).toBe(true);
+      setCompactMode(false);
+      expect(present(stateAtTier(0)).compact).toBe(false);
+    });
   });
 });

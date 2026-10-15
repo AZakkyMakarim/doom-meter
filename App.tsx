@@ -4,7 +4,7 @@ import { colors } from './src/design/tokens';
 import { detectionNative } from './src/detection/detectionBridge';
 import { debugClock, getDetectionRunner } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
-import { pillViewModelFor } from './src/overlay/pillViewModel';
+import { isCompactMode, pillViewModelFor, setCompactMode } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
 
 function Button({
@@ -36,6 +36,7 @@ function App() {
   const [enabled, setEnabled] = useState(true);
   const [permitted, setPermitted] = useState(false);
   const [accessible, setAccessible] = useState(false);
+  const [compact, setCompact] = useState(isCompactMode);
   const [state, setState] = useState(() => runner.getState());
 
   const refreshPermissions = useCallback(async () => {
@@ -115,6 +116,15 @@ function App() {
       </View>
       <View style={styles.row}>
         <Button label="End simulated session" onPress={() => simulator.stop()} />
+      </View>
+      <View style={styles.row}>
+        <Button
+          label={compact ? 'Compact pill: on' : 'Compact pill: off'}
+          onPress={() => {
+            setCompactMode(!compact);
+            setCompact(!compact);
+          }}
+        />
       </View>
     </View>
   );
