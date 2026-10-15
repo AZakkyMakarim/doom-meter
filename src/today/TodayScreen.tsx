@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../design/tokens';
 import { platformColors } from '../design/platformTokens';
 import type { EngineState } from '../engine';
+import type { NotCountingNotice } from '../permissions/permissionState';
 import { todayViewModelFor } from './todayViewModel';
 import type { PlatformRowViewModel, TodayViewModel } from './todayViewModel';
 
@@ -68,17 +69,19 @@ function Summary({ vm }: { vm: TodayViewModel }) {
 function EmptyState({
   vm,
   onEnableOverlay,
+  notice,
 }: {
   vm: TodayViewModel;
   onEnableOverlay: (() => void) | null;
+  notice: NotCountingNotice | null;
 }) {
   return (
     <View style={styles.card}>
       <View style={styles.emptyAvatar}>
         <Avatar name={vm.avatar} size={96} />
       </View>
-      <Text style={styles.emptyTitle}>No data yet</Text>
-      <Text style={styles.body}>{vm.emptyMessage}</Text>
+      <Text style={styles.emptyTitle}>{notice?.title ?? 'No data yet'}</Text>
+      <Text style={styles.body}>{notice?.message ?? vm.emptyMessage}</Text>
       {onEnableOverlay !== null && (
         <Pressable
           accessibilityRole="button"
@@ -96,10 +99,17 @@ export interface TodayScreenProps {
   /** Whether the Overlay pill is switched on and permitted; the empty-state CTA hides when it is. */
   overlayActive: boolean;
   onEnableOverlay: () => void;
+  /** Set while a required permission is off: the empty state says so instead of "nothing watched". */
+  notCountingNotice?: NotCountingNotice | null;
 }
 
 /** The home screen: today's count, Watch time, Tier badge, and per-Platform breakdown. */
-export function TodayScreen({ state, overlayActive, onEnableOverlay }: TodayScreenProps) {
+export function TodayScreen({
+  state,
+  overlayActive,
+  onEnableOverlay,
+  notCountingNotice = null,
+}: TodayScreenProps) {
   const vm = todayViewModelFor(state);
   return (
     <View style={styles.screen}>
@@ -107,7 +117,11 @@ export function TodayScreen({ state, overlayActive, onEnableOverlay }: TodayScre
         Today
       </Text>
       {vm.isEmpty ? (
-        <EmptyState vm={vm} onEnableOverlay={overlayActive ? null : onEnableOverlay} />
+        <EmptyState
+          vm={vm}
+          onEnableOverlay={overlayActive || notCountingNotice !== null ? null : onEnableOverlay}
+          notice={notCountingNotice}
+        />
       ) : (
         <>
           <Summary vm={vm} />

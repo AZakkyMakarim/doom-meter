@@ -7,6 +7,12 @@ import { overlay } from './src/overlay/overlayBridge';
 import { isCompactMode, pillViewModelFor, setCompactMode } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
 import { TodayScreen } from './src/today/TodayScreen';
+import { OnboardingScreen } from './src/onboarding/OnboardingScreen';
+import { useOnboardingGate } from './src/onboarding/useOnboardingGate';
+import { PermissionBanner } from './src/permissions/PermissionBanner';
+import { permissions } from './src/permissions/permissionsBridge';
+import { isCounting, notCountingNotice, permissionBanner } from './src/permissions/permissionState';
+import { usePermissionStatus } from './src/permissions/usePermissionStatus';
 
 function Button({
   label,
@@ -64,6 +70,15 @@ function App() {
     whenRestored().then(() => setState(runner.getState()));
   }, [runner]);
 
+  // First-run gate and permission banner (re-checked whenever the app returns to the foreground).
+  const permissionStatus = usePermissionStatus();
+  const { gate, complete: completeOnboarding } = useOnboardingGate();
+  const banner = permissionBanner(permissionStatus);
+  useEffect(() => {
+    // A revoked required permission removes the pill; the banner says why.
+    if (permissionStatus && !isCounting(permissionStatus)) overlay.hide();
+  }, [permissionStatus]);
+
   const toggleOverlay = () => {
     if (!enabled && !permitted) overlay.requestPermission();
     runner.setPillEnabled(!enabled);
@@ -80,10 +95,27 @@ function App() {
   const pill = pillViewModelFor(state);
   const showing = enabled && permitted;
 
+  if (gate === 'loading') return <View style={styles.scroll} />;
+  if (gate === 'onboarding') {
+    return (
+      <OnboardingScreen
+        status={permissionStatus}
+        onOpenSettings={permissions.openSettings}
+        onFinish={completeOnboarding}
+      />
+    );
+  }
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <StatusBar barStyle="light-content" />
-      <TodayScreen state={state} overlayActive={showing} onEnableOverlay={enableOverlay} />
+      {banner !== null && <PermissionBanner banner={banner} onFix={permissions.openSettings} />}
+      <TodayScreen
+        state={state}
+        overlayActive={showing}
+        onEnableOverlay={enableOverlay}
+        notCountingNotice={notCountingNotice(permissionStatus)}
+      />
 
       <Text style={styles.sectionTitle}>Setup</Text>
 
