@@ -9,18 +9,25 @@ import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
+import android.view.ViewPropertyAnimator
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -49,11 +56,25 @@ class OverlayPill(context: Context) {
     private var pulseAnimator: ObjectAnimator? = null
     private var lastPulseMs: Long? = null
     private var lastAvatar: String? = null
+    private var panelView: ExpandedPanel? = null
+    private var expanded = false
+    private var swapAnimator: ViewPropertyAnimator? = null
+
+    /** Vertical drag from the top-edge anchor. In memory only; saving it is a later ticket. */
+    private var dragOffsetPx = 0
+    private var dragRangePx = 0
+    private var downRawY = 0f
+    private var downOffset = 0
+    private var dragging = false
+    private val touchSlop = ViewConfiguration.get(appContext).scaledTouchSlop
 
     private val configCallbacks =
         object : ComponentCallbacks {
             override fun onConfigurationChanged(newConfig: Configuration) {
-                root?.post { positionWindow() }
+                root?.post {
+                    positionWindow()
+                    panelView?.applySizing()
+                }
             }
 
             override fun onLowMemory() = Unit
@@ -61,6 +82,7 @@ class OverlayPill(context: Context) {
 
     private class Views(
         val pill: PillLayout,
+        val pillHost: FrameLayout,
         val background: GradientDrawable,
         val avatarHolder: FrameLayout,
         val avatar: ImageView,
@@ -83,6 +105,9 @@ class OverlayPill(context: Context) {
         if (firstDraw && !attach()) return
         val v = views ?: return
         apply(model, v, animate = !firstDraw)
+        dragRangePx = dp(model.dragRangeDp)
+        dragOffsetPx = dragOffsetPx.coerceIn(0, dragRangePx)
+        panelView?.update(model, animate = !firstDraw && !reducedMotion())
         if (!firstDraw && model.tierChange != "none") {
             root?.announceForAccessibility(model.tierAnnouncement)
         }
@@ -97,6 +122,10 @@ class OverlayPill(context: Context) {
         pulseAnimator = null
         lastPulseMs = null
         lastAvatar = null
+        swapAnimator?.cancel()
+        swapAnimator = null
+        expanded = false
+        panelView = null
         val r = root ?: return
         root = null
         views = null
@@ -145,14 +174,18 @@ class OverlayPill(context: Context) {
         pill.addView(label, gap(12))
         pill.collapsible = unit
 
-        val container = FrameLayout(appContext)
-        container.minimumHeight = dp(MIN_TOUCH_TARGET_DP)
-        container.addView(
+        // The hit area is at least 48dp, larger than the drawn pill (MASTER 6.1).
+        val pillHost = FrameLayout(appContext)
+        pillHost.minimumHeight = dp(MIN_TOUCH_TARGET_DP)
+        pillHost.minimumWidth = dp(MIN_TOUCH_TARGET_DP)
+        pillHost.addView(
             pill,
             FrameLayout.LayoutParams(-2, -2, Gravity.CENTER),
         )
-        container.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
-        container.accessibilityDelegate =
+        pillHost.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        pillHost.setOnClickListener { setExpanded(true, animate = true) }
+        pillHost.setOnTouchListener(::onPillTouch)
+        pillHost.accessibilityDelegate =
             object : View.AccessibilityDelegate() {
                 override fun onInitializeAccessibilityNodeInfo(
                     host: View,
@@ -160,8 +193,36 @@ class OverlayPill(context: Context) {
                 ) {
                     super.onInitializeAccessibilityNodeInfo(host, info)
                     info.className = "android.widget.Button"
+                    info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        info.stateDescription = "Collapsed"
+                    }
+                }
+
+                override fun performAccessibilityAction(
+                    host: View,
+                    action: Int,
+                    args: Bundle?,
+                ): Boolean {
+                    if (action == AccessibilityNodeInfo.ACTION_EXPAND) {
+                        setExpanded(true, animate = true)
+                        return true
+                    }
+                    return super.performAccessibilityAction(host, action, args)
                 }
             }
+
+        val panel = ExpandedPanel(appContext, monoBold, monoMedium) {
+            setExpanded(false, animate = true)
+        }
+        panel.view.visibility = View.GONE
+
+        val container = FrameLayout(appContext)
+        container.addView(pillHost, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_HORIZONTAL))
+        container.addView(
+            panel.view,
+            FrameLayout.LayoutParams(dp(360f), -2, Gravity.CENTER_HORIZONTAL),
+        )
 
         val lp =
             WindowManager.LayoutParams(
@@ -178,7 +239,7 @@ class OverlayPill(context: Context) {
                     layoutInDisplayCutoutMode =
                         WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 }
-                y = topInsetPx() + dp(8f)
+                y = topInsetPx() + dp(8f) + dragOffsetPx
             }
 
         try {
@@ -190,7 +251,9 @@ class OverlayPill(context: Context) {
         }
         root = container
         params = lp
-        views = Views(pill, background, avatarHolder, avatar, count, unit, dot, time, label)
+        views = Views(pill, pillHost, background, avatarHolder, avatar, count, unit, dot, time, label)
+        panelView = panel
+        expanded = false
         appContext.registerComponentCallbacks(configCallbacks)
         return true
     }
@@ -212,7 +275,16 @@ class OverlayPill(context: Context) {
         v.time.text = model.timeText
         v.unit.text = model.unitText
         v.background.setColor(model.surfaceColor)
-        root?.contentDescription = model.contentDescription
+        v.pillHost.contentDescription = model.contentDescription
+
+        // Compact mode: the avatar and count only (MASTER 6.1). The count keeps its size.
+        val extras = if (model.compact) View.GONE else View.VISIBLE
+        v.dot.visibility = extras
+        v.time.visibility = extras
+        v.label.visibility = extras
+        v.pill.compact = model.compact
+        if (model.compact) v.unit.visibility = View.GONE
+        v.pill.setPadding(dp(if (model.compact) 12f else 16f), 0, dp(if (model.compact) 12f else 16f), 0)
 
         // Count: a 120ms roll on change (opacity and translate only), nothing for time.
         if (v.count.text.toString() != model.countText) {
@@ -315,10 +387,111 @@ class OverlayPill(context: Context) {
             }
     }
 
+    /**
+     * Swaps the pill for the panel, or back (MASTER 6.2 and 7). Opens with a 220ms spring-like
+     * overshoot, closes in 150ms; transform and opacity only, and every animation is
+     * interruptible. Reduced motion swaps instantly.
+     */
+    private fun setExpanded(open: Boolean, animate: Boolean) {
+        val v = views ?: return
+        val panel = panelView ?: return
+        if (open == expanded) return
+        expanded = open
+        swapAnimator?.cancel()
+        swapAnimator = null
+        val motion = animate && !reducedMotion()
+        val pillHost = v.pillHost
+        val panelRoot = panel.view
+
+        fun settle() {
+            panelRoot.alpha = 1f
+            panelRoot.scaleX = 1f
+            panelRoot.scaleY = 1f
+        }
+
+        if (open) {
+            pillHost.visibility = View.GONE
+            pillHost.alpha = 1f
+            panelRoot.visibility = View.VISIBLE
+            panel.applySizing()
+            panel.announceOpened()
+            settle()
+            if (motion) {
+                panelRoot.pivotX = (panelRoot.layoutParams?.width ?: 0) / 2f
+                panelRoot.pivotY = 0f
+                panelRoot.alpha = 0f
+                panelRoot.scaleX = 0.94f
+                panelRoot.scaleY = 0.85f
+                swapAnimator =
+                    panelRoot.animate()
+                        .alpha(1f)
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(DUR_PANEL_ENTER)
+                        .setInterpolator(OvershootInterpolator(1f))
+                        .withEndAction { swapAnimator = null }
+                        .also { it.start() }
+            }
+        } else {
+            fun finish() {
+                if (expanded) return
+                panelRoot.visibility = View.GONE
+                settle()
+                pillHost.alpha = 1f
+                pillHost.visibility = View.VISIBLE
+                swapAnimator = null
+            }
+            if (motion) {
+                panelRoot.pivotX = (panelRoot.layoutParams?.width ?: 0) / 2f
+                panelRoot.pivotY = 0f
+                swapAnimator =
+                    panelRoot.animate()
+                        .alpha(0f)
+                        .scaleY(0.9f)
+                        .setDuration(DUR_PANEL_EXIT)
+                        .setInterpolator(AccelerateInterpolator())
+                        .withEndAction { finish() }
+                        .also { it.start() }
+            } else {
+                finish()
+            }
+        }
+    }
+
+    /** Tap opens the panel; a vertical drag moves the pill within the top-edge band. */
+    private fun onPillTouch(v: View, ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downRawY = ev.rawY
+                downOffset = dragOffsetPx
+                dragging = false
+                v.alpha = PRESSED_ALPHA
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dy = ev.rawY - downRawY
+                if (!dragging && abs(dy) > touchSlop) dragging = true
+                if (dragging) {
+                    dragOffsetPx = (downOffset + dy.roundToInt()).coerceIn(0, dragRangePx)
+                    positionWindow()
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                v.alpha = 1f
+                if (!dragging) v.performClick()
+                dragging = false
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                v.alpha = 1f
+                dragging = false
+            }
+        }
+        return true
+    }
+
     private fun positionWindow() {
         val lp = params ?: return
         val r = root ?: return
-        lp.y = topInsetPx() + dp(8f)
+        lp.y = topInsetPx() + dp(8f) + dragOffsetPx
         try {
             windowManager.updateViewLayout(r, lp)
         } catch (e: IllegalArgumentException) {
@@ -383,11 +556,14 @@ class OverlayPill(context: Context) {
     private class PillLayout(context: Context) : LinearLayout(context) {
         var collapsible: View? = null
 
+        /** Compact mode keeps the unit hidden; nothing to collapse then. */
+        var compact = false
+
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            collapsible?.visibility = View.VISIBLE
+            if (!compact) collapsible?.visibility = View.VISIBLE
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             val available = MeasureSpec.getSize(widthMeasureSpec)
-            if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED &&
+            if (!compact && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED &&
                 measuredWidth > available
             ) {
                 collapsible?.visibility = View.GONE
@@ -401,5 +577,8 @@ class OverlayPill(context: Context) {
         const val MIN_TOUCH_TARGET_DP = 48f
         const val DUR_FAST = 120L
         const val DUR_BASE = 200L
+        const val DUR_PANEL_ENTER = 220L
+        const val DUR_PANEL_EXIT = 150L
+        const val PRESSED_ALPHA = 0.7f
     }
 }
