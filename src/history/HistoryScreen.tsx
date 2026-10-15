@@ -11,6 +11,7 @@ import { colors } from '../design/tokens';
 import type { EngineState } from '../engine';
 import { historyViewModelFor, recordsWithLiveDay } from './historyViewModel';
 import type { DayRowViewModel } from './historyViewModel';
+import { useSettings } from '../settings/useSettings';
 import { useStoredDays } from './useStoredDays';
 
 /** Days read from storage per page; the next page loads as the list nears its end. */
@@ -66,12 +67,14 @@ function keyForRow(row: DayRowViewModel) {
 export function HistoryScreen({ state }: { state: EngineState }) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   const stored = useStoredDays(limit, state.day);
+  const { thresholds } = useSettings();
   const vm = useMemo(
     () =>
       historyViewModelFor(recordsWithLiveDay(stored.records, state), {
         today: state.day,
+        thresholds,
       }),
-    [stored.records, state],
+    [stored.records, state, thresholds],
   );
 
   const loadMore = useCallback(() => {

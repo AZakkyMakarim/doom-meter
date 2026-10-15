@@ -4,6 +4,7 @@ import { colors } from '../design/tokens';
 import type { EngineState } from '../engine';
 import { recordsWithLiveDay, weekChartFor } from './historyViewModel';
 import type { WeekBarViewModel } from './historyViewModel';
+import { useSettings } from '../settings/useSettings';
 import { useStoredDays } from './useStoredDays';
 
 const PLOT_HEIGHT = 120;
@@ -31,12 +32,14 @@ function Bar({ bar }: { bar: WeekBarViewModel }) {
 export function WeekChartCard({ state }: { state: EngineState }) {
   // The last 7 stored Days always cover the window; today's bar is the live count.
   const stored = useStoredDays(7, state.day);
+  const { thresholds } = useSettings();
   const chart = useMemo(
     () =>
       weekChartFor(recordsWithLiveDay(stored.records, state), {
         today: state.day,
+        thresholds,
       }),
-    [stored.records, state],
+    [stored.records, state, thresholds],
   );
 
   return (
