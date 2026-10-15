@@ -99,7 +99,11 @@ export function createDetectionRunner(options: DetectionRunnerOptions): Detectio
     handle(raw) {
       const event = { ...raw, at: raw.at ?? clock.now() } as HealthInput;
       // Facts about the Accessibility service are for the health rules only.
-      if (event.type !== 'accessibilityConnected' && event.type !== 'accessibilityDisconnected') {
+      if (
+        event.type !== 'accessibilityConnected' &&
+        event.type !== 'accessibilityDisconnected' &&
+        event.type !== 'accessibilityActivity'
+      ) {
         engine.handle(event);
       }
       // The health rules may decide detection failed or recovered; the engine owns what that means.
