@@ -38,7 +38,7 @@ import kotlin.math.roundToInt
  * Main thread only. The window is sized to the pill, so touches outside it fall through to the
  * app underneath (FLAG_NOT_TOUCH_MODAL).
  */
-class OverlayPill(context: Context) {
+class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     private val appContext = context.applicationContext
     private val windowManager = appContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val density = appContext.resources.displayMetrics.density
@@ -60,8 +60,14 @@ class OverlayPill(context: Context) {
     private var expanded = false
     private var swapAnimator: ViewPropertyAnimator? = null
 
-    /** Vertical drag from the top-edge anchor. In memory only; saving it is a later ticket. */
+    /**
+     * Vertical offset from the top-edge anchor. JavaScript owns it: Settings sets it through
+     * the view model, and a finished drag is reported through [onMoved] to be saved there.
+     */
     private var dragOffsetPx = 0
+
+    /** The last position JavaScript sent; the offset follows it only when it changes. */
+    private var lastModelPositionDp: Float? = null
     private var dragRangePx = 0
     private var downRawY = 0f
     private var downOffset = 0
@@ -106,6 +112,12 @@ class OverlayPill(context: Context) {
         val v = views ?: return
         apply(model, v, animate = !firstDraw)
         dragRangePx = dp(model.dragRangeDp)
+        // A new position from Settings moves the pill; a drag in progress is never overridden
+        // by the same old value arriving on the next redraw.
+        if (model.positionDp != lastModelPositionDp) {
+            lastModelPositionDp = model.positionDp
+            if (!dragging) dragOffsetPx = dp(model.positionDp)
+        }
         dragOffsetPx = dragOffsetPx.coerceIn(0, dragRangePx)
         panelView?.update(model, animate = !firstDraw && !reducedMotion())
         if (!firstDraw && model.tierChange != "none") {
@@ -477,7 +489,7 @@ class OverlayPill(context: Context) {
             }
             MotionEvent.ACTION_UP -> {
                 v.alpha = 1f
-                if (!dragging) v.performClick()
+                if (!dragging) v.performClick() else onMoved(dragOffsetPx / density)
                 dragging = false
             }
             MotionEvent.ACTION_CANCEL -> {

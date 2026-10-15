@@ -258,3 +258,25 @@ describe('day recorder with the Counting engine across a process restart', () =>
     expect((await createDayStore(kv).getDay('2026-10-15'))?.platforms.tiktok.incomplete).toBe(true);
   });
 });
+
+describe('day recorder: configured rollover hour', () => {
+  it('finds the current Day with the hour set in Settings when restoring', async () => {
+    const kv = createMemoryKeyValueStore();
+    // 01:00 on the 16th: still the 15th under a 04:00 rollover, already the 16th under 00:00.
+    const nowMs = at(16, 1);
+    const store = createDayStore(kv);
+    await store.saveDay({
+      day: '2026-10-16',
+      platforms: {
+        instagram: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+        youtube: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+        tiktok: { watchedVideos: 7, watchTimeMs: 60_000, incomplete: false },
+      },
+    });
+    const recorder = createDayRecorder({ store });
+    recorder.setRolloverHour(0);
+    const engine = createCountingEngine({ clock: { now: () => nowMs }, rolloverHour: 0 });
+    await recorder.restoreInto(engine, nowMs);
+    expect(engine.getState().platforms.tiktok.watchedVideos).toBe(7);
+  });
+});
