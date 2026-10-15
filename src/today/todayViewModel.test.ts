@@ -25,11 +25,11 @@ function state(
 }
 
 describe('Today view model', () => {
-  it('is empty when nothing has been watched, with the guidance copy from the design system', () => {
+  it('is empty when nothing has been watched, with the guidance copy', () => {
     const vm = todayViewModelFor(state({}));
     expect(vm.isEmpty).toBe(true);
     expect(vm.emptyMessage).toBe(
-      'Belum ada yang ditonton. Scroll seperti biasa, DoomMeter yang menghitung.',
+      'Nothing watched yet. Scroll as usual, DoomMeter keeps count.',
     );
   });
 
