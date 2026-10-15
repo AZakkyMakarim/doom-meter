@@ -45,6 +45,11 @@ export function whenRestored(): Promise<void> {
   return restored;
 }
 
+/** Resolves when every Day write started so far has finished, such as the Day that just ended. */
+export function whenDaysSaved(): Promise<void> {
+  return recorder.settled();
+}
+
 export function startDetection(): void {
   if (started) return;
   started = true;
