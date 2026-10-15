@@ -93,13 +93,17 @@ class ExpandedPanel(
             tierName,
             LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12f) },
         )
-        val totals = LinearLayout(context).apply {
+        // Count and unit stay together; the time drops below them when the row is too wide
+        // at a large font scale, so neither is ever truncated (MASTER 8).
+        val countGroup = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        totals.addView(count, LinearLayout.LayoutParams(-2, -2))
-        totals.addView(unit, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dp(4f) })
-        totals.addView(time, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dp(16f) })
+        countGroup.addView(count, LinearLayout.LayoutParams(-2, -2))
+        countGroup.addView(unit, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dp(4f) })
+        val totals = WrapRow(context, hGap = dp(16f), vGap = dp(4f), stackedGravity = Gravity.CENTER_HORIZONTAL)
+        totals.addView(countGroup, LinearLayout.LayoutParams(-2, -2))
+        totals.addView(time, LinearLayout.LayoutParams(-2, -2))
         header.addView(
             totals,
             LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(8f) },
@@ -166,7 +170,7 @@ class ExpandedPanel(
             val r = rowViews[i]
             r.background.setColor(p.rowColor)
             r.chip.text = row.label
-            r.chip.setTextColor(p.surfaceColor)
+            r.chip.setTextColor(p.chipTextColor)
             r.chipBackground.setColor(row.color)
             r.count.text = "${row.countText} ${row.unitText}"
             r.count.setTextColor(p.textColor)
@@ -191,11 +195,22 @@ class ExpandedPanel(
             view.layoutParams = lp
         }
         val landscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        scroll.maxHeightPx =
-            if (landscape) (metrics.heightPixels * m.panel.landscapeMaxHeightFraction).roundToInt()
-            else 0
+        // Landscape: at most 60% of the height. Any orientation: never past the bottom of the
+        // screen, which large fonts or a pill dragged down could otherwise cause. Then scroll.
+        var cap = Int.MAX_VALUE
+        if (landscape) cap = (metrics.heightPixels * m.panel.landscapeMaxHeightFraction).roundToInt()
+        if (roomPx > 0) cap = min(cap, max(roomPx, dp(MIN_PANEL_HEIGHT_DP)))
+        scroll.maxHeightPx = if (cap == Int.MAX_VALUE) 0 else cap
         scroll.requestLayout()
     }
+
+    /** Space below the panel's top edge that is still on screen; set by the pill window. */
+    var roomPx = 0
+        set(value) {
+            if (field == value) return
+            field = value
+            applySizing()
+        }
 
     /** Lets screen readers know a new pane appeared; the title is read once on opening. */
     fun announceOpened() {
@@ -226,17 +241,16 @@ class ExpandedPanel(
             }
             val rowCount = text(monoBold, 16f).apply { fontFeatureSettings = "tnum" }
             val rowTime = text(monoMedium, 14f).apply { fontFeatureSettings = "tnum" }
-            val line = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
+            // Chip on the left, numbers on the right; the numbers drop below the chip when the
+            // row is too wide at a large font scale, so none of them truncates (MASTER 8).
+            val stats = WrapRow(context, hGap = dp(12f), vGap = dp(2f))
+            stats.addView(rowCount, LinearLayout.LayoutParams(-2, -2))
+            stats.addView(rowTime, LinearLayout.LayoutParams(-2, -2))
+            val spacer = View(context)
+            val line = WrapRow(context, hGap = dp(8f), vGap = dp(8f), spacer = spacer)
             line.addView(chip, LinearLayout.LayoutParams(-2, -2))
-            line.addView(View(context), LinearLayout.LayoutParams(0, 1, 1f))
-            line.addView(rowCount, LinearLayout.LayoutParams(-2, -2))
-            line.addView(
-                rowTime,
-                LinearLayout.LayoutParams(-2, -2).apply { marginStart = dp(12f) },
-            )
+            line.addView(spacer, LinearLayout.LayoutParams(0, 1, 1f))
+            line.addView(stats, LinearLayout.LayoutParams(-2, -2))
             val bar = BarView(context, density)
             val percent = text(monoMedium, 13f).apply {
                 fontFeatureSettings = "tnum"
@@ -290,6 +304,10 @@ class ExpandedPanel(
         }
 
     private fun dp(value: Float): Int = (value * density + 0.5f).toInt()
+
+    private companion object {
+        const val MIN_PANEL_HEIGHT_DP = 160f
+    }
 
     /** Scroll view that never grows past [maxHeightPx] (0 means no cap). */
     private class CappedScrollView(context: Context) : ScrollView(context) {

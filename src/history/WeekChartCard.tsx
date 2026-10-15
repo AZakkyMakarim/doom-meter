@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { weekChartLayoutFor } from '../design/fontScale';
 import { colors } from '../design/tokens';
 import type { EngineState } from '../engine';
 import { recordsWithLiveDay, weekChartFor } from './historyViewModel';
@@ -28,8 +29,36 @@ function Bar({ bar }: { bar: WeekBarViewModel }) {
   );
 }
 
+/**
+ * Large-text variant (MASTER 8): seven narrow columns cannot hold a value label at large
+ * font scales, so each Day becomes a row: weekday, a horizontal bar, then the value.
+ */
+function BarRow({ bar }: { bar: WeekBarViewModel }) {
+  return (
+    <View style={styles.row}>
+      <Text style={[styles.rowWeekday, bar.isToday && styles.weekdayToday]}>
+        {bar.weekday}
+      </Text>
+      <View style={styles.rowTrack}>
+        <View
+          style={[
+            styles.rowBar,
+            {
+              width: `${Math.max(2, Math.round(bar.heightFraction * 100))}%`,
+              backgroundColor: bar.color,
+            },
+          ]}
+        />
+      </View>
+      <Text style={styles.rowValue}>{bar.valueText}</Text>
+    </View>
+  );
+}
+
 /** The 7-day bar chart on Today: one labelled bar per Day, one text summary for screen readers. */
 export function WeekChartCard({ state }: { state: EngineState }) {
+  const { fontScale } = useWindowDimensions();
+  const layout = weekChartLayoutFor(fontScale);
   // The last 7 stored Days always cover the window; today's bar is the live count.
   const stored = useStoredDays(7, state.day);
   const { thresholds } = useSettings();
@@ -54,13 +83,17 @@ export function WeekChartCard({ state }: { state: EngineState }) {
         </View>
       ) : (
         <View
-          style={styles.chart}
+          style={layout === 'rows' ? styles.chartRows : styles.chart}
           accessible
           accessibilityLabel={chart.summary}
         >
-          {chart.bars.map(bar => (
-            <Bar key={bar.day} bar={bar} />
-          ))}
+          {chart.bars.map(bar =>
+            layout === 'rows' ? (
+              <BarRow key={bar.day} bar={bar} />
+            ) : (
+              <Bar key={bar.day} bar={bar} />
+            ),
+          )}
         </View>
       )}
     </View>
@@ -87,6 +120,38 @@ const styles = StyleSheet.create({
   chart: {
     flexDirection: 'row',
     gap: 8,
+  },
+  chartRows: {
+    gap: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rowWeekday: {
+    minWidth: 56,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rowTrack: {
+    flex: 1,
+    height: 16,
+    justifyContent: 'center',
+  },
+  rowBar: {
+    height: 16,
+    borderRadius: 4,
+  },
+  rowValue: {
+    minWidth: 48,
+    textAlign: 'right',
+    color: colors.text,
+    fontFamily: MONO_MEDIUM,
+    fontSize: 14,
+    lineHeight: 20,
+    fontVariant: ['tabular-nums'],
   },
   column: {
     flex: 1,

@@ -21,11 +21,14 @@ data class PillModel(
     val countSizeSp: Float,
     val avatarSizeDp: Float,
     val pulseMs: Long?,
+    val motion: MotionFlags,
     val surfaceColor: Int,
     val textColor: Int,
     val mutedTextColor: Int,
     val contentDescription: String,
     val tierAnnouncement: String,
+    /** Spoken now: only set on a Tier change, never for a new video (MASTER 8). */
+    val announcement: String?,
     val tierChange: String,
     val haptic: String,
     val compact: Boolean,
@@ -51,11 +54,13 @@ data class PillModel(
                 countSizeSp = o.getDouble("countSizeSp").toFloat(),
                 avatarSizeDp = o.getDouble("avatarSizeDp").toFloat(),
                 pulseMs = if (o.isNull("pulseMs")) null else o.getLong("pulseMs"),
+                motion = MotionFlags.parse(o.getJSONObject("motion")),
                 surfaceColor = Color.parseColor(o.getString("surfaceColor")),
                 textColor = Color.parseColor(o.getString("textColor")),
                 mutedTextColor = Color.parseColor(o.getString("mutedTextColor")),
                 contentDescription = o.getString("contentDescription"),
                 tierAnnouncement = o.getString("tierAnnouncement"),
+                announcement = if (o.isNull("announcement")) null else o.getString("announcement"),
                 tierChange = o.getString("tierChange"),
                 haptic = o.getString("haptic"),
                 compact = o.getBoolean("compact"),
@@ -64,6 +69,29 @@ data class PillModel(
                 panel = PanelModel.parse(o.getJSONObject("panel")),
             )
         }
+    }
+}
+
+/**
+ * Which animations may play (MASTER 7). JavaScript turns them all off under reduced motion;
+ * the haptic is separate and is kept.
+ */
+data class MotionFlags(
+    val pulse: Boolean,
+    val numberRoll: Boolean,
+    val scalePop: Boolean,
+    val panelSpring: Boolean,
+    val borderCrossfade: Boolean,
+) {
+    companion object {
+        fun parse(o: JSONObject) =
+            MotionFlags(
+                pulse = o.getBoolean("pulse"),
+                numberRoll = o.getBoolean("numberRoll"),
+                scalePop = o.getBoolean("scalePop"),
+                panelSpring = o.getBoolean("panelSpring"),
+                borderCrossfade = o.getBoolean("borderCrossfade"),
+            )
     }
 }
 
@@ -81,6 +109,7 @@ data class PanelModel(
     val rows: List<PlatformRow>,
     val surfaceColor: Int,
     val rowColor: Int,
+    val chipTextColor: Int,
     val textColor: Int,
     val mutedTextColor: Int,
     val widthDp: Float,
@@ -128,6 +157,7 @@ data class PanelModel(
                 rows = rows,
                 surfaceColor = Color.parseColor(o.getString("surfaceColor")),
                 rowColor = Color.parseColor(o.getString("rowColor")),
+                chipTextColor = Color.parseColor(o.getString("chipTextColor")),
                 textColor = Color.parseColor(o.getString("textColor")),
                 mutedTextColor = Color.parseColor(o.getString("mutedTextColor")),
                 widthDp = o.getDouble("widthDp").toFloat(),

@@ -412,10 +412,12 @@ const styles = StyleSheet.create({
   positionRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
   positionValue: {
     flex: 1,
+    minWidth: 72,
     color: colors.text,
     fontFamily: MONO_MEDIUM,
     fontSize: 14,
@@ -451,7 +453,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: 12,
     backgroundColor: colors.appBg,
     color: colors.text,
@@ -472,7 +474,7 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     backgroundColor: colors.overlayBgAlt,
   },
   buttonLabel: {
