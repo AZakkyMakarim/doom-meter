@@ -15,7 +15,7 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   tiktok: 'TikTok',
 };
 
-export const EMPTY_MESSAGE = 'Belum ada yang ditonton. Scroll seperti biasa, DoomMeter yang menghitung.';
+export const EMPTY_MESSAGE = 'Nothing watched yet. Scroll as usual, DoomMeter keeps count.';
 
 /** Platform names as the warning says them (CONTEXT.md), unlike the feed names on the rows. */
 const PLATFORM_NAMES: Record<Platform, string> = {
