@@ -42,15 +42,47 @@ export interface Totals {
   watchTimeMs: number;
 }
 
-export interface EngineState {
-  platforms: Record<Platform, PlatformState>;
-  totals: Totals;
+/** Severity level 0-4 (Fresh, Drifting, Doomed, Cooked, Terminal). */
+export type Tier = 0 | 1 | 2 | 3 | 4;
+
+/** Lower bounds (inclusive) for Tiers 1 to 4, ascending. */
+export type TierBounds = readonly [number, number, number, number];
+
+export interface TierThresholds {
+  /** Watched video count at which Tiers 1-4 begin. */
+  videos: TierBounds;
+  /** Minutes of Watch time at which Tiers 1-4 begin. */
+  minutes: TierBounds;
 }
 
-export interface CountingEngineOptions {
+export interface EngineState {
+  /** The current Day, as the local calendar date it started on (YYYY-MM-DD). */
+  day: string;
+  platforms: Record<Platform, PlatformState>;
+  totals: Totals;
+  /** Higher of the count Tier and the time Tier for the current Day. */
+  tier: Tier;
+}
+
+/** A finished Day, handed out when the Day rolls over. */
+export interface DaySummary {
+  day: string;
+  state: EngineState;
+}
+
+export interface EngineConfig {
+  /** Local hour (0-23) at which a new Day starts. Default 4. */
+  rolloverHour?: number;
+  /** Tier thresholds. Default 10/30/60/120 for both videos and minutes. */
+  thresholds?: TierThresholds;
+}
+
+export interface CountingEngineOptions extends EngineConfig {
   clock: Clock;
   /** Time a video must stay on screen to count as a Watched video. Default 5000. */
   watchedThresholdMs?: number;
+  /** Called once for each Day that ends, with that Day's final state. */
+  onDayEnded?: (summary: DaySummary) => void;
 }
 
 export interface CountingEngine {
@@ -58,4 +90,6 @@ export interface CountingEngine {
   handle(event: EngineEvent): void;
   /** Current state, including the time of videos that are still playing. */
   getState(): EngineState;
+  /** Change the rollover hour or Tier thresholds. The current Day keeps its counts. */
+  configure(config: EngineConfig): void;
 }
