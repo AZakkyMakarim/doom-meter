@@ -189,6 +189,7 @@ const styles = StyleSheet.create({
   },
   summaryTop: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 16,
   },
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   barLabel: {
-    width: 48,
+    minWidth: 48,
     textAlign: 'right',
     color: colors.textMuted,
     fontFamily: MONO_MEDIUM,

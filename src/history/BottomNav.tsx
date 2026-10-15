@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../design/tokens';
+import { NAV_LABEL_MAX_FONT_SCALE } from '../design/fontScale';
+import { useSystemInsets } from '../design/useSafeAreaPadding';
 
 export interface BottomNavItem<Key extends string> {
   key: Key;
@@ -9,7 +11,8 @@ export interface BottomNavItem<Key extends string> {
 /**
  * Bottom navigation (MASTER 6.4: 3-4 items). Generic over the screen keys so
  * Settings can add its entry by extending `items`. The active tab is shown by a top
- * bar and bold text as well as colour.
+ * bar and bold text as well as colour. Each item is at least 56dp tall, above the
+ * 48dp touch target minimum; the bar sits above the gesture bar and beside side cutouts.
  */
 export function BottomNav<Key extends string>({
   items,
@@ -20,8 +23,14 @@ export function BottomNav<Key extends string>({
   active: Key;
   onSelect: (key: Key) => void;
 }) {
+  const insets = useSystemInsets();
   return (
-    <View style={styles.bar} accessibilityRole="tablist">
+    <View
+      style={[
+        styles.bar,
+        { paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right },
+      ]}
+      accessibilityRole="tablist">
       {items.map(item => {
         const selected = item.key === active;
         return (
@@ -35,7 +44,9 @@ export function BottomNav<Key extends string>({
             <View
               style={[styles.indicator, selected && styles.indicatorActive]}
             />
-            <Text style={[styles.label, selected && styles.labelActive]}>
+            <Text
+              maxFontSizeMultiplier={NAV_LABEL_MAX_FONT_SCALE}
+              style={[styles.label, selected && styles.labelActive]}>
               {item.label}
             </Text>
           </Pressable>
@@ -51,8 +62,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlayBgAlt,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    // Edge-to-edge: leave room for the system gesture bar.
-    paddingBottom: 24,
   },
   item: {
     flex: 1,
@@ -76,6 +85,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 16,
     lineHeight: 24,
+    textAlign: 'center',
   },
   labelActive: {
     color: colors.text,

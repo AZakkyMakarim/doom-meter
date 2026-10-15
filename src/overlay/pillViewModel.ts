@@ -13,6 +13,28 @@ import type { PanelViewModel } from './panelViewModel';
 export type Haptic = 'none' | 'light' | 'medium' | 'heavy' | 'heavyDouble';
 export type TierChange = 'none' | 'increase' | 'decrease';
 
+/**
+ * Which animations native may play (MASTER 7). Under reduced motion every one is off:
+ * the Tier change is an instant swap and only the haptic is kept.
+ */
+export interface MotionFlags {
+  /** Avatar pulse on Tier 2 and above. */
+  pulse: boolean;
+  /** 120ms count roll on a new video. */
+  numberRoll: boolean;
+  /** Avatar scale pop on a Tier change. */
+  scalePop: boolean;
+  /** Spring on expanding and collapsing the panel. */
+  panelSpring: boolean;
+  /** 200ms border color crossfade on a Tier change. */
+  borderCrossfade: boolean;
+}
+
+export function motionFlags(reducedMotion: boolean): MotionFlags {
+  const on = !reducedMotion;
+  return { pulse: on, numberRoll: on, scalePop: on, panelSpring: on, borderCrossfade: on };
+}
+
 export interface PillViewModel {
   tier: Tier;
   countText: string;
@@ -28,15 +50,21 @@ export interface PillViewModel {
   heightDp: number;
   countSizeSp: number;
   avatarSizeDp: number;
-  /** Pulse period of the avatar in ms, or null when the Tier does not pulse. */
+  /** Pulse period of the avatar in ms, or null when the Tier does not pulse or motion is reduced. */
   pulseMs: number | null;
+  motion: MotionFlags;
   surfaceColor: string;
   textColor: string;
   mutedTextColor: string;
   /** One screen reader label for the whole pill (MASTER 8). */
   contentDescription: string;
-  /** Spoken once when the Tier changes; the only thing ever announced (MASTER 8). */
+  /** The Tier on its own, e.g. "Level 3 of 5, Doomed.", also the tail of the pill label. */
   tierAnnouncement: string;
+  /**
+   * What native speaks right now: the Tier sentence on a Tier change, otherwise null.
+   * It is never set for a new video or a time update (MASTER 8).
+   */
+  announcement: string | null;
   /** How the Tier moved since the previous update; native animates once on a change. */
   tierChange: TierChange;
   /** Haptic to fire now; only set when the Tier increased. */
@@ -57,13 +85,20 @@ export interface PillOptions {
   haptics?: boolean;
   /** Position below the top-edge anchor in dp. Default 0. */
   positionDp?: number;
+  /** The system asked to remove animations (MASTER 7). Default false. */
+  reducedMotion?: boolean;
 }
 
 /**
  * User preferences the presenter applies when a caller passes no options. Settings
  * writes them here, so the detection runner needs no change.
  */
-const pillPreferences: PillOptions = { compact: false, haptics: true, positionDp: 0 };
+const pillPreferences: PillOptions = {
+  compact: false,
+  haptics: true,
+  positionDp: 0,
+  reducedMotion: false,
+};
 
 export function setPillPreferences(preferences: PillOptions): void {
   Object.assign(pillPreferences, preferences);
@@ -159,6 +194,7 @@ export function pillViewModelFor(
   const accentColor = colors.sev[tier];
   const count = totals.watchedVideos;
   const tierAnnouncement = `Level ${tier + 1} of 5, ${style.label}.`;
+  const reducedMotion = options.reducedMotion ?? false;
   return {
     tier,
     countText: `${count}`,
@@ -172,7 +208,8 @@ export function pillViewModelFor(
     heightDp: style.heightDp,
     countSizeSp: style.countSizeSp,
     avatarSizeDp: style.avatarSizeDp,
-    pulseMs: style.pulseMs,
+    pulseMs: reducedMotion ? null : style.pulseMs,
+    motion: motionFlags(reducedMotion),
     surfaceColor: colors.overlayBg,
     textColor: colors.text,
     mutedTextColor: colors.textMuted,
@@ -180,6 +217,7 @@ export function pillViewModelFor(
       `Doom meter. ${plural(count, 'video')}, ${spokenTime(totals.watchTimeMs)}. ` +
       tierAnnouncement,
     tierAnnouncement,
+    announcement: null,
     tierChange: 'none',
     haptic: 'none',
     compact: options.compact ?? false,
@@ -201,6 +239,7 @@ export function createPillPresenter(): (state: EngineState, options?: PillOption
     if (previous !== null && pill.tier !== previous) {
       const increased = pill.tier > previous;
       pill.tierChange = increased ? 'increase' : 'decrease';
+      pill.announcement = pill.tierAnnouncement;
       pill.haptic = increased && applied.haptics !== false ? TIER_STYLES[pill.tier].haptic : 'none';
     }
     previous = pill.tier;
