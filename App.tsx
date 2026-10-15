@@ -57,7 +57,9 @@ function App() {
   // The bottom bar below the scroll area owns the bottom inset, so only the sides and top here.
   const screenPadding = useSafeAreaPadding(SCREEN_PADDING, false);
   const runner = getDetectionRunner();
-  const simulator = useRef(createSimulator(runner, debugClock)).current;
+  // Debug-only: the simulator skews the shared clock and writes fake Days to History,
+  // so it must not exist in a release build.
+  const simulator = useRef(__DEV__ ? createSimulator(runner, debugClock) : null).current;
   // Settings are applied to the engine and the pill by the detection runtime; this only shows them.
   const [settings, setSettings] = useState(() => settingsStore.get());
   const enabled = settings.overlayEnabled;
@@ -201,21 +203,25 @@ function App() {
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Debug: simulate scrolling</Text>
-      <Text style={styles.body}>
-        {`${pill.countText} ${pill.unitText} · ${pill.timeText} · ${pill.labelText}`}
-      </Text>
-      <View style={styles.row}>
-        <Button label="+1 video" onPress={() => simulator.addVideos(1)} />
-        <Button label="+10 videos" onPress={() => simulator.addVideos(10)} />
-      </View>
-      <View style={styles.row}>
-        <Button label="+5 min" onPress={() => simulator.addMinutes(5)} />
-        <Button label="+30 min" onPress={() => simulator.addMinutes(30)} />
-      </View>
-      <View style={styles.row}>
-        <Button label="End simulated session" onPress={() => simulator.stop()} />
-      </View>
+      {__DEV__ && simulator !== null && (
+        <>
+          <Text style={styles.sectionTitle}>Debug: simulate scrolling</Text>
+          <Text style={styles.body}>
+            {`${pill.countText} ${pill.unitText} · ${pill.timeText} · ${pill.labelText}`}
+          </Text>
+          <View style={styles.row}>
+            <Button label="+1 video" onPress={() => simulator.addVideos(1)} />
+            <Button label="+10 videos" onPress={() => simulator.addVideos(10)} />
+          </View>
+          <View style={styles.row}>
+            <Button label="+5 min" onPress={() => simulator.addMinutes(5)} />
+            <Button label="+30 min" onPress={() => simulator.addMinutes(30)} />
+          </View>
+          <View style={styles.row}>
+            <Button label="End simulated session" onPress={() => simulator.stop()} />
+          </View>
+        </>
+      )}
         </>
       )}
     </ScrollView>

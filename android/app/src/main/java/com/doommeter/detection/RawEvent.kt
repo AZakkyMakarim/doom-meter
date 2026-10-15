@@ -28,6 +28,8 @@ data class RawEvent(
         const val USAGE_FOREGROUND_STARTED = "usageForegroundStarted"
         const val USAGE_FOREGROUND_ENDED = "usageForegroundEnded"
         const val ACCESSIBILITY_CONNECTED = "accessibilityConnected"
+        /** The service received accessibility events from the app of [platform] (any events). */
+        const val ACCESSIBILITY_ACTIVITY = "accessibilityActivity"
         /** The service went away; [platform] is the Platform app in the foreground, if any. */
         const val ACCESSIBILITY_DISCONNECTED = "accessibilityDisconnected"
     }

@@ -69,16 +69,32 @@ describe('detection runner: detection failure', () => {
     expect(tiktok.watchedVideos).toBe(1);
   });
 
-  it('fails a Platform app that stays in the foreground with no surface, on tick', () => {
+  it('fails a Platform app that stays in the foreground without any accessibility activity, on tick', () => {
     const { runner, advance } = setup();
     runner.handle({ type: 'usageForegroundStarted', platform: 'instagram' });
-    advance(29 * 60_000);
+    advance(9 * 60_000);
     runner.tick();
     expect(runner.getState().platforms.instagram.detectionHealthy).toBe(true);
 
     advance(60_000);
     runner.tick();
     expect(runner.getState().platforms.instagram.detectionHealthy).toBe(false);
+  });
+
+  it('keeps a Platform healthy through long non-Short use while accessibility activity keeps coming', () => {
+    const { runner, advance } = setup();
+    runner.handle({ type: 'usageForegroundStarted', platform: 'youtube' });
+    for (let i = 0; i < 12; i += 1) {
+      advance(5 * 60_000);
+      runner.handle({ type: 'accessibilityActivity', platform: 'youtube' });
+      runner.tick();
+    }
+
+    const youtube = runner.getState().platforms.youtube;
+    expect(youtube.detectionHealthy).toBe(true);
+    expect(youtube.incomplete).toBe(false);
+    // The activity signal is for the health rules only: no Watch time comes from it.
+    expect(youtube.watchTimeMs).toBe(0);
   });
 });
 

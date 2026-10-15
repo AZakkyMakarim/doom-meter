@@ -18,6 +18,15 @@ describe('parseRawEvent', () => {
     });
   });
 
+  it('parses the accessibility activity signal of a Platform app', () => {
+    expect(parseRawEvent('{"type":"accessibilityActivity","platform":"youtube","at":7}')).toEqual({
+      type: 'accessibilityActivity',
+      platform: 'youtube',
+      at: 7,
+    });
+    expect(parseRawEvent('{"type":"accessibilityActivity"}')).toBeNull();
+  });
+
   it('parses screen events, which carry no platform', () => {
     expect(parseRawEvent('{"type":"screenOff","at":5}')).toEqual({ type: 'screenOff', at: 5 });
     expect(parseRawEvent('{"type":"screenOn"}')).toEqual({ type: 'screenOn' });
