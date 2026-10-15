@@ -1,5 +1,8 @@
-import { NativeModules, Platform } from 'react-native';
+import { DeviceEventEmitter, NativeModules, Platform } from 'react-native';
 import type { PillViewModel } from './pillViewModel';
+
+/** Device event native emits when the user finishes dragging the pill; the payload is dp below the top anchor. */
+export const PILL_MOVED_EVENT = 'DoomMeterPillMoved';
 
 interface NativeOverlayModule {
   hasPermission(): Promise<boolean>;
@@ -25,5 +28,12 @@ export const overlay = {
   },
   hide(): void {
     native?.hide();
+  },
+  /** Called with the new position (dp below the top anchor) when a drag ends. Returns the unsubscribe function. */
+  onMoved(listener: (positionDp: number) => void): () => void {
+    const sub = DeviceEventEmitter.addListener(PILL_MOVED_EVENT, (dp: unknown) => {
+      if (typeof dp === 'number') listener(dp);
+    });
+    return () => sub.remove();
   },
 };

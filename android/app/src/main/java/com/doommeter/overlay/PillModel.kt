@@ -30,6 +30,8 @@ data class PillModel(
     val haptic: String,
     val compact: Boolean,
     val dragRangeDp: Float,
+    /** Where the pill sits below its top anchor, from Settings (and the last drag, saved by JS). */
+    val positionDp: Float,
     val panel: PanelModel,
 ) {
     companion object {
@@ -58,6 +60,7 @@ data class PillModel(
                 haptic = o.getString("haptic"),
                 compact = o.getBoolean("compact"),
                 dragRangeDp = o.getDouble("dragRangeDp").toFloat(),
+                positionDp = o.getDouble("positionDp").toFloat(),
                 panel = PanelModel.parse(o.getJSONObject("panel")),
             )
         }

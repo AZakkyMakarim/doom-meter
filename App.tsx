@@ -4,10 +4,12 @@ import { colors } from './src/design/tokens';
 import { detectionNative } from './src/detection/detectionBridge';
 import { debugClock, getDetectionRunner, whenRestored } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
-import { isCompactMode, pillViewModelFor, setCompactMode } from './src/overlay/pillViewModel';
+import { pillViewModelFor } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
 import { BottomNav } from './src/history/BottomNav';
 import { HistoryScreen } from './src/history/HistoryScreen';
+import { settingsStore } from './src/settings/deviceSettings';
+import { SettingsScreen } from './src/settings/SettingsScreen';
 import { TodayScreen } from './src/today/TodayScreen';
 import { OnboardingScreen } from './src/onboarding/OnboardingScreen';
 import { useOnboardingGate } from './src/onboarding/useOnboardingGate';
@@ -19,6 +21,7 @@ import { usePermissionStatus } from './src/permissions/usePermissionStatus';
 const NAV_ITEMS = [
   { key: 'today', label: 'Today' },
   { key: 'history', label: 'History' },
+  { key: 'settings', label: 'Settings' },
 ] as const;
 type ScreenKey = (typeof NAV_ITEMS)[number]['key'];
 
@@ -48,12 +51,18 @@ function Button({
 function App() {
   const runner = getDetectionRunner();
   const simulator = useRef(createSimulator(runner, debugClock)).current;
-  const [enabled, setEnabled] = useState(true);
+  // Settings are applied to the engine and the pill by the detection runtime; this only shows them.
+  const [settings, setSettings] = useState(() => settingsStore.get());
+  const enabled = settings.overlayEnabled;
   const [permitted, setPermitted] = useState(false);
   const [accessible, setAccessible] = useState(false);
-  const [compact, setCompact] = useState(isCompactMode);
   const [state, setState] = useState(() => runner.getState());
   const [screen, setScreen] = useState<ScreenKey>('today');
+
+  useEffect(() => {
+    setSettings(settingsStore.get());
+    return settingsStore.subscribe(setSettings);
+  }, []);
 
   const refreshPermissions = useCallback(async () => {
     setPermitted(await overlay.hasPermission());
@@ -90,15 +99,18 @@ function App() {
 
   const toggleOverlay = () => {
     if (!enabled && !permitted) overlay.requestPermission();
-    runner.setPillEnabled(!enabled);
-    setEnabled(!enabled);
+    settingsStore.update({ overlayEnabled: !enabled });
   };
 
   // The empty-state call to action only ever switches the overlay on.
   const enableOverlay = () => {
     if (!permitted) overlay.requestPermission();
-    runner.setPillEnabled(true);
-    setEnabled(true);
+    settingsStore.update({ overlayEnabled: true });
+  };
+
+  const fixPermission = (id: 'overlay' | 'accessibility') => {
+    if (id === 'overlay') overlay.requestPermission();
+    else detectionNative.openAccessibilitySettings();
   };
 
   const pill = pillViewModelFor(state);
@@ -132,6 +144,16 @@ function App() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <StatusBar barStyle="light-content" />
       {banner !== null && <PermissionBanner banner={banner} onFix={permissions.openSettings} />}
+      {screen === 'settings' ? (
+        <SettingsScreen
+          settings={settings}
+          onUpdate={(patch) => settingsStore.update(patch)}
+          overlayGranted={permitted}
+          accessibilityOn={accessible}
+          onFixPermission={fixPermission}
+        />
+      ) : (
+        <>
       <TodayScreen
         state={state}
         overlayActive={showing}
@@ -186,15 +208,8 @@ function App() {
       <View style={styles.row}>
         <Button label="End simulated session" onPress={() => simulator.stop()} />
       </View>
-      <View style={styles.row}>
-        <Button
-          label={compact ? 'Compact pill: on' : 'Compact pill: off'}
-          onPress={() => {
-            setCompactMode(!compact);
-            setCompact(!compact);
-          }}
-        />
-      </View>
+        </>
+      )}
     </ScrollView>
     {nav}
     </View>

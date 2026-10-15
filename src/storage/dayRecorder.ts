@@ -15,6 +15,8 @@ export interface DayRecorderOptions {
 }
 
 export interface DayRecorder {
+  /** Follow the rollover hour from Settings, so restoring finds the right current Day. */
+  setRolloverHour(hour: number): void;
   /**
    * Load the stored counts of the current Day and hand them to the engine, so
    * the numbers survive a process restart. Call once at startup.
@@ -49,7 +51,7 @@ export function createDayRecorder(options: DayRecorderOptions): DayRecorder {
   const { store } = options;
   const now = options.now ?? Date.now;
   const flushIntervalMs = options.flushIntervalMs ?? 10_000;
-  const rolloverHour = options.rolloverHour ?? DEFAULT_ROLLOVER_HOUR;
+  let rolloverHour = options.rolloverHour ?? DEFAULT_ROLLOVER_HOUR;
 
   let incompleteDay: string | null = null;
   const incomplete = {} as Record<Platform, boolean>;
@@ -110,6 +112,10 @@ export function createDayRecorder(options: DayRecorderOptions): DayRecorder {
   }
 
   return {
+    setRolloverHour(hour) {
+      rolloverHour = hour;
+    },
+
     async restoreInto(engine, nowMs) {
       const day = dayWindowAt(nowMs, rolloverHour).key;
       let record: DayRecord | null = null;

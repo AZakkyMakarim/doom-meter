@@ -5,6 +5,7 @@ import {
   isCompactMode,
   pillViewModelFor,
   setCompactMode,
+  setPillPreferences,
 } from './pillViewModel';
 
 const MIN = 60_000;
@@ -197,5 +198,39 @@ describe('compact mode and panel (MASTER 6.1, 6.2)', () => {
       setCompactMode(false);
       expect(present(stateAtTier(0)).compact).toBe(false);
     });
+  });
+});
+
+describe('pill preferences set by Settings', () => {
+  afterEach(() => setPillPreferences({ compact: false, haptics: true, positionDp: 0 }));
+
+  it('carries the position so native places the pill without drag state of its own', () => {
+    expect(pillViewModelFor(stateAtTier(0)).positionDp).toBe(0);
+    expect(pillViewModelFor(stateAtTier(0), { positionDp: 48 }).positionDp).toBe(48);
+  });
+
+  it('presenter uses the saved position when no options are passed', () => {
+    const present = createPillPresenter();
+    setPillPreferences({ positionDp: 72 });
+    expect(present(stateAtTier(0)).positionDp).toBe(72);
+  });
+
+  it('fires the Tier haptic by default and not when haptics are off', () => {
+    const on = createPillPresenter();
+    on(stateAtTier(1));
+    expect(on(stateAtTier(3)).haptic).toBe('heavy');
+
+    setPillPreferences({ haptics: false });
+    const off = createPillPresenter();
+    off(stateAtTier(1));
+    const raised = off(stateAtTier(3));
+    expect(raised.haptic).toBe('none');
+    // The Tier change itself (animation, announcement) is unaffected.
+    expect(raised.tierChange).toBe('increase');
+  });
+
+  it('keeps the position inside the drag band', () => {
+    const pill = pillViewModelFor(stateAtTier(0), { positionDp: 9999 });
+    expect(pill.positionDp).toBe(pill.dragRangeDp);
   });
 });
