@@ -1,5 +1,8 @@
 import { colors } from '../design/tokens';
 import type { EngineState, Tier } from '../engine';
+import { formatTime, plural, spokenTime } from './format';
+import { panelViewModelFor } from './panelViewModel';
+import type { PanelViewModel } from './panelViewModel';
 
 /**
  * Everything the native Overlay pill needs to draw itself, derived from the
@@ -38,7 +41,34 @@ export interface PillViewModel {
   tierChange: TierChange;
   /** Haptic to fire now; only set when the Tier increased. */
   haptic: Haptic;
+  /** Compact mode: the pill shows the avatar and count only (MASTER 6.1). */
+  compact: boolean;
+  /** How far the pill may be dragged down from its top-edge anchor, in dp. */
+  dragRangeDp: number;
+  /** The expanded panel opened by tapping the pill (MASTER 6.2). */
+  panel: PanelViewModel;
 }
+
+export interface PillOptions {
+  compact?: boolean;
+}
+
+/**
+ * User preferences the presenter applies when a caller passes no options. The Settings
+ * screen switches compact mode here, so the detection runner needs no change.
+ */
+const pillPreferences: PillOptions = { compact: false };
+
+export function setCompactMode(compact: boolean): void {
+  pillPreferences.compact = compact;
+}
+
+export function isCompactMode(): boolean {
+  return pillPreferences.compact ?? false;
+}
+
+/** The pill hugs the top edge: dragging moves it vertically within this band (MASTER 6.1). */
+const DRAG_RANGE_DP = 160;
 
 interface TierStyle {
   label: string;
@@ -108,39 +138,11 @@ const TIER_STYLES: readonly TierStyle[] = [
 /** The Tier 0 border is drawn at 40% opacity (MASTER 2.2). */
 const TIER_0_BORDER_ALPHA = '66';
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : `${n}`;
-}
-
-function splitTime(watchTimeMs: number) {
-  const totalSeconds = Math.floor(watchTimeMs / 1000);
-  return {
-    hours: Math.floor(totalSeconds / 3600),
-    minutes: Math.floor((totalSeconds % 3600) / 60),
-    seconds: totalSeconds % 60,
-  };
-}
-
-function formatTime(watchTimeMs: number): string {
-  const { hours, minutes, seconds } = splitTime(watchTimeMs);
-  return hours > 0
-    ? `${hours}:${pad2(minutes)}:${pad2(seconds)}`
-    : `${pad2(minutes)}:${pad2(seconds)}`;
-}
-
-function plural(n: number, unit: string): string {
-  return `${n} ${unit}${n === 1 ? '' : 's'}`;
-}
-
-function spokenTime(watchTimeMs: number): string {
-  const { hours, minutes, seconds } = splitTime(watchTimeMs);
-  const parts = [plural(minutes, 'minute'), plural(seconds, 'second')];
-  if (hours > 0) parts.unshift(plural(hours, 'hour'));
-  return parts.join(' ');
-}
-
 /** The pill for one engine state, with no knowledge of what came before. */
-export function pillViewModelFor(state: EngineState): PillViewModel {
+export function pillViewModelFor(
+  state: EngineState,
+  options: PillOptions = {},
+): PillViewModel {
   const { tier, totals } = state;
   const style = TIER_STYLES[tier];
   const accentColor = colors.sev[tier];
@@ -169,6 +171,9 @@ export function pillViewModelFor(state: EngineState): PillViewModel {
     tierAnnouncement,
     tierChange: 'none',
     haptic: 'none',
+    compact: options.compact ?? false,
+    dragRangeDp: DRAG_RANGE_DP,
+    panel: panelViewModelFor(state),
   };
 }
 
@@ -176,10 +181,10 @@ export function pillViewModelFor(state: EngineState): PillViewModel {
  * Remembers the previous Tier so each update says whether the Tier moved.
  * Animations and haptics fire only on a Tier change, never per video.
  */
-export function createPillPresenter(): (state: EngineState) => PillViewModel {
+export function createPillPresenter(): (state: EngineState, options?: PillOptions) => PillViewModel {
   let previous: Tier | null = null;
-  return (state) => {
-    const pill = pillViewModelFor(state);
+  return (state, options) => {
+    const pill = pillViewModelFor(state, options ?? pillPreferences);
     if (previous !== null && pill.tier !== previous) {
       const increased = pill.tier > previous;
       pill.tierChange = increased ? 'increase' : 'decrease';
