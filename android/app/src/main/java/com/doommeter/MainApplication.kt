@@ -1,6 +1,7 @@
 package com.doommeter
 
 import android.app.Application
+import com.doommeter.detection.DoomMeterDetectionPackage
 import com.doommeter.overlay.DoomMeterOverlayPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -16,6 +17,7 @@ class MainApplication : Application(), ReactApplication {
       packageList =
         PackageList(this).packages.apply {
           add(DoomMeterOverlayPackage())
+          add(DoomMeterDetectionPackage())
         },
     )
   }
