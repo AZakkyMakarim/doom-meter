@@ -40,6 +40,8 @@ export interface PanelViewModel {
   surfaceColor: string;
   /** Background of rows and chips. */
   rowColor: string;
+  /** Text on a filled Platform chip: at least 4.5:1 on every Platform color. */
+  chipTextColor: string;
   textColor: string;
   mutedTextColor: string;
   /** Panel width, clamped by native to the screen. */
@@ -130,6 +132,7 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
     rows,
     surfaceColor: colors.overlayBg,
     rowColor: colors.overlayBgAlt,
+    chipTextColor: colors.onPlatform,
     textColor: colors.text,
     mutedTextColor: colors.textMuted,
     widthDp: PANEL_WIDTH_DP,

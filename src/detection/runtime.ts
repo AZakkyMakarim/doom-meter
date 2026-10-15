@@ -1,7 +1,8 @@
-import { AppState, DeviceEventEmitter } from 'react-native';
+import { AccessibilityInfo, AppState, DeviceEventEmitter } from 'react-native';
 import { createCountingEngine } from '../engine';
 import { overlay } from '../overlay/overlayBridge';
 import { setPillPreferences } from '../overlay/pillViewModel';
+import { watchReducedMotion } from '../overlay/reducedMotion';
 import { createSkewClock } from '../overlay/simulator';
 import { applySettings } from '../settings/applySettings';
 import { settingsStore } from '../settings/deviceSettings';
@@ -56,6 +57,18 @@ export function startDetection(): void {
       setPillPreferences,
       setRecorderRolloverHour: recorder.setRolloverHour,
     }),
+  );
+  // "Remove animations" turns the pill's pulse, number roll and scale pop off (MASTER 7).
+  // The pill redraws every second, so the change shows up on the next tick.
+  watchReducedMotion(
+    {
+      isEnabled: () => AccessibilityInfo.isReduceMotionEnabled(),
+      subscribe: (listener) => {
+        const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', listener);
+        return () => sub.remove();
+      },
+    },
+    (reducedMotion) => setPillPreferences({ reducedMotion }),
   );
   // Dragging the pill saves its new position, so the Settings control stays in step.
   overlay.onMoved((dp) => {

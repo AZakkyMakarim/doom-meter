@@ -60,6 +60,9 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     private var expanded = false
     private var swapAnimator: ViewPropertyAnimator? = null
 
+    /** Whether the panel may spring open; JavaScript turns it off under reduced motion. */
+    private var panelSpring = true
+
     /**
      * Vertical offset from the top-edge anchor. JavaScript owns it: Settings sets it through
      * the view model, and a finished drag is reported through [onMoved] to be saved there.
@@ -119,10 +122,10 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
             if (!dragging) dragOffsetPx = dp(model.positionDp)
         }
         dragOffsetPx = dragOffsetPx.coerceIn(0, dragRangePx)
-        panelView?.update(model, animate = !firstDraw && !reducedMotion())
-        if (!firstDraw && model.tierChange != "none") {
-            root?.announceForAccessibility(model.tierAnnouncement)
-        }
+        panelSpring = model.motion.panelSpring
+        panelView?.update(model, animate = !firstDraw && model.motion.scalePop && !systemReducedMotion())
+        // Only a Tier change is spoken; a new video or a time update never is (MASTER 8).
+        model.announcement?.let { if (!firstDraw) root?.announceForAccessibility(it) }
         if (model.haptic != "none") Haptics.fire(appContext, model.haptic)
         positionWindow()
     }
@@ -184,7 +187,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         pill.addView(dot, gap(8))
         pill.addView(time, gap(8))
         pill.addView(label, gap(12))
-        pill.collapsible = unit
+        pill.collapsibles = listOf(unit, dot, label)
 
         // The hit area is at least 48dp, larger than the drawn pill (MASTER 6.1).
         val pillHost = FrameLayout(appContext)
@@ -271,7 +274,12 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     }
 
     private fun apply(model: PillModel, v: Views, animate: Boolean) {
-        val motion = animate && !reducedMotion()
+        // Reduced motion: JavaScript clears every flag, and the system setting is honored here
+        // too in case the two disagree for a moment. The haptic is not affected.
+        val motion = animate && !systemReducedMotion()
+        val roll = motion && model.motion.numberRoll
+        val crossfade = motion && model.motion.borderCrossfade
+        val pop = motion && model.motion.scalePop
         v.pill.minimumHeight = dp(model.heightDp)
         (v.avatarHolder.layoutParams as LinearLayout.LayoutParams).apply {
             width = dp(model.avatarSizeDp)
@@ -300,13 +308,13 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
 
         // Count: a 120ms roll on change (opacity and translate only), nothing for time.
         if (v.count.text.toString() != model.countText) {
-            if (motion) rollCount(v.count, model.countText) else setCountNow(v.count, model.countText)
+            if (roll) rollCount(v.count, model.countText) else setCountNow(v.count, model.countText)
         }
 
         // Border: 200ms crossfade on a Tier change, instant otherwise.
         val widthPx = max(1, (model.borderWidthDp * density).roundToInt())
         borderAnimator?.cancel()
-        if (motion && model.tierChange != "none" && currentBorderColor != 0) {
+        if (crossfade && model.tierChange != "none" && currentBorderColor != 0) {
             borderAnimator =
                 ValueAnimator.ofArgb(currentBorderColor, model.borderColor).apply {
                     duration = DUR_BASE
@@ -327,7 +335,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
             if (id != 0) v.avatar.setImageDrawable(appContext.getDrawable(id))
             lastAvatar = model.avatar
             v.avatar.animate().cancel()
-            if (motion) popAvatar(v.avatar) else resetAvatar(v.avatar)
+            if (pop) popAvatar(v.avatar) else resetAvatar(v.avatar)
         }
 
         updatePulse(model, v)
@@ -376,7 +384,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
 
     /** One gentle animated element: the avatar pulses on Tier 2 and above. */
     private fun updatePulse(model: PillModel, v: Views) {
-        val period = if (reducedMotion()) null else model.pulseMs
+        val period = if (systemReducedMotion() || !model.motion.pulse) null else model.pulseMs
         if (period == lastPulseMs) return
         lastPulseMs = period
         pulseAnimator?.cancel()
@@ -411,7 +419,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         expanded = open
         swapAnimator?.cancel()
         swapAnimator = null
-        val motion = animate && !reducedMotion()
+        val motion = animate && panelSpring && !systemReducedMotion()
         val pillHost = v.pillHost
         val panelRoot = panel.view
 
@@ -509,28 +517,38 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         } catch (e: IllegalArgumentException) {
             Log.w(TAG, "Pill was already removed", e)
         }
+        panelView?.roomPx = panelRoomPx()
     }
 
     /** Status bar or camera cutout height, whichever is larger, so the pill is never hidden. */
     private fun topInsetPx(): Int {
+        val res = appContext.resources
+        val id = res.getIdentifier("status_bar_height", "dimen", "android")
+        val statusBar = if (id > 0) res.getDimensionPixelSize(id) else 0
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val insets =
                 windowManager.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(
                     WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout(),
                 )
-            return insets.top
+            // An application context may report no insets, so the status bar height is the floor.
+            return max(insets.top, statusBar)
         }
-        val res = appContext.resources
-        val id = res.getIdentifier("status_bar_height", "dimen", "android")
-        return if (id > 0) res.getDimensionPixelSize(id) else 0
+        return statusBar
     }
 
-    private fun reducedMotion(): Boolean =
-        Settings.Global.getFloat(
-            appContext.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) == 0f
+    /** Space below the panel's top edge that the panel may use: the gesture bar stays clear. */
+    private fun panelRoomPx(): Int {
+        val res = appContext.resources
+        val id = res.getIdentifier("navigation_bar_height", "dimen", "android")
+        val navBar = if (id > 0) res.getDimensionPixelSize(id) else 0
+        val top = params?.y ?: 0
+        return res.displayMetrics.heightPixels - top - navBar - dp(16f)
+    }
+
+    /** "Remove animations" sets the animator and transition scales to 0 (MASTER 7). */
+    private fun systemReducedMotion(): Boolean =
+        listOf(Settings.Global.ANIMATOR_DURATION_SCALE, Settings.Global.TRANSITION_ANIMATION_SCALE)
+            .any { Settings.Global.getFloat(appContext.contentResolver, it, 1f) == 0f }
 
     private fun overlayType(): Int =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -563,24 +581,37 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
 
     /**
      * Horizontal pill. When the content is wider than the screen (large fonts), drops the
-     * "videos" unit first so the count, time and face are never truncated.
+     * least important pieces one by one, so the count, time and face are never truncated:
+     * first the "videos" unit, then the separator dot, then the Tier label (the face, the
+     * border and the screen reader label still carry the Tier).
      */
     private class PillLayout(context: Context) : LinearLayout(context) {
-        var collapsible: View? = null
+        /** In the order they are dropped. */
+        var collapsibles: List<View> = emptyList()
 
-        /** Compact mode keeps the unit hidden; nothing to collapse then. */
+        /** Compact mode already hides the extras; nothing to collapse then. */
         var compact = false
 
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            if (!compact) collapsible?.visibility = View.VISIBLE
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-            val available = MeasureSpec.getSize(widthMeasureSpec)
-            if (!compact && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED &&
-                measuredWidth > available
-            ) {
-                collapsible?.visibility = View.GONE
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            if (!compact && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED) {
+                val available = MeasureSpec.getSize(widthMeasureSpec)
+                // A wrap_content row never measures wider than the screen; it squeezes its
+                // children, so the fit is judged from their natural widths.
+                val hidden = mutableSetOf<View>()
+                for (view in collapsibles) {
+                    val width =
+                        naturalRowWidth { child ->
+                            if (child in collapsibles) child !in hidden
+                            else child.visibility != View.GONE
+                        }
+                    if (width <= available) break
+                    hidden += view
+                }
+                collapsibles.forEach {
+                    it.visibility = if (it in hidden) View.GONE else View.VISIBLE
+                }
             }
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         }
     }
 
