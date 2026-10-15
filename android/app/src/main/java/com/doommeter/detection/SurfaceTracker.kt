@@ -19,6 +19,13 @@ class SurfaceTracker(
     private val emit: (RawEvent) -> Unit,
 ) {
     private var activePlatform: String? = null
+
+    /**
+     * The Platform whose app was last seen in the foreground, whether or not its feed is showing.
+     * Lets the service say which Platform it lost when it is switched off mid-scroll.
+     */
+    var foregroundPlatform: String? = null
+        private set
     private var lastToken: Long? = null
     private var inactiveSince: Long? = null
 
@@ -33,9 +40,11 @@ class SurfaceTracker(
         val adapter = adapters.firstOrNull { packageName in it.packageNames }
         if (adapter == null) {
             // Another app is in the foreground: the surface is gone for certain.
+            foregroundPlatform = null
             loseFocus(now())
             return false
         }
+        foregroundPlatform = adapter.platform
         val root = snapshot() ?: return false
         val observation = adapter.observe(root)
         val at = now()

@@ -219,6 +219,7 @@ export function recordsWithLiveDay(
       watchTimeMs: p.watchTimeMs,
       incomplete:
         (stored?.platforms[platform].incomplete ?? false) ||
+        p.incomplete ||
         !p.detectionHealthy,
     };
   }

@@ -23,6 +23,9 @@ import { parseRawEvent } from './rawEvent';
  */
 export const debugClock = createSkewClock();
 
+/** How often foreground changes are read from UsageStats and the health rules are ticked. */
+const USAGE_POLL_MS = 5000;
+
 const recorder = createDayRecorder({ store: dayStore });
 const engine = createCountingEngine({ clock: debugClock, onDayEnded: recorder.onDayEnded });
 
@@ -75,4 +78,17 @@ export function startDetection(): void {
     if (event) active.handle(event);
   });
   detectionNative.ready();
+  // UsageStats events and the detection health rules both move with time, so poll them together.
+  setInterval(() => {
+    detectionNative
+      .pollUsageEvents()
+      .then((events) => {
+        for (const json of events) {
+          const event = parseRawEvent(json);
+          if (event) active.handle(event);
+        }
+        active.tick();
+      })
+      .catch(() => active.tick());
+  }, USAGE_POLL_MS);
 }

@@ -1,6 +1,7 @@
 import { PLATFORMS } from '../engine';
 import type { EngineState, Platform, Tier } from '../engine';
 import { formatClock, plural, spokenDuration } from '../format/duration';
+import { INCOMPLETE_NOTE } from '../history/historyViewModel';
 import { pillViewModelFor } from '../overlay/pillViewModel';
 
 /**
@@ -16,7 +17,32 @@ const PLATFORM_LABELS: Record<Platform, string> = {
 
 export const EMPTY_MESSAGE = 'Belum ada yang ditonton. Scroll seperti biasa, DoomMeter yang menghitung.';
 
-const DETECTION_WARNING = 'Detection stopped responding. The count may be low.';
+/** Platform names as the warning says them (CONTEXT.md), unlike the feed names on the rows. */
+const PLATFORM_NAMES: Record<Platform, string> = {
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+};
+
+const ROW_WARNING = 'Detection not responding.';
+const WARNING_WITH_USAGE_ACCESS =
+  'Watch time still counts through Usage Access. Videos are not counted until it is back.';
+const WARNING_WITHOUT_USAGE_ACCESS =
+  'Nothing is counted until it is back. Usage Access would keep Watch time going.';
+
+export interface DetectionWarningViewModel {
+  platform: Platform;
+  /** Names the Platform: "TikTok detection is not responding". */
+  title: string;
+  message: string;
+  /** Title and message as one sentence group, led by "Warning" so colour is never the only cue. */
+  accessibilityLabel: string;
+}
+
+export interface TodayOptions {
+  /** Whether Usage Access is granted, which decides what the warning promises. Default false. */
+  usageAccess?: boolean;
+}
 
 export interface PlatformRowViewModel {
   platform: Platform;
@@ -34,6 +60,10 @@ export interface PlatformRowViewModel {
 export interface TodayViewModel {
   /** Nothing watched yet today: show the empty state, not zeros. */
   isEmpty: boolean;
+  /** One warning per Platform whose detection is not responding right now. */
+  warnings: DetectionWarningViewModel[];
+  /** Set once detection failed for any Platform today; stays set after it recovers. */
+  incompleteNote: string | null;
   emptyMessage: string;
   tier: Tier;
   countText: string;
@@ -48,7 +78,11 @@ export interface TodayViewModel {
   summaryLabel: string;
 }
 
-export function todayViewModelFor(state: EngineState): TodayViewModel {
+export function todayViewModelFor(
+  state: EngineState,
+  options: TodayOptions = {},
+): TodayViewModel {
+  const usageAccess = options.usageAccess ?? false;
   const pill = pillViewModelFor(state);
   const { totals } = state;
   const rows = PLATFORMS.map((platform): PlatformRowViewModel => {
@@ -63,14 +97,27 @@ export function todayViewModelFor(state: EngineState): TodayViewModel {
       timeText: formatClock(p.watchTimeMs),
       sharePercent,
       shareText: `${sharePercent}%`,
-      warning: p.detectionHealthy ? null : DETECTION_WARNING,
+      warning: p.detectionHealthy ? null : ROW_WARNING,
       accessibilityLabel:
         `${label}. ${plural(p.watchedVideos, 'video')}, ${spokenDuration(p.watchTimeMs)}, ` +
-        `${sharePercent} percent.`,
+        `${sharePercent} percent.` +
+        (p.detectionHealthy ? '' : ` ${ROW_WARNING}`),
     };
   });
+  const warnings = PLATFORMS.filter((platform) => !state.platforms[platform].detectionHealthy).map(
+    (platform): DetectionWarningViewModel => {
+      const title = `${PLATFORM_NAMES[platform]} detection is not responding`;
+      const message = usageAccess ? WARNING_WITH_USAGE_ACCESS : WARNING_WITHOUT_USAGE_ACCESS;
+      return { platform, title, message, accessibilityLabel: `Warning. ${title}. ${message}` };
+    },
+  );
+  const incomplete = PLATFORMS.some((platform) => state.platforms[platform].incomplete);
+  const incompleteNote = incomplete ? INCOMPLETE_NOTE : null;
   return {
-    isEmpty: totals.watchedVideos === 0 && totals.watchTimeMs === 0,
+    // A Day with failed detection is never "nothing watched": we do not know that.
+    isEmpty: totals.watchedVideos === 0 && totals.watchTimeMs === 0 && !incomplete,
+    warnings,
+    incompleteNote,
     emptyMessage: EMPTY_MESSAGE,
     tier: state.tier,
     countText: pill.countText,
@@ -82,6 +129,7 @@ export function todayViewModelFor(state: EngineState): TodayViewModel {
     rows,
     summaryLabel:
       `Today. ${plural(totals.watchedVideos, 'video')}, ${spokenDuration(totals.watchTimeMs)}. ` +
-      pill.tierAnnouncement,
+      pill.tierAnnouncement +
+      (incompleteNote === null ? '' : ` ${incompleteNote}`),
   };
 }
