@@ -3,6 +3,7 @@ import { colors } from '../design/tokens';
 import { platformColors } from '../design/platformTokens';
 import type { EngineState } from '../engine';
 import type { NotCountingNotice } from '../permissions/permissionState';
+import { WeekChartCard } from '../history/WeekChartCard';
 import { todayViewModelFor } from './todayViewModel';
 import type { PlatformRowViewModel, TodayViewModel } from './todayViewModel';
 
@@ -133,6 +134,7 @@ export function TodayScreen({
           </View>
         </>
       )}
+      <WeekChartCard state={state} />
     </View>
   );
 }
