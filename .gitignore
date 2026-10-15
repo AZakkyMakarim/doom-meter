@@ -5,3 +5,29 @@
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Android / Gradle
+build/
+.gradle/
+.idea/
+local.properties
+*.iml
+*.hprof
+.cxx/
+.kotlin/
+*.keystore
+!debug.keystore
+*.apk
+*.aab
+
+# React Native / Metro
+*.jsbundle
+.metro-health-check*
+
+# testing
+/coverage
