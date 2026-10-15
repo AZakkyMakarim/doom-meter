@@ -10,6 +10,7 @@ import {
   PLATFORMS,
   type CountingEngine,
   type CountingEngineOptions,
+  type DaySnapshot,
   type EngineConfig,
   type EngineEvent,
   type EngineState,
@@ -210,5 +211,28 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     return buildState(now, day);
   }
 
-  return { handle, getState, configure };
+  function validCount(n: number) {
+    return Number.isInteger(n) && n >= 0 ? n : 0;
+  }
+
+  function validTime(ms: number) {
+    return Number.isFinite(ms) && ms >= 0 ? ms : 0;
+  }
+
+  /** Add the counts saved for a Day back in after a process restart. */
+  function restore(counts: DaySnapshot) {
+    if (window === null) {
+      window = { key: counts.day, end: dayEndFor(counts.day, rolloverHour) };
+    } else if (window.key !== counts.day) {
+      return;
+    }
+    for (const platform of PLATFORMS) {
+      const saved = counts.platforms[platform];
+      if (!saved) continue;
+      platforms[platform].watchedVideos += validCount(saved.watchedVideos);
+      platforms[platform].watchTimeMs += validTime(saved.watchTimeMs);
+    }
+  }
+
+  return { handle, getState, configure, restore };
 }

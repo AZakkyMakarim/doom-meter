@@ -70,6 +70,12 @@ export interface DaySummary {
   state: EngineState;
 }
 
+/** The counts saved for a Day, used to pick the Day back up after the process restarts. */
+export interface DaySnapshot {
+  day: string;
+  platforms: Record<Platform, Pick<PlatformState, 'watchedVideos' | 'watchTimeMs'>>;
+}
+
 export interface EngineConfig {
   /** Local hour (0-23) at which a new Day starts. Default 4. */
   rolloverHour?: number;
@@ -92,4 +98,9 @@ export interface CountingEngine {
   getState(): EngineState;
   /** Change the rollover hour or Tier thresholds. The current Day keeps its counts. */
   configure(config: EngineConfig): void;
+  /**
+   * Add the saved counts of a Day back in. Applies only to the engine's current Day
+   * (or sets it, if no event has arrived yet), so it is safe to call late.
+   */
+  restore(snapshot: DaySnapshot): void;
 }

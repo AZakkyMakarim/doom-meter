@@ -6,6 +6,7 @@ export type {
   Clock,
   CountingEngine,
   CountingEngineOptions,
+  DaySnapshot,
   DaySummary,
   EngineConfig,
   EngineEvent,
