@@ -1,5 +1,6 @@
 import { PLATFORMS } from '../engine';
 import type { EngineEvent, Platform } from '../engine';
+import type { AccessibilityFact } from './detectionHealth';
 
 const PLATFORM_EVENTS = [
   'surfaceFocusGained',
@@ -7,11 +8,16 @@ const PLATFORM_EVENTS = [
   'videoChanged',
   'detectionHealthy',
   'detectionFailed',
+  'usageForegroundStarted',
+  'usageForegroundEnded',
 ] as const;
 const SCREEN_EVENTS = ['screenOn', 'screenOff'] as const;
 
 type PlatformEventType = (typeof PLATFORM_EVENTS)[number];
 type ScreenEventType = (typeof SCREEN_EVENTS)[number];
+
+/** What the native detection layer can send: engine events and facts about the service. */
+export type RawDetectionEvent = EngineEvent | AccessibilityFact;
 
 function isPlatformEvent(type: unknown): type is PlatformEventType {
   return PLATFORM_EVENTS.includes(type as PlatformEventType);
@@ -26,11 +32,11 @@ function isPlatform(value: unknown): value is Platform {
 }
 
 /**
- * Turns the JSON the native detection layer emits into an engine event.
+ * Turns the JSON the native detection layer emits into an event.
  * Only known fields are read, so nothing else the native side might send can
  * reach the engine. Returns null for anything malformed; never throws.
  */
-export function parseRawEvent(json: string): EngineEvent | null {
+export function parseRawEvent(json: string): RawDetectionEvent | null {
   let raw: unknown;
   try {
     raw = JSON.parse(json);
@@ -42,6 +48,10 @@ export function parseRawEvent(json: string): EngineEvent | null {
   const stamp = typeof at === 'number' && Number.isFinite(at) ? { at } : {};
 
   if (isScreenEvent(type)) return { type, ...stamp };
+  if (type === 'accessibilityConnected') return { type, ...stamp };
+  if (type === 'accessibilityDisconnected') {
+    return isPlatform(platform) ? { type, platform, ...stamp } : { type, ...stamp };
+  }
   if (isPlatformEvent(type) && isPlatform(platform)) return { type, platform, ...stamp };
   return null;
 }

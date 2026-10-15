@@ -159,6 +159,7 @@ function App() {
         overlayActive={showing}
         onEnableOverlay={enableOverlay}
         notCountingNotice={notCountingNotice(permissionStatus)}
+        usageAccess={permissionStatus?.usageAccess ?? false}
       />
 
       <Text style={styles.sectionTitle}>Setup</Text>
