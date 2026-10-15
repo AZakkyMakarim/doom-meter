@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { colors } from './src/design/tokens';
 import { detectionNative } from './src/detection/detectionBridge';
-import { debugClock, getDetectionRunner } from './src/detection/runtime';
+import { debugClock, getDetectionRunner, whenRestored } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
 import { pillViewModelFor } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
+import { TodayScreen } from './src/today/TodayScreen';
 
 function Button({
   label,
@@ -57,19 +58,33 @@ function App() {
   // Keep the screen in step with the shared engine; the runner drives the pill itself.
   useEffect(() => runner.subscribe(() => setState(runner.getState())), [runner]);
 
+  // Saved counts of today are loaded after startup; show them as soon as they are back.
+  useEffect(() => {
+    whenRestored().then(() => setState(runner.getState()));
+  }, [runner]);
+
   const toggleOverlay = () => {
     if (!enabled && !permitted) overlay.requestPermission();
     runner.setPillEnabled(!enabled);
     setEnabled(!enabled);
   };
 
+  // The empty-state call to action only ever switches the overlay on.
+  const enableOverlay = () => {
+    if (!permitted) overlay.requestPermission();
+    runner.setPillEnabled(true);
+    setEnabled(true);
+  };
+
   const pill = pillViewModelFor(state);
   const showing = enabled && permitted;
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Text style={styles.title}>DoomMeter</Text>
+      <TodayScreen state={state} overlayActive={showing} onEnableOverlay={enableOverlay} />
+
+      <Text style={styles.sectionTitle}>Setup</Text>
 
       <Text style={styles.body}>
         {accessible
@@ -116,23 +131,20 @@ function App() {
       <View style={styles.row}>
         <Button label="End simulated session" onPress={() => simulator.stop()} />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
     backgroundColor: colors.appBg,
+  },
+  container: {
     paddingHorizontal: 16,
     paddingTop: (StatusBar.currentHeight ?? 0) + 24,
+    paddingBottom: 48,
     gap: 16,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '600',
   },
   sectionTitle: {
     color: colors.text,
