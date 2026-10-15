@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { colors } from './src/design/tokens';
+import { detectionNative } from './src/detection/detectionBridge';
+import { debugClock, getDetectionRunner } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
-import { createPillPresenter, pillViewModelFor } from './src/overlay/pillViewModel';
+import { pillViewModelFor } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
 
 function Button({
@@ -29,47 +31,36 @@ function Button({
 }
 
 function App() {
-  const simulator = useRef(createSimulator()).current;
-  const presenter = useRef(createPillPresenter());
-  const [enabled, setEnabled] = useState(false);
+  const runner = getDetectionRunner();
+  const simulator = useRef(createSimulator(runner, debugClock)).current;
+  const [enabled, setEnabled] = useState(true);
   const [permitted, setPermitted] = useState(false);
-  const [state, setState] = useState(() => simulator.getState());
+  const [accessible, setAccessible] = useState(false);
+  const [state, setState] = useState(() => runner.getState());
 
-  const refreshPermission = useCallback(async () => {
+  const refreshPermissions = useCallback(async () => {
     setPermitted(await overlay.hasPermission());
+    const accessibilityOn = await detectionNative.isAccessibilityEnabled();
+    setAccessible(accessibilityOn);
+    // The foreground service keeps detection alive once the user has granted access.
+    if (accessibilityOn) detectionNative.startForegroundService();
   }, []);
 
   useEffect(() => {
-    refreshPermission();
+    refreshPermissions();
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') refreshPermission();
+      if (next === 'active') refreshPermissions();
     });
     return () => sub.remove();
-  }, [refreshPermission]);
+  }, [refreshPermissions]);
 
-  // Push the engine state to the native pill whenever it, or its visibility, changes.
-  useEffect(() => {
-    if (enabled && permitted) {
-      overlay.render(presenter.current(state));
-    } else {
-      overlay.hide();
-      // A fresh presenter, so showing the pill again never replays a Tier change.
-      presenter.current = createPillPresenter();
-    }
-  }, [enabled, permitted, state]);
+  // Keep the screen in step with the shared engine; the runner drives the pill itself.
+  useEffect(() => runner.subscribe(() => setState(runner.getState())), [runner]);
 
   const toggleOverlay = () => {
     if (!enabled && !permitted) overlay.requestPermission();
+    runner.setPillEnabled(!enabled);
     setEnabled(!enabled);
-  };
-
-  const addVideos = (n: number) => {
-    simulator.addVideos(n);
-    setState(simulator.getState());
-  };
-  const addMinutes = (n: number) => {
-    simulator.addMinutes(n);
-    setState(simulator.getState());
   };
 
   const pill = pillViewModelFor(state);
@@ -81,29 +72,49 @@ function App() {
       <Text style={styles.title}>DoomMeter</Text>
 
       <Text style={styles.body}>
+        {accessible
+          ? 'Detection is on. Scroll TikTok and the pill follows along.'
+          : 'Detection is off. Enable the DoomMeter Accessibility service so it can see when you scroll short videos. Only counts are kept; no video content is read or stored.'}
+      </Text>
+      {!accessible && (
+        <View style={styles.row}>
+          <Button
+            primary
+            label="Open Accessibility settings"
+            onPress={() => detectionNative.openAccessibilitySettings()}
+          />
+        </View>
+      )}
+
+      <Text style={styles.body}>
         {showing
-          ? 'Overlay is on. Open another app to see the pill over it.'
+          ? 'Overlay is on. It shows only while a short-form feed is open.'
           : enabled
             ? 'Overlay permission is missing. Grant "Display over other apps", then come back.'
             : 'Overlay is off.'}
       </Text>
-      <Button
-        primary
-        label={enabled ? 'Disable overlay' : 'Enable overlay'}
-        onPress={toggleOverlay}
-      />
+      <View style={styles.row}>
+        <Button
+          primary={accessible}
+          label={enabled ? 'Disable overlay' : 'Enable overlay'}
+          onPress={toggleOverlay}
+        />
+      </View>
 
       <Text style={styles.sectionTitle}>Debug: simulate scrolling</Text>
       <Text style={styles.body}>
         {`${pill.countText} ${pill.unitText} · ${pill.timeText} · ${pill.labelText}`}
       </Text>
       <View style={styles.row}>
-        <Button label="+1 video" onPress={() => addVideos(1)} />
-        <Button label="+10 videos" onPress={() => addVideos(10)} />
+        <Button label="+1 video" onPress={() => simulator.addVideos(1)} />
+        <Button label="+10 videos" onPress={() => simulator.addVideos(10)} />
       </View>
       <View style={styles.row}>
-        <Button label="+5 min" onPress={() => addMinutes(5)} />
-        <Button label="+30 min" onPress={() => addMinutes(30)} />
+        <Button label="+5 min" onPress={() => simulator.addMinutes(5)} />
+        <Button label="+30 min" onPress={() => simulator.addMinutes(30)} />
+      </View>
+      <View style={styles.row}>
+        <Button label="End simulated session" onPress={() => simulator.stop()} />
       </View>
     </View>
   );
