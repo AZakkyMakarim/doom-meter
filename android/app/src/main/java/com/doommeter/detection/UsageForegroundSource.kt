@@ -34,6 +34,22 @@ object UsageEventMapper {
                     at = record.atMs,
                 )
             }
+
+    /**
+     * For a first look over a long window: the history inside it is not replayed, only the start
+     * of each Platform app that is still in the foreground at the end, so an app that has been
+     * open for longer than the poll cursor ever reached is not missed.
+     */
+    fun mapCurrentForeground(
+        records: List<UsageRecord>,
+        platformByPackage: Map<String, String>,
+    ): List<RawEvent> {
+        val lastByPackage = HashMap<String, UsageRecord>()
+        for (record in records.sortedBy { it.atMs }) {
+            if (record.packageName in platformByPackage) lastByPackage[record.packageName] = record
+        }
+        return map(lastByPackage.values.filter { it.foreground }, platformByPackage)
+    }
 }
 
 /** Whether the user granted Usage Access to DoomMeter. */
@@ -81,6 +97,7 @@ class UsageForegroundSource(
         val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return emptyList()
         val end = now()
+        val firstLook = cursor == null
         val begin = cursor ?: (end - FIRST_LOOKBACK_MS)
         val records = ArrayList<UsageRecord>()
         val events = manager.queryEvents(begin, end)
@@ -97,11 +114,18 @@ class UsageForegroundSource(
         }
         // The window is [begin, end), so the next poll starts exactly where this one stopped.
         cursor = end
-        return UsageEventMapper.map(records, platformByPackage)
+        return if (firstLook) {
+            UsageEventMapper.mapCurrentForeground(records, platformByPackage)
+        } else {
+            UsageEventMapper.map(records, platformByPackage)
+        }
     }
 
     private companion object {
-        /** On the first poll, look back far enough to see an app that has just come forward. */
-        const val FIRST_LOOKBACK_MS = 60_000L
+        /**
+         * On the first poll (and after the cursor resets), look back far enough to find an app
+         * that has been in the foreground for a long time, not only one that just came forward.
+         */
+        const val FIRST_LOOKBACK_MS = 60 * 60_000L
     }
 }
