@@ -6,6 +6,8 @@ import { debugClock, getDetectionRunner, whenRestored } from './src/detection/ru
 import { overlay } from './src/overlay/overlayBridge';
 import { isCompactMode, pillViewModelFor, setCompactMode } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
+import { BottomNav } from './src/history/BottomNav';
+import { HistoryScreen } from './src/history/HistoryScreen';
 import { TodayScreen } from './src/today/TodayScreen';
 import { OnboardingScreen } from './src/onboarding/OnboardingScreen';
 import { useOnboardingGate } from './src/onboarding/useOnboardingGate';
@@ -13,6 +15,12 @@ import { PermissionBanner } from './src/permissions/PermissionBanner';
 import { permissions } from './src/permissions/permissionsBridge';
 import { isCounting, notCountingNotice, permissionBanner } from './src/permissions/permissionState';
 import { usePermissionStatus } from './src/permissions/usePermissionStatus';
+
+const NAV_ITEMS = [
+  { key: 'today', label: 'Today' },
+  { key: 'history', label: 'History' },
+] as const;
+type ScreenKey = (typeof NAV_ITEMS)[number]['key'];
 
 function Button({
   label,
@@ -45,6 +53,7 @@ function App() {
   const [accessible, setAccessible] = useState(false);
   const [compact, setCompact] = useState(isCompactMode);
   const [state, setState] = useState(() => runner.getState());
+  const [screen, setScreen] = useState<ScreenKey>('today');
 
   const refreshPermissions = useCallback(async () => {
     setPermitted(await overlay.hasPermission());
@@ -106,7 +115,20 @@ function App() {
     );
   }
 
+  const nav = <BottomNav items={NAV_ITEMS} active={screen} onSelect={setScreen} />;
+
+  if (screen === 'history') {
+    return (
+      <View style={styles.root}>
+        <StatusBar barStyle="light-content" />
+        <HistoryScreen state={state} />
+        {nav}
+      </View>
+    );
+  }
+
   return (
+    <View style={styles.root}>
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <StatusBar barStyle="light-content" />
       {banner !== null && <PermissionBanner banner={banner} onFix={permissions.openSettings} />}
@@ -174,10 +196,16 @@ function App() {
         />
       </View>
     </ScrollView>
+    {nav}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.appBg,
+  },
   scroll: {
     flex: 1,
     backgroundColor: colors.appBg,
