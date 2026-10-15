@@ -1,11 +1,9 @@
 package com.doommeter.detection.registrations
 
 import com.doommeter.detection.PlatformAdapter
+import com.doommeter.detection.adapters.YouTubeAdapter
 
-/**
- * Registration point for YouTube Shorts (doom-meter-v9k.6). Return the adapter instance here,
- * e.g. `YouTubeAdapter()`, once it exists in `adapters/`.
- */
+/** Registration point for YouTube Shorts. */
 object YouTubeRegistration {
-    fun adapter(): PlatformAdapter? = null
+    fun adapter(): PlatformAdapter? = YouTubeAdapter()
 }
