@@ -96,9 +96,41 @@ describe('position control (non-gesture alternative to dragging)', () => {
 });
 
 describe('permission rows', () => {
+  const all = { overlayGranted: true, accessibilityOn: true, usageAccessGranted: true };
+
+  it('lists Usage access with a Fix permission action when it was skipped', () => {
+    const usage = permissionRows({ ...all, usageAccessGranted: false })[2];
+    expect(usage.title).toBe('Usage access');
+    expect(usage.granted).toBe(false);
+    expect(usage.statusText).toMatch(/not granted/i);
+    expect(usage.fixLabel).toBe('Fix permission');
+    expect(usage.explanation.length).toBeGreaterThan(0);
+    expect(usage.accessibilityLabel).toMatch(/Usage access/);
+    expect(usage.accessibilityLabel).toMatch(/optional/i);
+  });
+
+  it('shows Usage access as granted with no action once it is on', () => {
+    const usage = permissionRows(all)[2];
+    expect(usage.granted).toBe(true);
+    expect(usage.statusText).toBe('Granted');
+    expect(usage.fixLabel).toBeNull();
+  });
+
+  it('labels Usage access Optional, as onboarding does, and the others Required', () => {
+    const rows = permissionRows(all);
+    expect(rows.map((r) => r.badge)).toEqual(['Required', 'Required', 'Optional']);
+    expect(rows.map((r) => r.required)).toEqual([true, true, false]);
+  });
+
+  it('keeps the Overlay and Accessibility rows unchanged when Usage access is missing', () => {
+    const rows = permissionRows({ ...all, usageAccessGranted: false });
+    expect(rows[0]).toMatchObject({ id: 'overlay', granted: true, statusText: 'Granted', fixLabel: null });
+    expect(rows[1]).toMatchObject({ id: 'accessibility', granted: true, statusText: 'On', fixLabel: null });
+  });
+
   it('shows a Fix permission action only for what is missing', () => {
-    const rows = permissionRows({ overlayGranted: true, accessibilityOn: false });
-    expect(rows.map((r) => r.id)).toEqual(['overlay', 'accessibility']);
+    const rows = permissionRows({ ...all, accessibilityOn: false });
+    expect(rows.map((r) => r.id)).toEqual(['overlay', 'accessibility', 'usageAccess']);
     expect(rows[0].granted).toBe(true);
     expect(rows[0].fixLabel).toBeNull();
     expect(rows[1].granted).toBe(false);
@@ -108,7 +140,7 @@ describe('permission rows', () => {
   });
 
   it('has a spoken label that carries the status', () => {
-    const [overlay] = permissionRows({ overlayGranted: false, accessibilityOn: true });
+    const [overlay] = permissionRows({ ...all, overlayGranted: false });
     expect(overlay.accessibilityLabel).toMatch(/Display over other apps/);
     expect(overlay.accessibilityLabel).toMatch(/missing|off|not/i);
   });

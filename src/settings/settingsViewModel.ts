@@ -1,3 +1,5 @@
+import { permissionInfo } from '../permissions/permissionState';
+import type { PermissionId } from '../permissions/permissionState';
 import type { TierBounds, TierThresholds } from '../engine';
 import { POSITION_MAX_DP, POSITION_MIN_DP, POSITION_STEP_DP, parseNumberDraft } from './settings';
 import type { Settings } from './settings';
@@ -87,8 +89,11 @@ export function positionControl(positionDp: number): PositionControl {
 }
 
 export interface PermissionRow {
-  id: 'overlay' | 'accessibility';
+  id: Extract<PermissionId, 'overlay' | 'accessibility' | 'usageAccess'>;
   title: string;
+  /** Same wording as the onboarding badge. */
+  badge: 'Required' | 'Optional';
+  required: boolean;
   granted: boolean;
   statusText: string;
   /** Why DoomMeter needs it, shown beside a missing permission. */
@@ -101,6 +106,7 @@ export interface PermissionRow {
 export function permissionRows(status: {
   overlayGranted: boolean;
   accessibilityOn: boolean;
+  usageAccessGranted: boolean;
 }): PermissionRow[] {
   const row = (
     id: PermissionRow['id'],
@@ -109,15 +115,24 @@ export function permissionRows(status: {
     grantedText: string,
     missingText: string,
     explanation: string,
-  ): PermissionRow => ({
-    id,
-    title,
-    granted,
-    statusText: granted ? grantedText : missingText,
-    explanation,
-    fixLabel: granted ? null : 'Fix permission',
-    accessibilityLabel: `${title}: ${granted ? grantedText : missingText}`,
-  });
+  ): PermissionRow => {
+    const required = permissionInfo(id).required;
+    const badge = required ? 'Required' : 'Optional';
+    const stateText = granted ? grantedText : missingText;
+    return {
+      id,
+      title,
+      badge,
+      required,
+      granted,
+      statusText: stateText,
+      explanation,
+      fixLabel: granted ? null : 'Fix permission',
+      accessibilityLabel: required
+        ? `${title}: ${stateText}`
+        : `${title}, ${badge.toLowerCase()}: ${stateText}`,
+    };
+  };
   return [
     row(
       'overlay',
@@ -134,6 +149,14 @@ export function permissionRows(status: {
       'On',
       'Off',
       'Lets DoomMeter see when you scroll short videos. Only counts are kept; no video content is read or stored.',
+    ),
+    row(
+      'usageAccess',
+      permissionInfo('usageAccess').title,
+      status.usageAccessGranted,
+      'Granted',
+      'Not granted',
+      permissionInfo('usageAccess').purpose,
     ),
   ];
 }
