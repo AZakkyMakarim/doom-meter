@@ -1,5 +1,5 @@
 import type { EngineState } from '../engine';
-import { todayViewModelFor } from './todayViewModel';
+import { showsEnableOverlayAction, todayViewModelFor } from './todayViewModel';
 
 function state(
   platforms: Partial<Record<'instagram' | 'youtube' | 'tiktok', [number, number]>>,
@@ -90,5 +90,25 @@ describe('Today view model', () => {
       'Today. 47 videos, 38 minutes 12 seconds. Level 3 of 5, Doomed.',
     );
     expect(vm.rows[2].accessibilityLabel).toBe('TikTok. 47 videos, 38 minutes 12 seconds, 100 percent.');
+  });
+});
+
+describe('Today empty state: Enable overlay action (ADR 0006)', () => {
+  it('shows guidance and no action on a fresh install, where the pill is on', () => {
+    const vm = todayViewModelFor(state({}));
+    expect(vm.isEmpty).toBe(true);
+    expect(vm.emptyMessage).toBe('Nothing watched yet. Scroll as usual, DoomMeter keeps count.');
+    expect(showsEnableOverlayAction({ overlayActive: true, notCountingNotice: null })).toBe(false);
+  });
+
+  it('offers the action once the pill is switched off', () => {
+    expect(showsEnableOverlayAction({ overlayActive: false, notCountingNotice: null })).toBe(true);
+  });
+
+  it('never offers the action while a permission notice replaces the guidance', () => {
+    const notice = { title: 'Not counting yet', message: 'Turn on Accessibility.' };
+    expect(showsEnableOverlayAction({ overlayActive: false, notCountingNotice: notice })).toBe(
+      false,
+    );
   });
 });

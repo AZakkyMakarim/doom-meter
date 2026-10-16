@@ -3,6 +3,7 @@ import type { EngineState, Platform, Tier } from '../engine';
 import { formatClock, plural, spokenDuration } from '../format/duration';
 import { INCOMPLETE_NOTE } from '../history/historyViewModel';
 import { pillViewModelFor } from '../overlay/pillViewModel';
+import type { NotCountingNotice } from '../permissions/permissionState';
 
 /**
  * Everything the Today screen draws, derived from the Counting engine state
@@ -132,4 +133,16 @@ export function todayViewModelFor(
       pill.tierAnnouncement +
       (incompleteNote === null ? '' : ` ${incompleteNote}`),
   };
+}
+
+/**
+ * Whether the empty state offers the "Enable overlay" action (ADR 0006). It is a way to switch the
+ * pill on, so it shows only while the pill is off: on a fresh install the pill is on by default and
+ * the button would be misleading. A missing permission shows its own notice instead of the action.
+ */
+export function showsEnableOverlayAction(options: {
+  overlayActive: boolean;
+  notCountingNotice: NotCountingNotice | null;
+}): boolean {
+  return !options.overlayActive && options.notCountingNotice === null;
 }
