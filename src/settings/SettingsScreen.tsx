@@ -18,6 +18,7 @@ export interface SettingsScreenProps {
   onUpdate: (patch: SettingsPatch) => Promise<SettingsResult>;
   overlayGranted: boolean;
   accessibilityOn: boolean;
+  usageAccessGranted: boolean;
   /** Opens the system screen where the missing permission can be granted. */
   onFixPermission: (id: PermissionRow['id']) => void;
 }
@@ -120,7 +121,14 @@ function PermissionBlock({
   return (
     <View style={styles.permission}>
       <View style={styles.permissionHeader} accessible accessibilityLabel={row.accessibilityLabel}>
-        <Text style={styles.body}>{row.title}</Text>
+        <View style={styles.permissionTitle}>
+          <Text style={styles.body}>{row.title}</Text>
+          {!row.required && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{row.badge}</Text>
+            </View>
+          )}
+        </View>
         <View style={[styles.chip, row.granted ? styles.chipOk : styles.chipMissing]}>
           <Text style={styles.chipText}>{row.statusText}</Text>
         </View>
@@ -142,6 +150,7 @@ export function SettingsScreen({
   onUpdate,
   overlayGranted,
   accessibilityOn,
+  usageAccessGranted,
   onFixPermission,
 }: SettingsScreenProps) {
   const [drafts, setDrafts] = useState<SettingsDrafts>(() => draftsFor(settings));
@@ -179,8 +188,9 @@ export function SettingsScreen({
   }
 
   const position = positionControl(settings.positionDp);
-  const permissions = permissionRows({ overlayGranted, accessibilityOn });
-  const firstMissing = permissions.find((row) => !row.granted)?.id;
+  const permissions = permissionRows({ overlayGranted, accessibilityOn, usageAccessGranted });
+  // The primary action is for a missing required permission; an optional one stays secondary.
+  const firstMissing = permissions.find((row) => row.required && !row.granted)?.id;
 
   return (
     <View style={styles.screen}>
@@ -388,6 +398,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  permissionTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  badge: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeText: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   chip: {
     borderRadius: 8,
