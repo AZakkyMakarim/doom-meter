@@ -117,9 +117,10 @@ function App() {
     settingsStore.update({ overlayEnabled: true });
   };
 
-  const fixPermission = (id: 'overlay' | 'accessibility') => {
+  const fixPermission = (id: 'overlay' | 'accessibility' | 'usageAccess') => {
     if (id === 'overlay') overlay.requestPermission();
-    else detectionNative.openAccessibilitySettings();
+    else if (id === 'accessibility') detectionNative.openAccessibilitySettings();
+    else permissions.openSettings(id); // same system-settings call as onboarding
   };
 
   const pill = pillViewModelFor(state);
@@ -159,6 +160,7 @@ function App() {
           onUpdate={(patch) => settingsStore.update(patch)}
           overlayGranted={permitted}
           accessibilityOn={accessible}
+          usageAccessGranted={permissionStatus?.usageAccess ?? false}
           onFixPermission={fixPermission}
         />
       ) : (
