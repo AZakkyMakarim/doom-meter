@@ -1,0 +1,13 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-061 Sending the app to the background and back keeps the numbers of the day"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- pressKey: home
+- launchApp:
+    stopApp: false
+- assertVisible: "1[01] videos · .* · Drifting"

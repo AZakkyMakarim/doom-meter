@@ -1,0 +1,13 @@
+# setup: a11y=off overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-005 Fix permission on the Today banner opens the Accessibility settings screen"
+---
+- runFlow: _common/start-fresh.yaml
+- runFlow: _common/finish-onboarding.yaml
+- assertVisible: "DoomMeter is not counting. Turn on Accessibility service."
+- tapOn: "Fix permission"
+- extendedWaitUntil:
+    visible: ".*Accessibility.*"
+    timeout: 10000
+- assertNotVisible: "Fix permission"
+- assertNotVisible: "Not counting yet"

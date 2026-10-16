@@ -1,0 +1,9 @@
+appId: com.doommeter
+---
+# Wipes app data and waits for the first screen. The first load after a wipe is slow in a debug
+# build (Metro bundle), hence the long timeout.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Welcome to DoomMeter"
+    timeout: 90000

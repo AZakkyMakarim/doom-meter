@@ -1,0 +1,13 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-053 Compact mode draws the pill with the face and count only"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- tapOn: "Compact mode"
+- tapOn: "Today"
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- assertVisible: "Doom meter\\..*"
+- takeScreenshot: TC-053-compact-pill

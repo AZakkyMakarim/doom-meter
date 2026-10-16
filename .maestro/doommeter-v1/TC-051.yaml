@@ -1,0 +1,14 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-051 Tapping the pill opens the panel and the Close button collapses it"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "Doom meter\\..*"
+- assertVisible: "Close"
+- takeScreenshot: TC-051-panel
+- tapOn: "Close"
+- assertNotVisible: "Close"
+- assertVisible: "Doom meter\\..*"

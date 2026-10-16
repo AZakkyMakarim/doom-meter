@@ -1,0 +1,10 @@
+appId: com.doommeter
+---
+# Fresh data, onboarding done, back on Today. Use with `# setup: a11y=on` flows: after onboarding it
+# lets the keeper re-apply Accessibility and re-reads permissions.
+- runFlow: start-fresh.yaml
+- runFlow: finish-onboarding.yaml
+- runFlow: settle-a11y.yaml
+- extendedWaitUntil:
+    visible: "Today"
+    timeout: 20000

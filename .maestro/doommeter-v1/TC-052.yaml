@@ -1,0 +1,12 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-052 Switching the overlay off in Settings stops the pill appearing in feeds"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- tapOn: "Show overlay pill"
+- tapOn: "Today"
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- assertNotVisible: "Doom meter\\..*"

@@ -1,0 +1,8 @@
+# setup: a11y=on overlay=allow usage=deny
+appId: com.doommeter
+name: "TC-007 Skipping Usage Access keeps the app counting with no required-permission warning"
+---
+- runFlow: _common/ready.yaml
+- assertNotVisible: "DoomMeter is not counting.*"
+- assertNotVisible: "Not counting yet"
+- assertNotVisible: "Fix permission"

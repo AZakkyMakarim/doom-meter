@@ -1,0 +1,9 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-040 History with no data says No data yet with guidance and never shows a blank chart"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "History"
+- assertVisible: "History"
+- assertVisible: "No data yet"
+- assertVisible: "Days show up here once DoomMeter has counted some scrolling.*"

@@ -1,0 +1,14 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-039 Empty state offers Enable overlay once the pill is switched off, and the button turns it on"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- tapOn: "Show overlay pill"
+- tapOn: "Today"
+- assertVisible: "No data yet"
+- assertVisible: "Enable overlay"
+- tapOn: "Enable overlay"
+- assertNotVisible: "Enable overlay"
+- tapOn: "Settings"
+- assertVisible: "Show overlay pill"

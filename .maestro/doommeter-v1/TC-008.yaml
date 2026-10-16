@@ -1,0 +1,11 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-008 With every permission granted Today shows no permission warning"
+tags: [smoke]
+---
+- runFlow: _common/ready.yaml
+- assertVisible: "Today"
+- assertNotVisible: "DoomMeter is not counting.*"
+- assertNotVisible: "Fix permission"
+- assertNotVisible: "Not counting yet"
+- assertVisible: "No data yet"

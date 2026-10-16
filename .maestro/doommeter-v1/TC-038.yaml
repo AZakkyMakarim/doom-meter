@@ -1,0 +1,9 @@
+# setup: a11y=on overlay=allow usage=deny
+appId: com.doommeter
+name: "TC-038 After skipping Usage Access, Settings shows its status with a Fix permission action"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- assertVisible: "Permissions"
+- assertVisible: "Usage access"
+- assertVisible: "Fix permission.*"

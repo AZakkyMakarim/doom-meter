@@ -1,0 +1,20 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-033 A rollover hour of 25 or an empty hour is rejected with a clear message"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Day rollover hour"
+    direction: DOWN
+- tapOn: "Day rollover hour"
+- eraseText
+- inputText: "25"
+- hideKeyboard
+- tapOn: "Save rollover hour"
+- assertVisible: "Error: Day rollover hour must be a whole number from 0 to 23."
+- tapOn: "Day rollover hour"
+- eraseText
+- hideKeyboard
+- tapOn: "Save rollover hour"
+- assertVisible: "Error: Day rollover hour must be a whole number from 0 to 23."

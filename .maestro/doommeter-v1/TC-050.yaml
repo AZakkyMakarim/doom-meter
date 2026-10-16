@@ -1,0 +1,14 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-050 The pill appears with count, time and Tier while a feed is active and hides when it ends"
+tags: [smoke]
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- assertNotVisible: "Doom meter\\..*"
+- tapOn: "[+]10 videos"
+- assertVisible: "Doom meter\\. 1[01] videos.*Drifting.*"
+- takeScreenshot: TC-050-pill
+- tapOn: "End simulated session"
+- assertNotVisible: "Doom meter\\..*"

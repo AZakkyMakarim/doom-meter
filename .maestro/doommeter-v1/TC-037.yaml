@@ -1,0 +1,31 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-037 A saved threshold still applies after the app is restarted"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Drifting videos"
+    direction: DOWN
+- tapOn: "Drifting videos"
+- eraseText
+- inputText: "5"
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Save thresholds"
+    direction: DOWN
+- tapOn: "Save thresholds"
+- stopApp
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 30000
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- repeat:
+    times: 5
+    commands:
+      - tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "[56] videos · .* · Drifting"

@@ -1,0 +1,9 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-010 First run with no data shows the empty state with an Enable overlay action"
+---
+- runFlow: _common/ready.yaml
+- assertVisible: "No data yet"
+- assertVisible: "Enable overlay"
+- tapOn: "History"
+- assertVisible: "No data yet"

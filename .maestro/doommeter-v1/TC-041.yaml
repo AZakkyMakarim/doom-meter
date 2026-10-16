@@ -1,0 +1,13 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-041 History lists the current Day with its count, time and Tier"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- tapOn: "History"
+- assertNotVisible: "No data yet"
+- assertVisible: "1[01] videos · .*"
+- assertVisible: "Drifting"

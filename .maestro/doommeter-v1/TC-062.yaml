@@ -1,0 +1,15 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-062 Rotating to landscape keeps Today readable and the bottom navigation reachable"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- setOrientation: LANDSCAPE_LEFT
+- assertVisible: "1[01] videos · .* · Drifting"
+- assertVisible: "History"
+- tapOn: "History"
+- assertVisible: "History"
+- setOrientation: PORTRAIT

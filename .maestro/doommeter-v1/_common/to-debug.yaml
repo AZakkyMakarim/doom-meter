@@ -1,0 +1,9 @@
+appId: com.doommeter
+---
+# Scrolls Today down to the debug simulator (debug builds only), bottom of the page so every
+# simulator button is on screen. A video that stays 5 s counts in real time, so flows end the
+# simulated session right after adding videos when they assert an exact number.
+- scrollUntilVisible:
+    element: "End simulated session"
+    direction: DOWN
+    timeout: 30000
