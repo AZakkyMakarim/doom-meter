@@ -1,9 +1,12 @@
 # setup: a11y=on overlay=allow usage=allow
 appId: com.doommeter
-name: "TC-010 First run with no data shows the empty state with an Enable overlay action"
+name: "TC-010 First run with no data shows guidance and no Enable overlay button while the pill is on"
 ---
 - runFlow: _common/ready.yaml
 - assertVisible: "No data yet"
-- assertVisible: "Enable overlay"
+- assertVisible: "Nothing watched yet.*"
+- assertNotVisible: "Enable overlay"
+- scrollUntilVisible:
+    element: "Overlay is on.*"
 - tapOn: "History"
 - assertVisible: "No data yet"

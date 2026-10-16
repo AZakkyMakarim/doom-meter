@@ -4,7 +4,7 @@ import { platformColors } from '../design/platformTokens';
 import type { EngineState } from '../engine';
 import type { NotCountingNotice } from '../permissions/permissionState';
 import { WeekChartCard } from '../history/WeekChartCard';
-import { todayViewModelFor } from './todayViewModel';
+import { showsEnableOverlayAction, todayViewModelFor } from './todayViewModel';
 import type {
   DetectionWarningViewModel,
   PlatformRowViewModel,
@@ -147,7 +147,9 @@ export function TodayScreen({
       {vm.isEmpty ? (
         <EmptyState
           vm={vm}
-          onEnableOverlay={overlayActive || notCountingNotice !== null ? null : onEnableOverlay}
+          onEnableOverlay={
+            showsEnableOverlayAction({ overlayActive, notCountingNotice }) ? onEnableOverlay : null
+          }
           notice={notCountingNotice}
         />
       ) : (

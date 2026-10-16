@@ -104,15 +104,15 @@ emulator cannot run TikTok); they stay listed so the coverage matrix is complete
   1. Finish onboarding.
 - Expected: Today shows "No data yet" (empty state) and no banner or "Not counting yet".
 
-### TC-010: First run with no data shows guidance and an Enable overlay action
-- Covers: .7 edge case ("empty-state guidance and an enable-overlay button, not zeros or a blank chart")
+### TC-010: First run with no data shows guidance, no Enable overlay button while the pill is on
+- Covers: .7 edge case ("empty-state guidance, not zeros or a blank chart"); the button is hidden while the pill is on (ADR 0006, doom-meter-r2h)
 - Platform: android
 - Type: edge
 - Priority: P2
 - Preconditions: fresh data; all permissions on
 - Steps:
   1. Finish onboarding and look at Today.
-- Expected: "No data yet" with guidance and an "Enable overlay" button; no zero totals; the chart card says "No data yet".
+- Expected: "No data yet" with guidance and no "Enable overlay" button (the pill is on by default); the Setup section says "Overlay is on"; no zero totals; the 7-day chart card says "No data yet". The button appears only once the pill is switched off (TC-039).
 
 ### TC-011: Simulated scrolling shows the same numbers on Today and in the debug summary
 - Covers: .3, .7 (numbers match the pill)
