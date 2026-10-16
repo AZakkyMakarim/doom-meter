@@ -1,0 +1,19 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-014 No screen offers a manual reset of the day's counts"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- assertNotVisible: ".*[Rr]eset.*"
+- assertNotVisible: ".*[Cc]lear (data|today).*"
+- tapOn: "History"
+- assertNotVisible: ".*[Rr]eset.*"
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Save rollover hour"
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible: ".*[Rr]eset.*"

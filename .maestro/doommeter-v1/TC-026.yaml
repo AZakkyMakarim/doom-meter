@@ -1,0 +1,13 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-026 Many videos with little time still use the videos Tier (30 videos is Doomed even though minutes are Fresh)"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- repeat:
+    times: 3
+    commands:
+      - tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- assertVisible: "3[01] videos · .* · Doomed"

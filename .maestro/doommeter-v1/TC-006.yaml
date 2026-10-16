@@ -1,0 +1,11 @@
+# setup: a11y=on overlay=deny usage=allow
+appId: com.doommeter
+name: "TC-006 Fix permission opens the Display over other apps settings when Overlay is missing"
+---
+- runFlow: _common/ready.yaml
+- assertVisible: "DoomMeter is not counting. Turn on Display over other apps."
+- tapOn: "Fix permission"
+- extendedWaitUntil:
+    visible: ".*(Display over other apps|display over other apps).*"
+    timeout: 10000
+- assertNotVisible: "Not counting yet"

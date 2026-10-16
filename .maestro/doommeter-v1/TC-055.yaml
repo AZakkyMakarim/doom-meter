@@ -1,0 +1,13 @@
+# setup: a11y=on overlay=deny usage=allow
+appId: com.doommeter
+name: "TC-055 With the Overlay permission revoked no pill is drawn and the app keeps running"
+---
+- runFlow: _common/ready.yaml
+- assertVisible: "DoomMeter is not counting. Turn on Display over other apps."
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- assertNotVisible: "Doom meter\\..*"
+- tapOn: "End simulated session"
+- runFlow: _common/to-top.yaml
+- assertVisible: "Fix permission"

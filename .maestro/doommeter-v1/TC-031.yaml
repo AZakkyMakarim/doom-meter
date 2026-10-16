@@ -1,0 +1,27 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-031 Lowering the Drifting videos threshold to 5 changes the Tier shown on Today"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Drifting videos"
+    direction: DOWN
+- tapOn: "Drifting videos"
+- eraseText
+- inputText: "5"
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Save thresholds"
+    direction: DOWN
+- tapOn: "Save thresholds"
+- assertNotVisible: "Error:.*"
+- tapOn: "Today"
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- repeat:
+    times: 5
+    commands:
+      - tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "[56] videos · .* · Drifting"

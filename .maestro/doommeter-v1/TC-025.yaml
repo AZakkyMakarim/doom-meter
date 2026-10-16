@@ -1,0 +1,11 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-025 The Tier is the higher of the videos Tier and the minutes Tier"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]1 video"
+- tapOn: "[+]30 min"
+- assertVisible: "[12] videos? · .* · Doomed"
+- tapOn: "End simulated session"

@@ -1,0 +1,20 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-021 Count Tier boundary at 30 videos - 29 is Drifting, 30 is Doomed"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- repeat:
+    times: 2
+    commands:
+      - tapOn: "[+]10 videos"
+- repeat:
+    times: 9
+    commands:
+      - tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "(29 videos · .* · Drifting|30 videos · .* · Doomed)"
+- tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "3[01] videos · .* · Doomed"

@@ -1,0 +1,27 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-034 A valid rollover hour is saved, shown in the Day card and survives a restart"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Day rollover hour"
+    direction: DOWN
+- tapOn: "Day rollover hour"
+- eraseText
+- inputText: "6"
+- hideKeyboard
+- tapOn: "Save rollover hour"
+- assertNotVisible: "Error:.*"
+- assertVisible: "A new Day starts at 0?6:00 local time.*"
+- stopApp
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 30000
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Day rollover hour"
+    direction: DOWN
+- assertVisible: "A new Day starts at 0?6:00 local time.*"

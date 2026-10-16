@@ -1,0 +1,14 @@
+appId: com.doommeter
+---
+# For flows that need "Accessibility on": the runner's keeper re-applies the setting a moment after
+# Maestro's driver connects (the driver clears it). Wait for that, then bring the app back to the
+# foreground so it re-reads its permissions. The caller asserts what it expects next.
+- extendedWaitUntil:
+    visible: "__settle__"
+    timeout: 7000
+    optional: true
+- pressKey: home
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 3000

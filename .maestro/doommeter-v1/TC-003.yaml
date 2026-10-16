@@ -1,0 +1,13 @@
+# setup: a11y=off overlay=deny usage=deny
+appId: com.doommeter
+name: "TC-003 App opens after skipping every permission and says it is not counting"
+tags: [smoke]
+---
+- runFlow: _common/start-fresh.yaml
+- runFlow: _common/finish-onboarding.yaml
+- assertVisible: "DoomMeter is not counting.*"
+- assertVisible: "Fix permission"
+- assertVisible: "Not counting yet"
+- assertVisible: "Today"
+- assertVisible: "History"
+- assertVisible: "Settings"

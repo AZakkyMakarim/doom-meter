@@ -1,0 +1,15 @@
+# setup: a11y=off overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-004 A permission that is already granted shows Granted and Continue during onboarding"
+---
+- runFlow: _common/start-fresh.yaml
+- tapOn: "Get started"
+- tapOn: "Not now"
+- assertVisible: "Display over other apps"
+- assertVisible: "Granted"
+- assertVisible: "Continue"
+- assertNotVisible: "Not now"
+- tapOn: "Continue"
+- assertVisible: "Usage access"
+- assertVisible: "Granted"
+- assertVisible: "Continue"

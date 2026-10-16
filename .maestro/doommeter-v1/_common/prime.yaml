@@ -1,0 +1,8 @@
+appId: com.doommeter
+---
+# The first simulated activity adds the summary cards to Today and pushes the debug buttons down.
+# Prime with 5 minutes (no videos, Tier stays Fresh) and scroll again, so later taps and
+# "End simulated session" are back to back: a video that stays 5 s counts in real time, so the
+# gap between the last add and End must stay short.
+- tapOn: "[+]5 min"
+- runFlow: to-debug.yaml

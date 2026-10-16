@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mood avatar, converted from design-system/doommeter/assets (MASTER 2.1). Colors baked in. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#F87171" android:pathData="M2,32 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0"/>
+    <path android:fillColor="#F8FAFC" android:strokeColor="#0B0D14" android:strokeWidth="3" android:pathData="M16,28 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0"/>
+    <path android:fillColor="#F8FAFC" android:strokeColor="#0B0D14" android:strokeWidth="3" android:pathData="M34,28 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0"/>
+    <path android:fillColor="#0B0D14" android:pathData="M21.2,28 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0"/>
+    <path android:fillColor="#0B0D14" android:pathData="M39.2,28 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0"/>
+    <path android:strokeColor="#0B0D14" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M20,46 Q24,40 28,46 T36,46 T44,46"/>
+</vector>

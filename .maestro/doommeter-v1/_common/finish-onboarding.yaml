@@ -1,0 +1,26 @@
+appId: com.doommeter
+---
+# Starts on onboarding step 1 and walks to Today whatever the permission state is:
+# a granted step offers "Continue", a missing required step "Not now", a missing optional "Skip".
+- tapOn: "Get started"
+- repeat:
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            visible: "Continue"
+          commands:
+            - tapOn: "Continue"
+      - runFlow:
+          when:
+            visible: "Not now"
+          commands:
+            - tapOn: "Not now"
+      - runFlow:
+          when:
+            visible: "Skip"
+          commands:
+            - tapOn: "Skip"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 20000

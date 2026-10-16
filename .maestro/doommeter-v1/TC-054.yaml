@@ -1,0 +1,12 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-054 Taps outside the pill still reach the app underneath"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- assertVisible: "Doom meter\\..*"
+- tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "1[12] videos · .*"

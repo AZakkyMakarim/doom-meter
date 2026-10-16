@@ -1,0 +1,13 @@
+# setup: a11y=off overlay=deny usage=deny
+appId: com.doommeter
+name: "TC-001 Fresh install opens on the welcome step with the privacy statement"
+tags: [smoke]
+---
+- runFlow: _common/start-fresh.yaml
+- assertVisible: "Step 1 of 4"
+- assertVisible: "Welcome to DoomMeter"
+- assertVisible: ".*No data leaves your device.*"
+- assertVisible: "Get started"
+- tapOn: "Get started"
+- assertVisible: "Step 2 of 4"
+- assertVisible: "Accessibility service"

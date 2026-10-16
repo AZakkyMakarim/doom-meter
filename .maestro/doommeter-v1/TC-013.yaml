@@ -1,0 +1,18 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-013 Per-platform breakdown lists Reels, Shorts and TikTok with the simulated TikTok share"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- scrollUntilVisible:
+    element: "By platform"
+    direction: UP
+    timeout: 20000
+- assertVisible: "Reels"
+- assertVisible: "Shorts"
+- assertVisible: "TikTok"
+- assertVisible: "0 videos · 00:00"
+- assertVisible: "100%"

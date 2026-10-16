@@ -1,0 +1,19 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-012 Counts are unchanged after the app is force-stopped and reopened"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- tapOn: "[+]10 videos"
+- tapOn: "End simulated session"
+- assertVisible: "1[01] videos · .* · Drifting"
+- stopApp
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Drifting"
+    timeout: 30000
+- assertVisible: "1[01]"
+- assertVisible: "videos"
+- assertNotVisible: "No data yet"

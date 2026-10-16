@@ -1,0 +1,16 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-036 Move down and Move up change the pill position and keep it within the top region"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- assertVisible: "Top"
+- tapOn: "Move down"
+- assertNotVisible: "Top"
+- tapOn: "Move up"
+- assertVisible: "Top"
+- repeat:
+    times: 12
+    commands:
+      - tapOn: "Move down"
+- assertVisible: "Move up"

@@ -1,0 +1,16 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-020 Count Tier boundary at 10 videos - 9 is Fresh, 10 is Drifting"
+---
+- runFlow: _common/ready.yaml
+- runFlow: _common/to-debug.yaml
+- runFlow: _common/prime.yaml
+- repeat:
+    times: 9
+    commands:
+      - tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "(9 videos · .* · Fresh|10 videos · .* · Drifting)"
+- tapOn: "[+]1 video"
+- tapOn: "End simulated session"
+- assertVisible: "(1[01]) videos · .* · Drifting"

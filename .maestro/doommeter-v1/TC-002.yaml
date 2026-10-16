@@ -1,0 +1,22 @@
+# setup: a11y=off overlay=deny usage=deny
+appId: com.doommeter
+name: "TC-002 Onboarding separates required from optional permissions and repeats the privacy statement"
+---
+- runFlow: _common/start-fresh.yaml
+- tapOn: "Get started"
+- assertVisible: "Accessibility service"
+- assertVisible: "Required"
+- assertVisible: "Not granted yet"
+- assertVisible: "Open Accessibility settings"
+- assertVisible: "No data leaves your device. Only counts are kept, on this phone."
+- tapOn: "Not now"
+- assertVisible: "Display over other apps"
+- assertVisible: "Required"
+- assertVisible: "Open Overlay settings"
+- assertVisible: "No data leaves your device. Only counts are kept, on this phone."
+- tapOn: "Not now"
+- assertVisible: "Usage access"
+- assertVisible: "Optional"
+- assertVisible: "Open Usage access settings"
+- assertVisible: "Skip"
+- assertVisible: "No data leaves your device. Only counts are kept, on this phone."

@@ -1,0 +1,13 @@
+# setup: a11y=on overlay=allow usage=allow
+appId: com.doommeter
+name: "TC-060 Pressing Back on the main screen leaves the app and reopening it works"
+---
+- runFlow: _common/ready.yaml
+- pressKey: back
+- assertNotVisible: "Fix permission"
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 30000
+- assertVisible: "Today"

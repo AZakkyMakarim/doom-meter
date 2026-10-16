@@ -1,0 +1,14 @@
+# setup: a11y=on overlay=deny usage=allow
+appId: com.doommeter
+name: "TC-030 Settings lists permission status with a Fix permission action for what is missing"
+---
+- runFlow: _common/ready.yaml
+- tapOn: "Settings"
+- assertVisible: "Permissions"
+- assertVisible: "Display over other apps"
+- assertVisible: "Accessibility service"
+- assertVisible: "Fix permission.*"
+- assertVisible: "Show overlay pill"
+- assertVisible: "Compact mode"
+- assertVisible: "Haptics"
+- assertVisible: "Tier thresholds"

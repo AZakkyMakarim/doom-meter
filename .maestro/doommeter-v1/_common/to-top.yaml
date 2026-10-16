@@ -1,0 +1,9 @@
+appId: com.doommeter
+---
+# Back to the top of Today. scrollUntilVisible on "Today" cannot be used: the bottom navigation
+# label with that name is always on screen.
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          direction: DOWN
