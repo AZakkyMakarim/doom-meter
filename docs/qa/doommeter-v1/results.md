@@ -15,7 +15,7 @@ Maestro session-file lock errors). Nothing below comes from the invalid batch.
 |---|---|---|---|
 | TC-001, 002, 003, 004, 005, 006, 008 | pass | | |
 | TC-007 | pass | | |
-| TC-010 | **fail** | doom-meter-r2h | no "Enable overlay" on fresh-install empty state |
+| TC-010 | **fail** | doom-meter-r2h | no "Enable overlay" on fresh-install empty state; resolved as intended (ADR 0006), case and flow now assert no button; re-run on a device pending |
 | TC-011, 012, 013, 014 | pass | | TC-014 was flaky once, then passed |
 | TC-020, 021 | pass | | boundary assertions accept N or N+1 (see below) |
 | TC-038 | **fail** | doom-meter-7om | Settings has no Usage access row |
