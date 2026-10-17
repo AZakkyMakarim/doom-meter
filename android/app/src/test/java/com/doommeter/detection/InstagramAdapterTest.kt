@@ -158,6 +158,16 @@ class InstagramAdapterTest {
     }
 
     @Test
+    fun `the persistent Add comment bar of the Explore and feed viewers does not pause the surface`() {
+        val bar = text("Add comment…", id("comment_composer_hint"))
+        val fromExplore =
+            NodeSnapshot(children = listOf(pager(reelPage("a", "b")), bar, tabBar("Search and explore")))
+        assertTrue(adapter.observe(fromExplore).surfaceActive)
+        val fromFeed = NodeSnapshot(children = listOf(pager(reelPage("a", "b")), bar, tabBar("Home")))
+        assertTrue(adapter.observe(fromFeed).surfaceActive)
+    }
+
+    @Test
     fun `the Comment button on the rail does not pause the surface`() {
         val rail =
             NodeSnapshot(
