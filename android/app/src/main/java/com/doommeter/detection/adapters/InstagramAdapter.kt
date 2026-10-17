@@ -28,18 +28,19 @@ class InstagramAdapter : PlatformAdapter {
     override fun observe(root: NodeSnapshot): SurfaceObservation {
         val scan = Scan()
         scan.visit(root, inViewer = false)
-        if (!scan.viewerVisible || scan.overlayOpen) return SurfaceObservation.INACTIVE
+        if (!scan.viewerVisible || scan.overlayOpen()) return SurfaceObservation.INACTIVE
         return SurfaceObservation(surfaceActive = true, videoToken = scan.token())
     }
 
     /** One pass over the tree, collecting just what the rules above need. */
     private class Scan {
         var viewerVisible = false
-        var overlayOpen = false
-            get() = field || emoji.size >= MIN_REACTION_EMOJI
         private val emoji = HashSet<String>()
+        private var overlay = false
         private var hash = FNV_OFFSET
         private var hashed = 0
+
+        fun overlayOpen() = overlay || emoji.size >= MIN_REACTION_EMOJI
 
         fun visit(node: NodeSnapshot, inViewer: Boolean) {
             // Off-screen pager pages are not the video in focus.
@@ -49,8 +50,8 @@ class InstagramAdapter : PlatformAdapter {
             val isViewer = name != null && (name in VIEWER_IDS || name.startsWith(VIEWER_ID_PREFIX))
             val viewer = inViewer || isViewer
             if (isViewer) viewerVisible = true
-            if (isOverlay(node, name)) overlayOpen = true
-            if (name != null && name.startsWith(THREAD_ID_PREFIX)) overlayOpen = true
+            if (isOverlay(node, name)) overlay = true
+            if (name != null && name.startsWith(THREAD_ID_PREFIX)) overlay = true
             noteEmoji(node.text)
             noteEmoji(node.contentDescription)
             if (viewer) absorb(node)
@@ -59,7 +60,9 @@ class InstagramAdapter : PlatformAdapter {
         }
 
         private fun noteEmoji(label: String?) {
-            val t = label?.trim() ?: return
+            // Cheap length gate first: most node text is far longer than any emoji sequence.
+            if (label == null || label.length > MAX_LABEL_CHARS) return
+            val t = label.trim()
             if (isSingleEmoji(t)) emoji.add(t)
         }
 
@@ -140,23 +143,36 @@ class InstagramAdapter : PlatformAdapter {
         /** `com.instagram.android:id/name` -> `name`; tolerates ids without a package prefix. */
         private fun idName(viewId: String?): String? = viewId?.substringAfterLast('/')
 
-        /** Only emoji (plus joiners, variation selectors and skin tones): no letters, digits or spaces. */
+        /**
+         * Exactly one emoji: a base symbol, optionally a flag pair, variation selector or skin
+         * tone, and ZWJ-joined further bases. Rejects multi-emoji strings, text and plain symbols.
+         */
         private fun isSingleEmoji(t: String): Boolean {
-            if (t.isEmpty() || t.length > MAX_EMOJI_CHARS) return false
-            var symbol = false
-            for (cp in t.codePoints().toArray()) {
-                when (Character.getType(cp)) {
-                    Character.OTHER_SYMBOL.toInt() -> symbol = true
-                    Character.NON_SPACING_MARK.toInt(),
-                    Character.FORMAT.toInt(),
-                    Character.MODIFIER_SYMBOL.toInt() -> Unit
-                    else -> return false
-                }
+            if (t.isEmpty()) return false
+            var i = 0
+            while (true) {
+                val cp = t.codePointAt(i)
+                if (Character.getType(cp) != Character.OTHER_SYMBOL.toInt() || cp in NOT_EMOJI) return false
+                i += Character.charCount(cp)
+                if (cp in REGIONAL_INDICATORS && i < t.length && t.codePointAt(i) in REGIONAL_INDICATORS) i += 2
+                if (i < t.length && t[i] == VARIATION_SELECTOR_16) i++
+                else if (i < t.length && t.codePointAt(i) in SKIN_TONES) i += 2
+                if (i == t.length) return true
+                if (t[i] != ZWJ) return false
+                i++
+                if (i == t.length) return false
             }
-            return symbol
         }
 
-        private const val MAX_EMOJI_CHARS = 16
+        /** Longest label (before trimming) worth inspecting; a ZWJ family emoji is 11 chars. */
+        private const val MAX_LABEL_CHARS = 32
+        private const val ZWJ = '‍'
+        private const val VARIATION_SELECTOR_16 = '️'
+        private val SKIN_TONES = 0x1F3FB..0x1F3FF
+        private val REGIONAL_INDICATORS = 0x1F1E6..0x1F1FF
+
+        /** Symbols (category So) that are text, not emoji. */
+        private val NOT_EMOJI = setOf('©'.code, '®'.code, '™'.code, '°'.code)
 
         private fun isOverlay(node: NodeSnapshot, name: String?): Boolean {
             val text = node.text?.trim()
