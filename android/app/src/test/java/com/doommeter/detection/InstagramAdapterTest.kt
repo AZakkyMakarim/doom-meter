@@ -158,6 +158,16 @@ class InstagramAdapterTest {
     }
 
     @Test
+    fun `the Reels comments sheet composer hint pauses the surface`() {
+        val sheet = NodeSnapshot(children = listOf(pager(reelPage("a", "b")), text("What do you think of this?")))
+        assertFalse(adapter.observe(sheet).surfaceActive)
+        // Closing the sheet removes the hint; the same Reel resumes with the same token.
+        val closed = NodeSnapshot(children = listOf(pager(reelPage("a", "b"))))
+        assertTrue(adapter.observe(closed).surfaceActive)
+        assertEquals(adapter.observe(closed).videoToken, adapter.observe(closed).videoToken)
+    }
+
+    @Test
     fun `the persistent Add comment bar of the Explore and feed viewers does not pause the surface`() {
         val bar = text("Add comment…", id("comment_composer_hint"))
         val fromExplore =
