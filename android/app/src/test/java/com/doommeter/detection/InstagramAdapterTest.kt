@@ -178,6 +178,29 @@ class InstagramAdapterTest {
     private fun sheetOver(vararg extra: NodeSnapshot) =
         NodeSnapshot(children = listOf(pager(reelPage("a", "b"))) + extra.toList() + tabBar())
 
+    private fun textRow(vararg labels: String) = NodeSnapshot(children = labels.map { text(it) })
+
+    @Test
+    fun `three distinct emoji nodes do not pause, four do`() {
+        assertTrue(adapter.observe(sheetOver(textRow("❤️", "🙌", "🔥"))).surfaceActive)
+        assertFalse(adapter.observe(sheetOver(textRow("❤️", "🙌", "🔥", "👏"))).surfaceActive)
+        // Repeats of one emoji are not distinct.
+        assertTrue(adapter.observe(sheetOver(textRow("🔥", "🔥", "🔥", "🔥"))).surfaceActive)
+    }
+
+    @Test
+    fun `only real single emoji count toward the reaction row`() {
+        val symbols = textRow("©", "®", "™", "°", "1", "a")
+        assertTrue(adapter.observe(sheetOver(symbols)).surfaceActive)
+        // Strings of several emoji are not a single emoji.
+        assertTrue(adapter.observe(sheetOver(textRow("🔥🔥", "🔥🙌", "🙌👏", "👏🔥"))).surfaceActive)
+        // ZWJ, skin tone and flag sequences are single emoji.
+        val sequences = textRow("👨‍👩‍👧‍👦", "👍🏽", "🇮🇩", "🏳️‍🌈")
+        assertFalse(adapter.observe(sheetOver(sequences)).surfaceActive)
+        // Long text is skipped outright.
+        assertTrue(adapter.observe(sheetOver(textRow("🔥".repeat(40)))).surfaceActive)
+    }
+
     @Test
     fun `the comments sheet with the Join the conversation hint pauses the surface`() {
         assertFalse(adapter.observe(sheetOver(text("Join the conversation..."))).surfaceActive)
