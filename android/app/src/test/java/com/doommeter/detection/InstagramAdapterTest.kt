@@ -167,6 +167,50 @@ class InstagramAdapterTest {
         assertEquals(adapter.observe(closed).videoToken, adapter.observe(closed).videoToken)
     }
 
+    /** The quick-reaction row of the comments sheet; the emoji are exposed as text or as descriptions. */
+    private fun emojiRow() =
+        NodeSnapshot(
+            children =
+                listOf("❤️", "🙌", "🔥", "👏").map { text(it) } +
+                    listOf("😢", "😍", "😮", "😂").map { NodeSnapshot(contentDescription = it) },
+        )
+
+    private fun sheetOver(vararg extra: NodeSnapshot) =
+        NodeSnapshot(children = listOf(pager(reelPage("a", "b"))) + extra.toList() + tabBar())
+
+    @Test
+    fun `the comments sheet with the Join the conversation hint pauses the surface`() {
+        assertFalse(adapter.observe(sheetOver(text("Join the conversation..."))).surfaceActive)
+        assertFalse(adapter.observe(sheetOver(text("Join the conversation…"))).surfaceActive)
+    }
+
+    @Test
+    fun `the comments sheet pauses the surface whatever its hint says`() {
+        // Hint text varies by build; the emoji reaction row is language-independent.
+        val unknownHint = text("Say something nice", className = "android.widget.EditText")
+        assertFalse(adapter.observe(sheetOver(emojiRow(), unknownHint)).surfaceActive)
+        // ...and the thread rows' ids alone are enough too.
+        val rows = NodeSnapshot(viewId = id("row_comment_container"), children = listOf(text("nice reel")))
+        assertFalse(adapter.observe(sheetOver(rows)).surfaceActive)
+    }
+
+    @Test
+    fun `the Reel resumes with the same token once the comments sheet closes`() {
+        val open = adapter.observe(sheetOver(emojiRow()))
+        val before = adapter.observe(sheetOver())
+        assertFalse(open.surfaceActive)
+        assertTrue(before.surfaceActive)
+        assertEquals(before.videoToken, adapter.observe(sheetOver()).videoToken)
+    }
+
+    @Test
+    fun `a stray emoji in a caption or the persistent bar is not a comments sheet`() {
+        val caption = NodeSnapshot(children = listOf(text("🔥"), NodeSnapshot(contentDescription = "😂")))
+        assertTrue(adapter.observe(sheetOver(caption)).surfaceActive)
+        val barWithEmoji = NodeSnapshot(children = listOf(standaloneViewer("comment_composer_parent", "android.widget.TextView"), caption))
+        assertTrue(adapter.observe(barWithEmoji).surfaceActive)
+    }
+
     @Test
     fun `the persistent Add comment bar of the Explore and feed viewers does not pause the surface`() {
         val bar = text("Add comment…", id("comment_composer_hint"))

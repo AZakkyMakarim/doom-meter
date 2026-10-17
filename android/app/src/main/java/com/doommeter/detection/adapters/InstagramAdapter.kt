@@ -36,6 +36,8 @@ class InstagramAdapter : PlatformAdapter {
     private class Scan {
         var viewerVisible = false
         var overlayOpen = false
+            get() = field || emoji.size >= MIN_REACTION_EMOJI
+        private val emoji = HashSet<String>()
         private var hash = FNV_OFFSET
         private var hashed = 0
 
@@ -48,9 +50,17 @@ class InstagramAdapter : PlatformAdapter {
             val viewer = inViewer || isViewer
             if (isViewer) viewerVisible = true
             if (isOverlay(node, name)) overlayOpen = true
+            if (name != null && name.startsWith(THREAD_ID_PREFIX)) overlayOpen = true
+            noteEmoji(node.text)
+            noteEmoji(node.contentDescription)
             if (viewer) absorb(node)
 
             for (child in node.children) visit(child, viewer)
+        }
+
+        private fun noteEmoji(label: String?) {
+            val t = label?.trim() ?: return
+            if (isSingleEmoji(t)) emoji.add(t)
         }
 
         /** Fold the node's stable, non-numeric text into the video token. */
@@ -77,6 +87,17 @@ class InstagramAdapter : PlatformAdapter {
         /** Other hosts of the viewer (Explore, feed) may wrap it under their own `clips_viewer_*` id. */
         private const val VIEWER_ID_PREFIX = "clips_viewer_"
 
+        /** Rows of the comments thread (`row_comment_*`); the Reel's own rail uses other ids. */
+        private const val THREAD_ID_PREFIX = "row_comment_"
+
+        /**
+         * The comments sheet shows a row of quick-reaction emoji (heart, clap, fire...) above the
+         * composer. Its hint text varies by build, so this is the language-independent signal. The
+         * Explore and feed viewers' persistent bar has no such row, and a caption rarely has this
+         * many separate emoji-only nodes.
+         */
+        private const val MIN_REACTION_EMOJI = 4
+
         /**
          * Comments thread composer and the creator profile screen header. The `comment_composer_*`
          * ids are not here: the Explore and feed viewers' persistent bottom bar is probably built
@@ -100,6 +121,7 @@ class InstagramAdapter : PlatformAdapter {
                 Regex("^comments$", RegexOption.IGNORE_CASE),
                 Regex("^add a comment.*", RegexOption.IGNORE_CASE),
                 Regex("^what do you think of this.*", RegexOption.IGNORE_CASE),
+                Regex("^join the conversation.*", RegexOption.IGNORE_CASE),
             )
 
         /** The Explore and feed viewers' always-visible bottom bar, even when it uses an overlay id. */
@@ -117,6 +139,24 @@ class InstagramAdapter : PlatformAdapter {
 
         /** `com.instagram.android:id/name` -> `name`; tolerates ids without a package prefix. */
         private fun idName(viewId: String?): String? = viewId?.substringAfterLast('/')
+
+        /** Only emoji (plus joiners, variation selectors and skin tones): no letters, digits or spaces. */
+        private fun isSingleEmoji(t: String): Boolean {
+            if (t.isEmpty() || t.length > MAX_EMOJI_CHARS) return false
+            var symbol = false
+            for (cp in t.codePoints().toArray()) {
+                when (Character.getType(cp)) {
+                    Character.OTHER_SYMBOL.toInt() -> symbol = true
+                    Character.NON_SPACING_MARK.toInt(),
+                    Character.FORMAT.toInt(),
+                    Character.MODIFIER_SYMBOL.toInt() -> Unit
+                    else -> return false
+                }
+            }
+            return symbol
+        }
+
+        private const val MAX_EMOJI_CHARS = 16
 
         private fun isOverlay(node: NodeSnapshot, name: String?): Boolean {
             val text = node.text?.trim()
