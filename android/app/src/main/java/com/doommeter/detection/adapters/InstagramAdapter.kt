@@ -44,8 +44,9 @@ class InstagramAdapter : PlatformAdapter {
             if (!node.isVisibleToUser) return
 
             val name = idName(node.viewId)
-            val viewer = inViewer || name in VIEWER_IDS
-            if (name in VIEWER_IDS) viewerVisible = true
+            val isViewer = name != null && (name in VIEWER_IDS || name.startsWith(VIEWER_ID_PREFIX))
+            val viewer = inViewer || isViewer
+            if (isViewer) viewerVisible = true
             if (isOverlay(node, name)) overlayOpen = true
             if (viewer) absorb(node)
 
@@ -73,12 +74,17 @@ class InstagramAdapter : PlatformAdapter {
         /** The vertical Reels pager and its page container. Stories use `reel_viewer_*`. */
         private val VIEWER_IDS = setOf("clips_viewer_view_pager", "clips_video_container")
 
-        /** Comments composer and thread, and the creator profile screen header. */
+        /** Other hosts of the viewer (Explore, feed) may wrap it under their own `clips_viewer_*` id. */
+        private const val VIEWER_ID_PREFIX = "clips_viewer_"
+
+        /**
+         * Comments thread composer and the creator profile screen header. The `comment_composer_*`
+         * ids are not here: the Explore and feed viewers' persistent bottom bar is probably built
+         * from them, and they never paused the real comments sheet anyway.
+         */
         private val OVERLAY_IDS =
             setOf(
                 "layout_comment_thread_edittext",
-                "comment_composer_parent",
-                "comment_composer_text_view",
                 "profile_header_container",
                 "profile_tab_layout",
                 "profile_header_actions_top_row",
@@ -96,6 +102,9 @@ class InstagramAdapter : PlatformAdapter {
                 Regex("^what do you think of this.*", RegexOption.IGNORE_CASE),
             )
 
+        /** The Explore and feed viewers' always-visible bottom bar, even when it uses an overlay id. */
+        private val PASSIVE_BAR = Regex("^add comment.*", RegexOption.IGNORE_CASE)
+
         private val BUTTON_LABELS = listOf("Follow", "Following", "Follow back", "Requested")
 
         /** Counts and timestamps change while a Reel plays; they must not look like a swipe. */
@@ -110,9 +119,10 @@ class InstagramAdapter : PlatformAdapter {
         private fun idName(viewId: String?): String? = viewId?.substringAfterLast('/')
 
         private fun isOverlay(node: NodeSnapshot, name: String?): Boolean {
-            if (name != null && name in OVERLAY_IDS) return true
-            val text = node.text?.trim() ?: return false
-            return OVERLAY_TEXTS.any { it.matches(text) }
+            val text = node.text?.trim()
+            // shortcut: English-only exemption for the passive bar; other locales fall back to the id rule.
+            if (name != null && name in OVERLAY_IDS) return text == null || !PASSIVE_BAR.matches(text)
+            return text != null && OVERLAY_TEXTS.any { it.matches(text) }
         }
     }
 }

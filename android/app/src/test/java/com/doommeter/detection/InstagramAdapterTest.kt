@@ -177,6 +177,45 @@ class InstagramAdapterTest {
         assertTrue(adapter.observe(fromFeed).surfaceActive)
     }
 
+    /** Explore / feed viewer: 'Reels' header with back arrow, pager, and a persistent bottom bar. */
+    private fun standaloneViewer(barId: String, barClass: String) =
+        NodeSnapshot(
+            children =
+                listOf(
+                    NodeSnapshot(
+                        viewId = id("action_bar"),
+                        children =
+                            listOf(
+                                NodeSnapshot(contentDescription = "Back"),
+                                text("Reels", id("action_bar_title")),
+                            ),
+                    ),
+                    pager(reelPage("alice", "morning run")),
+                    text("Add comment…", id(barId), className = barClass),
+                ),
+        )
+
+    @Test
+    fun `the persistent bar of the Explore and feed viewers is not a comments overlay whatever its id`() {
+        for (barId in listOf("comment_composer_parent", "comment_composer_text_view", "layout_comment_thread_edittext")) {
+            for (cls in listOf("android.widget.TextView", "android.widget.EditText")) {
+                assertTrue("$barId/$cls", adapter.observe(standaloneViewer(barId, cls)).surfaceActive)
+            }
+        }
+    }
+
+    @Test
+    fun `the viewer is recognised under any clips_viewer id, not only the pager`() {
+        // No known pager or page-container id anywhere: only the prefix identifies the viewer.
+        val tree =
+            NodeSnapshot(
+                viewId = id("clips_viewer_fragment_root"),
+                children = listOf(text("alice", id("clips_author_username"))),
+            )
+        assertTrue(adapter.observe(tree).surfaceActive)
+        assertNotNull(adapter.observe(tree).videoToken)
+    }
+
     @Test
     fun `the Comment button on the rail does not pause the surface`() {
         val rail =
