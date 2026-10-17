@@ -84,12 +84,15 @@ class InstagramAdapter : PlatformAdapter {
                 "profile_header_actions_top_row",
             )
 
-        /** Sheet title and composer hint of the comments sheet (matched on text only). */
+        /**
+         * Sheet title and composer hint of the comments sheet (matched on text only). The bare
+         * "Add comment..." is not here: the Explore and feed Reels viewers keep it as a persistent
+         * bottom bar, so matching it would report those viewers as paused for good.
+         */
         private val OVERLAY_TEXTS =
             listOf(
                 Regex("^comments$", RegexOption.IGNORE_CASE),
                 Regex("^add a comment.*", RegexOption.IGNORE_CASE),
-                Regex("^add comment.*", RegexOption.IGNORE_CASE),
             )
 
         private val BUTTON_LABELS = listOf("Follow", "Following", "Follow back", "Requested")
