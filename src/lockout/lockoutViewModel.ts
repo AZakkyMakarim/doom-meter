@@ -3,6 +3,7 @@ import { DEFAULT_LOCALE } from '../i18n/locale';
 import type { Locale } from '../i18n/locale';
 import { tierLabel, tierSentence } from '../i18n/text';
 import { t } from '../i18n/translate';
+import { clockLabel } from '../settings/clockLabel';
 import type { LockoutStatus } from './lockoutEngine';
 
 /**
@@ -27,12 +28,6 @@ export type LockoutViewModel =
       backText: string;
       contentDescription: string;
     };
-
-/** A time of day as HH:MM in the device's time zone. */
-function clockLabel(ms: number): string {
-  const d = new Date(ms);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
 
 export function lockoutViewModelFor(status: LockoutStatus, locale: Locale = DEFAULT_LOCALE): LockoutViewModel {
   if (!status.active) return { active: false };

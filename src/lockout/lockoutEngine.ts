@@ -47,15 +47,21 @@ export interface LockoutEngine {
   /**
    * The Tier of `day` as it is now. A Lockout starts the first time a Tier above 0 is reached
    * in a Day and its Punishment is on; a longer one replaces a running Lockout. Safe to call
-   * on every change and before `load` (it is applied once the saved state is read).
+   * on every change and before `load` (it is applied once the saved state is read). When nothing
+   * was saved (first launch after an upgrade, or a corrupt save) the first Tier seen only seeds
+   * what the Day had already reached and is not punished.
    */
   observeTier(day: string, tier: Tier): void;
   /** Reads the saved state. Call once at startup. */
   load(): Promise<void>;
   /** Whether a Lockout runs now, until when, and which Platforms are blocked. */
   status(): LockoutStatus;
-  /** Null when the change may go ahead; while a Lockout runs, weakening settings are refused. */
-  refusal(patch: SettingsPatch): Refusal | null;
+  /**
+   * Null when the change may go ahead; while a Lockout runs, weakening settings are refused. Before
+   * `load` has read the saved Lockout the answer is not known, so a protected change gets a promise
+   * that settles once it is.
+   */
+  refusal(patch: SettingsPatch): Refusal | null | Promise<Refusal | null>;
   /** Called when a Lockout starts or is replaced. Returns the unsubscribe function. */
   subscribe(listener: () => void): () => void;
   /** Resolves when every save started so far has finished. */
@@ -101,6 +107,12 @@ export function createLockoutEngine(options: LockoutEngineOptions): LockoutEngin
   };
   let saved: Saved = { lockout: null, reached: null };
   let loaded = false;
+  let markLoaded: () => void = () => undefined;
+  const whenLoaded = new Promise<void>((resolve) => {
+    markLoaded = resolve;
+  });
+  /** True until the first Tier is seen with no saved `reached`: that Tier is not new. */
+  let seeding = false;
   let early: [string, Tier][] = [];
   let writes: Promise<void> = Promise.resolve();
 
@@ -116,6 +128,12 @@ export function createLockoutEngine(options: LockoutEngineOptions): LockoutEngin
   }
 
   function apply(day: string, tier: Tier) {
+    if (seeding) {
+      seeding = false;
+      saved = { ...saved, reached: { day, tier } };
+      save();
+      return;
+    }
     const from = saved.reached?.day === day ? saved.reached.tier : 0;
     if (tier <= from) return;
     saved = { ...saved, reached: { day, tier } };
@@ -157,6 +175,8 @@ export function createLockoutEngine(options: LockoutEngineOptions): LockoutEngin
         // Unreadable or corrupt: start with no Lockout.
       }
       loaded = true;
+      seeding = saved.reached === null;
+      markLoaded();
       const pending = early;
       early = [];
       pending.forEach(([day, tier]) => apply(day, tier));
@@ -166,9 +186,12 @@ export function createLockoutEngine(options: LockoutEngineOptions): LockoutEngin
     status,
 
     refusal(patch) {
-      const running = status();
-      if (!running.active || !LOCKED_KEYS.some((key) => patch[key] !== undefined)) return null;
-      return { endsAt: running.endsAt };
+      if (!LOCKED_KEYS.some((key) => patch[key] !== undefined)) return null;
+      const decide = (): Refusal | null => {
+        const running = status();
+        return running.active ? { endsAt: running.endsAt } : null;
+      };
+      return loaded ? decide() : whenLoaded.then(decide);
     },
 
     subscribe(listener) {

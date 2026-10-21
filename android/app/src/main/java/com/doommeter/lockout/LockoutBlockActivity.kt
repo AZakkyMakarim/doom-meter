@@ -5,8 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.view.WindowInsets
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -22,6 +27,8 @@ class LockoutBlockActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.lockout_block)
+        keepClearOfSystemBars(findViewById(R.id.lockout_root))
+        interceptBack()
         findViewById<Button>(R.id.lockout_back).setOnClickListener { goHome() }
         bind()
     }
@@ -31,9 +38,32 @@ class LockoutBlockActivity : Activity() {
         bind()
     }
 
-    /** Back must not return to the blocked app underneath. */
+    /**
+     * Back must not return to the blocked app underneath. At targetSdk 36 on Android 13+ the system
+     * no longer calls onBackPressed, so the gesture is taken through the back-invoked dispatcher.
+     */
+    private fun interceptBack() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                OnBackInvokedCallback { goHome() },
+            )
+        }
+    }
+
+    /** Older Android versions still call this for Back. */
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() = goHome()
+
+    /** Edge-to-edge is forced at targetSdk 35+ (Android 15+): keep the content out from under the bars. */
+    private fun keepClearOfSystemBars(root: View) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+    }
 
     /** Leaving by any other route (Home gesture, Recents) also ends the screen, so it never lingers. */
     override fun onStop() {

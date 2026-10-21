@@ -15,11 +15,14 @@ async function rig(
   start = at(10, 12),
   store = createMemoryKeyValueStore(),
   load = true,
+  seed = true,
 ) {
   let now = start;
   const engine = createLockoutEngine({ clock: { now: () => now }, store });
   engine.setRules({ punishments, rolloverHour: 4 });
   if (load) await engine.load();
+  // The runtime's first look at the restored Day; with nothing saved it only seeds what was already reached.
+  if (load && seed) engine.observeTier(DAY1, 0);
   return {
     engine,
     store,
@@ -197,6 +200,41 @@ describe('surviving a restart and a rollover', () => {
     expect(second.engine.status().active).toBe(false);
   });
 
+  describe('with nothing saved yet (first launch after an upgrade, or a corrupt save)', () => {
+    const all15 = ['15m', '15m', '15m', '15m'] as PunishmentRules;
+
+    it.each([
+      ['missing', () => createMemoryKeyValueStore()],
+      ['corrupt', () => createMemoryKeyValueStore({ [LOCKOUT_KEY]: '{"endsAt":"soon"' })],
+    ])('does not punish the Tier the Day was already at (%s save)', async (_name, makeStore) => {
+      const { engine } = await rig(all15, at(10, 12), makeStore(), true, false);
+      engine.observeTier(DAY1, 2);
+      expect(engine.status().active).toBe(false);
+    });
+
+    it('still punishes a higher Tier reached afterwards', async () => {
+      const { engine, now } = await rig(['15m', '1h', '15m', '15m'], at(10, 12), createMemoryKeyValueStore(), true, false);
+      engine.observeTier(DAY1, 1);
+      engine.observeTier(DAY1, 2);
+      expect(engine.status()).toMatchObject({ active: true, tier: 2, endsAt: now() + HOUR });
+    });
+
+    it('seeds from the first Tier seen before the load finished too', async () => {
+      const { engine } = await rig(all15, at(10, 12), createMemoryKeyValueStore(), false);
+      engine.observeTier(DAY1, 2);
+      await engine.load();
+      expect(engine.status().active).toBe(false);
+    });
+
+    it('keeps the seed across a restart', async () => {
+      const first = await rig(all15, at(10, 12), createMemoryKeyValueStore(), true, false);
+      first.engine.observeTier(DAY1, 2);
+      const second = await restart(first, all15, first.now());
+      second.engine.observeTier(DAY1, 2);
+      expect(second.engine.status().active).toBe(false);
+    });
+  });
+
   it('survives the Day rollover while a timed Lockout runs', async () => {
     const first = await rig(['3h', 'off', 'off', 'off'], at(11, 3));
     first.engine.observeTier(DAY1, 1);
@@ -253,6 +291,35 @@ describe('refusing settings changes', () => {
     const { engine } = await rig(['15m', 'off', 'off', 'off']);
     engine.observeTier(DAY1, 1);
     expect(engine.refusal({ overlayEnabled: false, language: 'id', compactMode: true, positionDp: 8 })).toBeNull();
+  });
+
+  describe('before the saved Lockout is read', () => {
+    async function unloaded() {
+      const first = await rig(['15m', 'off', 'off', 'off']);
+      first.engine.observeTier(DAY1, 1);
+      await first.engine.settled();
+      return rig(['15m', 'off', 'off', 'off'], first.now() + 5 * MIN, first.store, false);
+    }
+
+    it('makes a protected change wait for the load, then refuses it if a Lockout runs', async () => {
+      const { engine, now } = await unloaded();
+      const pending = engine.refusal({ rolloverHour: 5 });
+      expect(pending).toBeInstanceOf(Promise);
+      await engine.load();
+      await expect(pending).resolves.toEqual({ endsAt: now() + 10 * MIN });
+    });
+
+    it('lets a protected change through after the load when no Lockout runs', async () => {
+      const { engine } = await rig(['off', 'off', 'off', 'off'], at(10, 12), createMemoryKeyValueStore(), false);
+      const pending = engine.refusal({ punishments: ['off', 'off', 'off', 'off'] });
+      await engine.load();
+      await expect(pending).resolves.toBeNull();
+    });
+
+    it('does not make other changes wait', async () => {
+      const { engine } = await unloaded();
+      expect(engine.refusal({ compactMode: true })).toBeNull();
+    });
   });
 
   it('allows them again once the Lockout is over', async () => {
