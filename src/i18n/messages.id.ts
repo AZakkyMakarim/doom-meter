@@ -129,7 +129,29 @@ export const id: Partial<Record<MessageId, Message>> = {
   'onboarding.step': 'Langkah {step} dari {total}',
   'onboarding.welcomeTitle': 'Selamat datang di DoomMeter',
   'onboarding.welcomeBody':
-    'DoomMeter menghitung video pendek yang kamu tonton dan berapa lama waktumu habis di situ. Untuk itu perlu beberapa izin. Tidak ada data yang keluar dari perangkatmu.',
+    'DoomMeter menghitung setiap video pendek yang kamu tonton. Makin lama kamu scrolling, Tier-mu makin naik, dan wajah di pill atas layar ikut berubah.',
+  'onboarding.back': 'Kembali',
+  'onboarding.tiersTitle': 'Lima Tier',
+  'onboarding.tiersBody':
+    'Dari yang paling santai sampai yang paling parah. Tiap Tier punya wajah sendiri, jadi terbaca sekilas.',
+  'onboarding.privacyTitle': 'Privasi terjaga',
+  'onboarding.privacyBody':
+    'Tidak ada data yang keluar dari perangkatmu. DoomMeter hanya menyimpan jumlah dan waktu tonton, di ponsel ini. Isi tontonanmu tidak pernah disimpan.',
+  'onboarding.calc.title': 'Iseng saja',
+  'onboarding.calc.body':
+    'Atur berapa lama kamu scrolling tiap hari dan isi umurmu. Apa pun yang kamu isi di sini tidak disimpan.',
+  'onboarding.calc.hours': '{hours} jam per hari',
+  'onboarding.calc.less': 'Kurangi waktu',
+  'onboarding.calc.more': 'Tambah waktu',
+  'onboarding.calc.ageLabel': 'Umurmu',
+  'onboarding.calc.resultLabel': 'Tahun hidup terbuang untuk scrolling',
+  'onboarding.calc.resultNote':
+    'Tahun kalender, jika kamu terus begini sampai usia 73, harapan hidup rata-rata.',
+  'onboarding.calc.needAge': 'Isi umurmu untuk melihat hasilnya.',
+  'onboarding.calc.past':
+    'Umurmu sudah mencapai atau melewati harapan hidup rata-rata 73 tahun, jadi tidak ada angka yang ditampilkan.',
+  'onboarding.restrictedHint':
+    'Di Android 13 ke atas, sakelar Aksesibilitas bisa berwarna abu-abu. Jika begitu, buka Info aplikasi, ketuk menu titik tiga, pilih Izinkan setelan terbatas (Allow restricted settings), lalu kembali ke sini.',
   'onboarding.getStarted': 'Mulai',
   'onboarding.continue': 'Lanjut',
   'onboarding.notNow': 'Nanti saja',

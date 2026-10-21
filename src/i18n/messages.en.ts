@@ -138,7 +138,32 @@ export const en = {
   'onboarding.step': 'Step {step} of {total}',
   'onboarding.welcomeTitle': 'Welcome to DoomMeter',
   'onboarding.welcomeBody':
-    'DoomMeter counts the short videos you watch and how long you spend on them. It needs a couple of permissions to do that. No data leaves your device.',
+    'DoomMeter counts every short video you watch. The more you scroll, the higher your Tier climbs, and the pill at the top of the screen changes face to match.',
+  'onboarding.back': 'Back',
+  'onboarding.tiersTitle': 'Five Tiers',
+  'onboarding.tiersBody':
+    'From the mildest to the worst. Each Tier has its own face, so you can read it at a glance.',
+  'onboarding.privacyTitle': 'Private by design',
+  'onboarding.privacyBody':
+    'No data leaves your device. DoomMeter keeps only counts and watch time, on this phone. What you watch is never saved.',
+  'onboarding.calc.title': 'Just for fun',
+  'onboarding.calc.body':
+    'Set how long you scroll each day and enter your age. Nothing you enter here is saved.',
+  'onboarding.calc.hours': {
+    one: '{hours} hour a day',
+    other: '{hours} hours a day',
+  },
+  'onboarding.calc.less': 'Less time',
+  'onboarding.calc.more': 'More time',
+  'onboarding.calc.ageLabel': 'Your age',
+  'onboarding.calc.resultLabel': 'Years of life spent scrolling',
+  'onboarding.calc.resultNote':
+    'Calendar years, if you keep this pace until 73, the average life expectancy.',
+  'onboarding.calc.needAge': 'Enter your age to see the result.',
+  'onboarding.calc.past':
+    'You are at or past the average life expectancy of 73, so there is no number to show here.',
+  'onboarding.restrictedHint':
+    'On Android 13 and newer the Accessibility switch may be greyed out. If so, open App info, tap the three-dot menu, choose Allow restricted settings, then come back here.',
   'onboarding.getStarted': 'Get started',
   'onboarding.continue': 'Continue',
   'onboarding.notNow': 'Not now',
