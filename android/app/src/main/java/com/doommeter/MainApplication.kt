@@ -5,6 +5,7 @@ import com.doommeter.detection.DoomMeterDetectionPackage
 import com.doommeter.insets.DoomMeterInsetsPackage
 import com.doommeter.overlay.DoomMeterOverlayPackage
 import com.doommeter.permissions.DoomMeterPermissionsPackage
+import com.doommeter.widget.DoomMeterWidgetPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -22,6 +23,7 @@ class MainApplication : Application(), ReactApplication {
           add(DoomMeterDetectionPackage())
           add(DoomMeterPermissionsPackage())
           add(DoomMeterInsetsPackage())
+          add(DoomMeterWidgetPackage())
         },
     )
   }

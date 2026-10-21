@@ -201,4 +201,7 @@ export const id: Partial<Record<MessageId, Message>> = {
   'settings.error.position': 'Posisi harus bilangan bulat dari {min} sampai {max}.',
   'settings.error.language': 'Bahasa harus Sistem, English atau Bahasa Indonesia.',
   'settings.error.save': 'Pengaturan ini tidak bisa disimpan di perangkat.',
+  'widget.empty': 'Belum ada data',
+  'widget.emptyDescription': 'Doom meter hari ini. Belum ada data.',
+  'widget.description': 'Doom meter hari ini. {videos}, {time}. {tier}',
 };

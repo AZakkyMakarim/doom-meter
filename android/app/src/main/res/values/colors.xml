@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home widget colors: the design tokens of MASTER.md section 3, kept in step by widgetResources.test.ts. -->
+    <color name="widget_surface">#0B0D14</color>
+    <color name="widget_text">#F8FAFC</color>
+    <color name="widget_muted">#94A3B8</color>
+    <color name="widget_vibing">#FACC15</color>
+</resources>
