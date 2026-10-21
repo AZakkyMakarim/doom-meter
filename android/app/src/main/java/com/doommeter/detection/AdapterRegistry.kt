@@ -2,6 +2,7 @@ package com.doommeter.detection
 
 import com.doommeter.detection.registrations.FacebookRegistration
 import com.doommeter.detection.registrations.InstagramRegistration
+import com.doommeter.detection.registrations.LiteRegistration
 import com.doommeter.detection.registrations.TikTokRegistration
 import com.doommeter.detection.registrations.YouTubeRegistration
 
@@ -22,6 +23,6 @@ object AdapterRegistry {
             InstagramRegistration.adapter(),
             YouTubeRegistration.adapter(),
             FacebookRegistration.adapter(),
-        )
+        ) + LiteRegistration.adapters() // Lite apps map to their parent Platform (doom-meter-0fn.5)
     }
 }
