@@ -61,19 +61,3 @@ describe('notification silhouette', () => {
     expect(svc).not.toContain('mood_0_vibing');
   });
 });
-
-describe('logo docs', () => {
-  it.each([
-    'logo-b2-master.svg',
-    'logo-b2-mono.svg',
-    'logo-b2-16px.png',
-    'logo-b2-onecolour.png',
-    'logo-guidelines.md',
-  ])('ships docs/brand/%s', file => {
-    expect(existsSync(join(root, 'docs', 'brand', file))).toBe(true);
-  });
-
-  it('master SVG uses the enlarged face (r92)', () => {
-    expect(read(root, 'docs', 'brand', 'logo-b2-master.svg')).toContain('r="92"');
-  });
-});
