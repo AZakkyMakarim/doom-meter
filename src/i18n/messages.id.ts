@@ -16,4 +16,7 @@ export const id: Partial<Record<MessageId, Message>> = {
   'settings.language.title': 'Bahasa',
   'settings.language.hint': 'Berlaku langsung, di aplikasi dan di pill.',
   'settings.language.system': 'Sistem',
+  'widget.empty': 'Belum ada data',
+  'widget.emptyDescription': 'Doom meter hari ini. Belum ada data.',
+  'widget.description': 'Doom meter hari ini. {videos}, {time}. {tier}',
 };

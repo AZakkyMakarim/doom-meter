@@ -1,0 +1,5 @@
+<resources>
+    <!-- The Home widget before the app has ever sent it numbers; afterwards the app's own texts are used. -->
+    <string name="widget_empty">Belum ada data</string>
+    <string name="widget_description">Wajah mood, Tier, jumlah video yang ditonton, dan waktu tonton hari ini.</string>
+</resources>

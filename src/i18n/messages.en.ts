@@ -128,6 +128,11 @@ export const en = {
     'DoomMeter cannot see your scrolling until the missing permission is turned on.',
   'notification.text': 'Counting short-form videos on this device',
 
+  // The Home widget.
+  'widget.empty': 'No data yet',
+  'widget.emptyDescription': 'Doom meter today. No data yet.',
+  'widget.description': 'Doom meter today. {videos}, {time}. {tier}',
+
   // Onboarding.
   'onboarding.step': 'Step {step} of {total}',
   'onboarding.welcomeTitle': 'Welcome to DoomMeter',

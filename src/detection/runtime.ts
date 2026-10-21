@@ -1,6 +1,8 @@
 import { AccessibilityInfo, AppState, DeviceEventEmitter } from 'react-native';
 import { createCountingEngine } from '../engine';
 import { deviceLocaleTag } from '../i18n/deviceLocale';
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
 import { t } from '../i18n/translate';
 import { overlay } from '../overlay/overlayBridge';
 import { setPillPreferences } from '../overlay/pillViewModel';
@@ -11,6 +13,9 @@ import { settingsStore } from '../settings/deviceSettings';
 import { positionFromDrag } from '../settings/settings';
 import { createDayRecorder } from '../storage';
 import { dayStore } from '../storage/deviceDayStore';
+import { widgetNative } from '../widget/widgetBridge';
+import { createWidgetSync } from '../widget/widgetSync';
+import { widgetViewModelFor } from '../widget/widgetViewModel';
 import { detectionNative, RAW_EVENT_NAME } from './detectionBridge';
 import { createDetectionRunner } from './detectionRunner';
 import type { DetectionRunner } from './detectionRunner';
@@ -33,6 +38,22 @@ const recorder = createDayRecorder({ store: dayStore });
 const engine = createCountingEngine({ clock: debugClock, onDayEnded: recorder.onDayEnded });
 
 let runner: DetectionRunner | null = null;
+
+// The Home widget keeps its own copy of today's numbers on the device (see widgetSync).
+const widgetSync = createWidgetSync({ sink: widgetNative });
+let widgetLocale: Locale = DEFAULT_LOCALE;
+// Held back until the saved counts are restored, so an empty engine never blanks the widget.
+let widgetReady = false;
+
+function syncWidget(): void {
+  if (!widgetReady) return;
+  widgetSync.update(
+    widgetViewModelFor(getDetectionRunner().getState(), {
+      rolloverHour: settingsStore.get().rolloverHour,
+      locale: widgetLocale,
+    }),
+  );
+}
 
 export function getDetectionRunner(): DetectionRunner {
   runner ??= createDetectionRunner({ clock: debugClock, pill: overlay, engine });
@@ -65,7 +86,11 @@ export function startDetection(): void {
       setRecorderRolloverHour: recorder.setRolloverHour,
       deviceLocale: deviceLocaleTag,
       // Native owns the notification text; the pill's texts travel inside the pill itself.
-      setLocale: (locale) => detectionNative.setNotificationText(t(locale, 'notification.text')),
+      setLocale: (locale) => {
+        detectionNative.setNotificationText(t(locale, 'notification.text'));
+        widgetLocale = locale;
+        syncWidget();
+      },
     });
   settingsStore.subscribe(applyCurrent);
   // "Remove animations" turns the pill's pulse, number roll and scale pop off (MASTER 7).
@@ -98,6 +123,11 @@ export function startDetection(): void {
     .catch(() => undefined)
     .then(() => recorder.restoreInto(engine, debugClock.now()))
     .catch(() => undefined);
+  restored.then(() => {
+    widgetReady = true;
+    active.subscribe(syncWidget);
+    syncWidget();
+  });
   restored.then(startFeeds);
 }
 
