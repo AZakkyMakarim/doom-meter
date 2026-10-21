@@ -3,6 +3,7 @@ package com.doommeter
 import android.app.Application
 import com.doommeter.detection.DoomMeterDetectionPackage
 import com.doommeter.insets.DoomMeterInsetsPackage
+import com.doommeter.lockout.DoomMeterLockoutPackage
 import com.doommeter.overlay.DoomMeterOverlayPackage
 import com.doommeter.permissions.DoomMeterPermissionsPackage
 import com.doommeter.widget.DoomMeterWidgetPackage
@@ -24,6 +25,7 @@ class MainApplication : Application(), ReactApplication {
           add(DoomMeterPermissionsPackage())
           add(DoomMeterInsetsPackage())
           add(DoomMeterWidgetPackage())
+          add(DoomMeterLockoutPackage())
         },
     )
   }

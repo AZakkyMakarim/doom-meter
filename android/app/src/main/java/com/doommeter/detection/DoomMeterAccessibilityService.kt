@@ -11,6 +11,9 @@ import android.os.PowerManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.doommeter.lockout.LockoutBlockActivity
+import com.doommeter.lockout.LockoutGate
+import com.doommeter.lockout.LockoutStore
 
 /**
  * The one AccessibilityService for every Platform (ADR 0002). It reads the active window, asks
@@ -130,6 +133,13 @@ class DoomMeterAccessibilityService : AccessibilityService() {
         if (!::tracker.isInitialized) return
         val root = rootInActiveWindow ?: return
         try {
+            // A Lockout covers the whole Platform app and ends its surface (ADR 0007).
+            val pkg = root.packageName?.toString()
+            if (LockoutGate.shouldBlock(pkg, LockoutStore.endsAt(this), System.currentTimeMillis())) {
+                tracker.reset()
+                startActivity(LockoutBlockActivity.intent(this))
+                return
+            }
             val recheck =
                 tracker.onWindow(root.packageName?.toString()) { NodeSnapshots.from(root) }
             if (recheck) scheduleEvaluation(CONFIRM_DELAY_MS)

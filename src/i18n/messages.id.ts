@@ -125,6 +125,10 @@ export const id: Partial<Record<MessageId, Message>> = {
     'DoomMeter tidak dapat melihat aktivitas scroll sampai izin yang kurang diaktifkan.',
   'notification.text': 'Menghitung video pendek di perangkat ini',
 
+  // Layar blokir di atas aplikasi Platform selama Lockout.
+  'lockout.blockedUntil': 'Diblokir sampai {time}',
+  'lockout.back': 'Kembali ke Home',
+
   // Onboarding.
   'onboarding.step': 'Langkah {step} dari {total}',
   'onboarding.welcomeTitle': 'Selamat datang di DoomMeter',
