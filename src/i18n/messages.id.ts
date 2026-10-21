@@ -210,6 +210,16 @@ export const id: Partial<Record<MessageId, Message>> = {
   'settings.language.system': 'Sistem',
   'settings.language.en': 'English',
   'settings.language.id': 'Bahasa Indonesia',
+  'settings.punishment.title': 'Hukuman',
+  'settings.punishment.hint':
+    'Saat kamu pertama kali mencapai sebuah Tingkat dalam satu Hari, semua aplikasi Platform diblokir selama waktu yang kamu pilih. Lockout tidak bisa diakhiri lebih awal. Santuy tidak pernah dihukum.',
+  'settings.punishment.off': 'Mati',
+  'settings.punishment.15m': '15 menit',
+  'settings.punishment.1h': '1 jam',
+  'settings.punishment.3h': '3 jam',
+  'settings.punishment.untilDay': 'Sampai pergantian Hari',
+  'settings.punishment.rowLabel': 'Hukuman {tier}',
+  'settings.punishment.status': 'Lockout aktif sampai {time}',
   'settings.saved': 'Pengaturan disimpan',
 
   // Why a setting was refused.
@@ -222,7 +232,9 @@ export const id: Partial<Record<MessageId, Message>> = {
   'settings.error.rollover': 'Jam pergantian Hari harus bilangan bulat dari 0 sampai 23.',
   'settings.error.position': 'Posisi harus bilangan bulat dari {min} sampai {max}.',
   'settings.error.language': 'Bahasa harus Sistem, English atau Bahasa Indonesia.',
-  'settings.error.save': 'Pengaturan ini tidak bisa disimpan di perangkat.',
+  'settings.error.punishment':
+    'Hukuman harus Mati, 15 menit, 1 jam, 3 jam atau Sampai pergantian Hari untuk tiap Tingkat 1 sampai 4.',
+  'settings.error.save':'Pengaturan ini tidak bisa disimpan di perangkat.',
   'widget.empty': 'Belum ada data',
   'widget.emptyDescription': 'Doom meter hari ini. Belum ada data.',
   'widget.description': 'Doom meter hari ini. {videos}, {time}. {tier}',

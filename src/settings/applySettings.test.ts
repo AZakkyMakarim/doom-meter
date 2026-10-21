@@ -22,6 +22,7 @@ function rig() {
   const pillPrefs: Record<string, unknown>[] = [];
   const rolloverHours: number[] = [];
   const locales: string[] = [];
+  const lockoutRules: unknown[] = [];
   let deviceLocale: string | null = 'en-US';
   const targets = {
     engine,
@@ -30,6 +31,7 @@ function rig() {
     setRecorderRolloverHour: (h: number) => rolloverHours.push(h),
     deviceLocale: () => deviceLocale,
     setLocale: (l: string) => locales.push(l),
+    lockout: { setRules: (r: unknown) => lockoutRules.push(r) },
   };
   return {
     targets,
@@ -38,6 +40,7 @@ function rig() {
     pillPrefs,
     rolloverHours,
     locales,
+    lockoutRules,
     setDevice: (tag: string | null) => {
       deviceLocale = tag;
     },
@@ -103,9 +106,18 @@ describe('applySettings', () => {
       setRecorderRolloverHour: () => order.push('recorder'),
       deviceLocale: () => null,
       setLocale: () => order.push('locale'),
+      lockout: { setRules: () => order.push('lockout') },
     });
     expect(order[order.length - 1]).toBe('redraw');
-    expect(order).toEqual(expect.arrayContaining(['engine', 'prefs', 'recorder', 'locale']));
+    expect(order).toEqual(expect.arrayContaining(['engine', 'prefs', 'recorder', 'locale', 'lockout']));
+  });
+});
+
+describe('applySettings lockout', () => {
+  it('gives the Lockout engine the Punishments and the rollover hour', () => {
+    const r = rig();
+    applySettings({ ...DEFAULT_SETTINGS, rolloverHour: 2, punishments: ['15m', 'off', 'off', '3h'] }, r.targets);
+    expect(r.lockoutRules).toEqual([{ punishments: ['15m', 'off', 'off', '3h'], rolloverHour: 2 }]);
   });
 });
 

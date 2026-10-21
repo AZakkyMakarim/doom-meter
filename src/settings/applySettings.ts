@@ -1,6 +1,7 @@
 import type { EngineConfig } from '../engine';
 import { resolveLocale } from '../i18n/locale';
 import type { Locale } from '../i18n/locale';
+import type { LockoutRules } from '../lockout/lockoutEngine';
 import type { PillOptions } from '../overlay/pillViewModel';
 import type { Settings } from './settings';
 
@@ -17,6 +18,8 @@ export interface SettingsTargets {
   deviceLocale(): string | null;
   /** Texts that native code owns, such as the notification, are re-sent in this language. */
   setLocale(locale: Locale): void;
+  /** The Lockout engine reads the Punishments and the rollover hour from here. */
+  lockout: { setRules(rules: LockoutRules): void };
 }
 
 /**
@@ -30,6 +33,7 @@ export function applySettings(settings: Settings, targets: SettingsTargets): voi
     thresholds: settings.thresholds,
   });
   targets.setRecorderRolloverHour(settings.rolloverHour);
+  targets.lockout.setRules({ punishments: settings.punishments, rolloverHour: settings.rolloverHour });
   const locale = resolveLocale(settings.language, targets.deviceLocale());
   targets.setLocale(locale);
   targets.setPillPreferences({

@@ -2,10 +2,12 @@ import { translate } from '../i18n/translate';
 import { DEFAULT_SETTINGS, POSITION_MAX_DP, POSITION_STEP_DP } from './settings';
 import {
   draftsFor,
+  lockoutStatusText,
   parseRolloverDraft,
   parseThresholdDrafts,
   permissionRows,
   positionControl,
+  punishmentRows,
   rolloverLabel,
 } from './settingsViewModel';
 
@@ -170,5 +172,43 @@ describe('Settings text by locale', () => {
     );
     expect(rows[1].fixLabel).toBe('Perbaiki izin');
     expect(rows[2].accessibilityLabel).toBe('Akses penggunaan, opsional: Belum diizinkan');
+  });
+});
+
+
+describe('punishment card', () => {
+  it('has a row for each of Tiers 1 to 4 with the five options, all Off by default, and none for Vibing', () => {
+    const rows = punishmentRows(DEFAULT_SETTINGS.punishments);
+    expect(rows.map((r) => [r.tier, r.tierName])).toEqual([
+      [1, 'Cooked'],
+      [2, 'Washed'],
+      [3, 'Brainrot'],
+      [4, 'Doomed'],
+    ]);
+    for (const row of rows) {
+      expect(row.options.map((o) => o.label)).toEqual(['Off', '15 minutes', '1 hour', '3 hours', 'Until next Day']);
+      expect(row.options.filter((o) => o.selected).map((o) => o.value)).toEqual(['off']);
+    }
+  });
+
+  it('marks the saved choice of each Tier and sends the whole list when one Tier changes', () => {
+    const rows = punishmentRows(['off', '1h', 'off', 'untilDay']);
+    expect(rows[1].options.find((o) => o.selected)?.value).toBe('1h');
+    expect(rows[1].label).toBe('Washed punishment');
+    expect(rows[1].options.find((o) => o.value === '3h')?.patch).toEqual(['off', '3h', 'off', 'untilDay']);
+  });
+
+  it('reads in Indonesian', () => {
+    const row = punishmentRows(DEFAULT_SETTINGS.punishments, 'id')[0];
+    expect(row.label).toBe('Hukuman Oleng');
+    expect(row.options.map((o) => o.label)).toEqual(['Mati', '15 menit', '1 jam', '3 jam', 'Sampai pergantian Hari']);
+  });
+
+  it('shows the status line only while a Lockout runs, with the local end time', () => {
+    const endsAt = new Date(2026, 0, 10, 14, 5).getTime();
+    expect(lockoutStatusText({ active: false })).toBeNull();
+    const running = { active: true as const, tier: 1 as const, endsAt, platforms: [] };
+    expect(lockoutStatusText(running)).toBe('Lockout active until 14:05');
+    expect(lockoutStatusText(running, 'id')).toBe('Lockout aktif sampai 14:05');
   });
 });

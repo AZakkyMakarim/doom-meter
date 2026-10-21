@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { colors } from '../design/tokens';
+import type { LockoutStatus } from '../lockout/lockoutEngine';
 import { LANGUAGE_PREFERENCES } from '../i18n/locale';
 import type { LanguagePreference, Locale } from '../i18n/locale';
 import { useLocale } from '../i18n/LocaleContext';
 import { tierLabel } from '../i18n/text';
 import { t } from '../i18n/translate';
 import type { MessageRef } from '../i18n/translate';
-import type { Settings, SettingsPatch, SettingsResult } from './settings';
+import type { PunishmentRules, Settings, SettingsPatch, SettingsResult } from './settings';
 import {
   draftsFor,
+  lockoutStatusText,
   parseRolloverDraft,
   parseThresholdDrafts,
   permissionRows,
   positionControl,
+  punishmentRows,
   rolloverLabel,
 } from './settingsViewModel';
-import type { PermissionRow, SettingsDrafts } from './settingsViewModel';
+import type { PermissionRow, PunishmentRow, SettingsDrafts } from './settingsViewModel';
 
 export interface SettingsScreenProps {
   settings: Settings;
@@ -27,6 +30,8 @@ export interface SettingsScreenProps {
   usageAccessGranted: boolean;
   /** Opens the system screen where the missing permission can be granted. */
   onFixPermission: (id: PermissionRow['id']) => void;
+  /** Whether a Lockout runs now and until when. */
+  lockout: LockoutStatus;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -150,6 +155,42 @@ function LanguageChoice({
   );
 }
 
+/** The Punishment of one Tier: one choice out of Off, 15 minutes, 1 hour, 3 hours, until the next Day. */
+function PunishmentChoice({
+  row,
+  onChange,
+}: {
+  row: PunishmentRow;
+  onChange: (rules: PunishmentRules) => void;
+}) {
+  return (
+    <View style={styles.punishmentRow}>
+      <View style={styles.tierName}>
+        <View style={[styles.tierDot, { backgroundColor: colors.sev[row.tier] }]} />
+        <Text style={styles.body}>{row.tierName}</Text>
+      </View>
+      <View accessibilityRole="radiogroup" accessibilityLabel={row.label} style={styles.punishmentOptions}>
+        {row.options.map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: option.selected }}
+            accessibilityLabel={`${row.tierName}: ${option.label}`}
+            onPress={() => onChange(option.patch)}
+            style={({ pressed }) => [
+              styles.button,
+              styles.buttonSecondary,
+              option.selected && styles.languageSelected,
+              pressed && styles.pressed,
+            ]}>
+            <Text style={[styles.buttonLabel, option.selected && styles.languageSelectedLabel]}>{option.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function PermissionBlock({
   row,
   primary,
@@ -194,6 +235,7 @@ export function SettingsScreen({
   accessibilityOn,
   usageAccessGranted,
   onFixPermission,
+  lockout,
 }: SettingsScreenProps) {
   const [drafts, setDrafts] = useState<SettingsDrafts>(() => draftsFor(settings));
   const locale = useLocale();
@@ -234,6 +276,7 @@ export function SettingsScreen({
   }
 
   const position = positionControl(settings.positionDp, locale);
+  const lockoutText = lockoutStatusText(lockout, locale);
   const permissions = permissionRows({ overlayGranted, accessibilityOn, usageAccessGranted }, locale);
   // The primary action is for a missing required permission; an optional one stays secondary.
   const firstMissing = permissions.find((row) => row.required && !row.granted)?.id;
@@ -303,6 +346,18 @@ export function SettingsScreen({
           </View>
         </View>
         <ErrorText message={saveError} locale={locale} />
+      </Card>
+
+      <Card title={t(locale, 'settings.punishment.title')}>
+        <Text style={styles.caption}>{t(locale, 'settings.punishment.hint')}</Text>
+        {lockoutText !== null && (
+          <Text accessibilityLiveRegion="polite" style={styles.lockoutStatus}>
+            {lockoutText}
+          </Text>
+        )}
+        {punishmentRows(settings.punishments, locale).map((row) => (
+          <PunishmentChoice key={row.tier} row={row} onChange={(punishments) => change({ punishments })} />
+        ))}
       </Card>
 
       <Card title={t(locale, 'settings.thresholds.title')}>
@@ -566,6 +621,21 @@ const styles = StyleSheet.create({
   },
   buttonLabelPrimary: {
     color: colors.onAction,
+  },
+  punishmentRow: {
+    gap: 8,
+  },
+  punishmentOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  lockoutStatus: {
+    color: colors.text,
+    fontFamily: MONO_MEDIUM,
+    fontSize: 14,
+    lineHeight: 20,
+    fontVariant: ['tabular-nums'],
   },
   languageOptions: {
     gap: 8,
