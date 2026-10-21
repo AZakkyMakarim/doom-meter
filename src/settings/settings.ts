@@ -54,7 +54,10 @@ export const MAX_MINUTE_THRESHOLD = 1440;
 
 export type SettingsPatch = Partial<Settings>;
 
-export type SettingsResult = { ok: true; settings: Settings } | { ok: false; error: MessageRef };
+export type SettingsResult =
+  | { ok: true; settings: Settings }
+  /** lockedUntil is set when a running Lockout refused the change: the epoch ms it ends. */
+  | { ok: false; error: MessageRef; lockedUntil?: number };
 
 function isWhole(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value);

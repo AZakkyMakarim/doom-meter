@@ -9,6 +9,7 @@ import { permissionInfo } from '../permissions/permissionState';
 import type { PermissionId } from '../permissions/permissionState';
 import type { TierBounds, TierThresholds } from '../engine';
 import type { LockoutStatus } from '../lockout/lockoutEngine';
+import { clockLabel } from './clockLabel';
 import {
   POSITION_MAX_DP,
   POSITION_MIN_DP,
@@ -16,7 +17,7 @@ import {
   PUNISHMENT_OPTIONS,
   parseNumberDraft,
 } from './settings';
-import type { Punishment, PunishmentRules, Settings } from './settings';
+import type { Punishment, PunishmentRules, Settings, SettingsResult } from './settings';
 
 /**
  * What the Settings screen shows and how typed text becomes values. Pure, so the
@@ -115,15 +116,19 @@ export function punishmentRows(rules: PunishmentRules, locale: Locale = DEFAULT_
   });
 }
 
-/** A time of day as HH:MM in the device's time zone. */
-function clockLabel(ms: number): string {
-  const d = new Date(ms);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
 /** "Lockout active until HH:MM" while a Lockout runs, otherwise null. */
 export function lockoutStatusText(status: LockoutStatus, locale: Locale = DEFAULT_LOCALE): string | null {
   return status.active ? t(locale, 'settings.punishment.status', { time: clockLabel(status.endsAt) }) : null;
+}
+
+/** Why Punishment, thresholds and rollover hour cannot be edited, while a Lockout runs; otherwise null. */
+export function lockoutNotice(status: LockoutStatus, locale: Locale = DEFAULT_LOCALE): string | null {
+  return status.active ? t(locale, 'settings.lockout.readOnly') : null;
+}
+
+/** The reason to show beside a control for a refused change; a Lockout refusal has the toast instead. */
+export function inlineError(result: SettingsResult): MessageRef | null {
+  return result.ok || result.lockedUntil !== undefined ? null : result.error;
 }
 
 export interface PositionControl {

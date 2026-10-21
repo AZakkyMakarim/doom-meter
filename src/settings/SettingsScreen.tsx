@@ -11,6 +11,8 @@ import type { MessageRef } from '../i18n/translate';
 import type { PunishmentRules, Settings, SettingsPatch, SettingsResult } from './settings';
 import {
   draftsFor,
+  inlineError,
+  lockoutNotice,
   lockoutStatusText,
   parseRolloverDraft,
   parseThresholdDrafts,
@@ -77,21 +79,24 @@ function SecondaryButton({
   label,
   onPress,
   disabled,
+  locked,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** Looks and reads as disabled but still takes a tap, so the Lockout can answer with its toast. */
+  locked?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ disabled: !!disabled || !!locked }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
         styles.buttonSecondary,
-        disabled && styles.disabled,
+        (disabled || locked) && styles.disabled,
         pressed && styles.pressed,
       ]}>
       <Text style={styles.buttonLabel}>{label}</Text>
@@ -158,9 +163,11 @@ function LanguageChoice({
 /** The Punishment of one Tier: one choice out of Off, 15 minutes, 1 hour, 3 hours, until the next Day. */
 function PunishmentChoice({
   row,
+  locked,
   onChange,
 }: {
   row: PunishmentRow;
+  locked: boolean;
   onChange: (rules: PunishmentRules) => void;
 }) {
   return (
@@ -174,13 +181,14 @@ function PunishmentChoice({
           <Pressable
             key={option.value}
             accessibilityRole="radio"
-            accessibilityState={{ selected: option.selected }}
+            accessibilityState={{ selected: option.selected, disabled: locked }}
             accessibilityLabel={`${row.tierName}: ${option.label}`}
             onPress={() => onChange(option.patch)}
             style={({ pressed }) => [
               styles.button,
               styles.buttonSecondary,
               option.selected && styles.languageSelected,
+              locked && styles.disabled,
               pressed && styles.pressed,
             ]}>
             <Text style={[styles.buttonLabel, option.selected && styles.languageSelectedLabel]}>{option.label}</Text>
@@ -255,28 +263,39 @@ export function SettingsScreen({
 
   async function change(patch: SettingsPatch) {
     const result = await onUpdate(patch);
-    setSaveError(result.ok ? null : result.error);
+    setSaveError(inlineError(result));
   }
 
   async function saveThresholds() {
+    // Locked: skip the drafts and let the Lockout refuse the saved value, which shows the toast.
+    if (lockout.active) {
+      await onUpdate({ thresholds: settings.thresholds });
+      return;
+    }
     // Error messages name the Tier in the language shown now.
     const parsed = parseThresholdDrafts(
       drafts.thresholds.map((row, i) => ({ ...row, tierName: tierLabel(i + 1, locale) })),
     );
     if (!parsed.ok) return setThresholdError(parsed.error);
     const result = await onUpdate({ thresholds: parsed.value });
-    setThresholdError(result.ok ? null : result.error);
+    setThresholdError(inlineError(result));
   }
 
   async function saveRollover() {
+    if (lockout.active) {
+      await onUpdate({ rolloverHour: settings.rolloverHour });
+      return;
+    }
     const parsed = parseRolloverDraft(drafts.rolloverHour);
     if (!parsed.ok) return setRolloverError(parsed.error);
     const result = await onUpdate({ rolloverHour: parsed.value });
-    setRolloverError(result.ok ? null : result.error);
+    setRolloverError(inlineError(result));
   }
 
   const position = positionControl(settings.positionDp, locale);
   const lockoutText = lockoutStatusText(lockout, locale);
+  const readOnlyText = lockoutNotice(lockout, locale);
+  const locked = lockout.active;
   const permissions = permissionRows({ overlayGranted, accessibilityOn, usageAccessGranted }, locale);
   // The primary action is for a missing required permission; an optional one stays secondary.
   const firstMissing = permissions.find((row) => row.required && !row.granted)?.id;
@@ -355,13 +374,15 @@ export function SettingsScreen({
             {lockoutText}
           </Text>
         )}
+        {readOnlyText !== null && <Text style={styles.caption}>{readOnlyText}</Text>}
         {punishmentRows(settings.punishments, locale).map((row) => (
-          <PunishmentChoice key={row.tier} row={row} onChange={(punishments) => change({ punishments })} />
+          <PunishmentChoice key={row.tier} row={row} locked={locked} onChange={(punishments) => change({ punishments })} />
         ))}
       </Card>
 
       <Card title={t(locale, 'settings.thresholds.title')}>
         <Text style={styles.caption}>{t(locale, 'settings.thresholds.hint')}</Text>
+        {readOnlyText !== null && <Text style={styles.caption}>{readOnlyText}</Text>}
         {drafts.thresholds.map((row, i) => (
           <View key={i} style={styles.thresholdRow}>
             <View style={styles.tierName}>
@@ -372,6 +393,7 @@ export function SettingsScreen({
               label={t(locale, 'settings.thresholds.videosLabel', { tier: tierLabel(i + 1, locale) })}
               caption={t(locale, 'settings.thresholds.videos')}
               value={row.videos}
+              locked={locked}
               onChange={(videos) =>
                 setDrafts((d) => ({
                   ...d,
@@ -383,6 +405,7 @@ export function SettingsScreen({
               label={t(locale, 'settings.thresholds.minutesLabel', { tier: tierLabel(i + 1, locale) })}
               caption={t(locale, 'settings.thresholds.minutes')}
               value={row.minutes}
+              locked={locked}
               onChange={(minutes) =>
                 setDrafts((d) => ({
                   ...d,
@@ -393,23 +416,25 @@ export function SettingsScreen({
           </View>
         ))}
         <ErrorText message={thresholdError} locale={locale} />
-        <SecondaryButton label={t(locale, 'settings.thresholds.save')} onPress={saveThresholds} />
+        <SecondaryButton label={t(locale, 'settings.thresholds.save')} locked={locked} onPress={saveThresholds} />
       </Card>
 
       <Card title={t(locale, 'settings.day.title')}>
         <Text style={styles.caption}>
           {t(locale, 'settings.day.hint', { time: rolloverLabel(settings.rolloverHour) })}
         </Text>
+        {readOnlyText !== null && <Text style={styles.caption}>{readOnlyText}</Text>}
         <View style={styles.rolloverRow}>
           <NumberField
             label={t(locale, 'settings.day.fieldLabel')}
             caption={t(locale, 'settings.day.fieldCaption')}
             value={drafts.rolloverHour}
+            locked={locked}
             onChange={(rolloverHour) => setDrafts((d) => ({ ...d, rolloverHour }))}
           />
         </View>
         <ErrorText message={rolloverError} locale={locale} />
-        <SecondaryButton label={t(locale, 'settings.day.save')} onPress={saveRollover} />
+        <SecondaryButton label={t(locale, 'settings.day.save')} locked={locked} onPress={saveRollover} />
       </Card>
     </View>
   );
@@ -420,24 +445,28 @@ function NumberField({
   caption,
   value,
   onChange,
+  locked,
 }: {
   label: string;
   caption: string;
   value: string;
   onChange: (text: string) => void;
+  locked: boolean;
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.caption}>{caption}</Text>
       <TextInput
         accessibilityLabel={label}
+        accessibilityState={{ disabled: locked }}
+        editable={!locked}
         keyboardType="number-pad"
         value={value}
         onChangeText={onChange}
         maxLength={4}
         selectTextOnFocus
         placeholderTextColor={colors.textMuted}
-        style={styles.input}
+        style={[styles.input, locked && styles.disabled]}
       />
     </View>
   );

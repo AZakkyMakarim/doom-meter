@@ -1,6 +1,6 @@
 import type { MessageRef } from '../i18n/translate';
 
-/** `success` for a saved change; `failure` is for the Lockout ticket to use. */
+/** `success` for a saved change; `failure` for a change a Lockout refused. */
 export type ToastVariant = 'success' | 'failure';
 
 export interface ToastContent {

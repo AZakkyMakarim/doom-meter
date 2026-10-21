@@ -1,7 +1,9 @@
-import { translate } from '../i18n/translate';
+import { msg, translate } from '../i18n/translate';
 import { DEFAULT_SETTINGS, POSITION_MAX_DP, POSITION_STEP_DP } from './settings';
 import {
   draftsFor,
+  inlineError,
+  lockoutNotice,
   lockoutStatusText,
   parseRolloverDraft,
   parseThresholdDrafts,
@@ -210,5 +212,19 @@ describe('punishment card', () => {
     const running = { active: true as const, tier: 1 as const, endsAt, platforms: [] };
     expect(lockoutStatusText(running)).toBe('Lockout active until 14:05');
     expect(lockoutStatusText(running, 'id')).toBe('Lockout aktif sampai 14:05');
+  });
+
+  it('says the three settings are read-only only while a Lockout runs', () => {
+    const running = { active: true as const, tier: 1 as const, endsAt: 1, platforms: [] };
+    expect(lockoutNotice({ active: false })).toBeNull();
+    expect(lockoutNotice(running)).toBe('Read-only while a Lockout runs.');
+    expect(lockoutNotice(running, 'id')).toBe('Hanya-baca selama Lockout berjalan.');
+  });
+
+  it('shows a refused change inline unless a Lockout refused it (that earns the failure toast)', () => {
+    const error = msg('settings.error.save');
+    expect(inlineError({ ok: true, settings: DEFAULT_SETTINGS })).toBeNull();
+    expect(inlineError({ ok: false, error })).toBe(error);
+    expect(inlineError({ ok: false, error, lockedUntil: 1 })).toBeNull();
   });
 });

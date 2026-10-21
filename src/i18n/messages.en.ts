@@ -233,6 +233,8 @@ export const en = {
   'settings.punishment.rowLabel': '{tier} punishment',
   'settings.punishment.status': 'Lockout active until {time}',
   'settings.saved': 'Settings saved',
+  'settings.lockout.readOnly': 'Read-only while a Lockout runs.',
+  'settings.error.lockout': "Can't change this, Lockout runs until {time}",
 
   // Why a setting was refused.
   'settings.error.videosWhole': '{tier} videos must be a whole number.',
