@@ -36,7 +36,7 @@ function rig() {
     hidden: () => hidden,
     watch(videos: number) {
       runner.handle({ type: 'surfaceFocusGained', platform: 'tiktok' });
-      for (let i = 0; i < videos; i += 1) {
+      for (let i = 1; i < videos; i += 1) {
         now += 6000;
         runner.handle({ type: 'videoChanged', platform: 'tiktok' });
       }

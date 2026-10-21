@@ -41,19 +41,20 @@ export function createSimulator(
 ): Simulator {
   const platform = options.platform ?? 'tiktok';
 
+  /** Returns true when the surface had to be gained (which counts one video by itself). */
   function ensureSurface() {
-    if (runner.activePlatform() !== platform) {
-      runner.handle({ type: 'surfaceFocusGained', platform });
-    }
+    if (runner.activePlatform() === platform) return false;
+    runner.handle({ type: 'surfaceFocusGained', platform });
+    return true;
   }
 
   return {
     getState: () => runner.getState(),
     addVideos(n) {
-      ensureSurface();
+      const gained = ensureSurface();
       for (let i = 0; i < n; i += 1) {
         clock.advance(SECONDS_PER_VIDEO);
-        runner.handle({ type: 'videoChanged', platform });
+        if (!(gained && i === 0)) runner.handle({ type: 'videoChanged', platform });
       }
     },
     addMinutes(n) {

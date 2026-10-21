@@ -19,11 +19,12 @@ function stateFrom(watches: Watch[]): EngineState {
   for (const { platform, videos, timeMs } of watches) {
     engine.handle({ type: 'surfaceFocusGained', platform });
     const extra = Math.max(0, timeMs - videos * 6000);
-    for (let i = 0; i < videos; i += 1) {
-      now += 6000 + (i === videos - 1 ? extra : 0);
+    // Focusing the feed counts the first video, so `videos` must be at least 1.
+    for (let i = 1; i < videos; i += 1) {
+      now += 6000;
       engine.handle({ type: 'videoChanged', platform });
     }
-    if (videos === 0) now += extra;
+    now += 6000 + extra;
     engine.handle({ type: 'surfaceFocusLost', platform });
   }
   return engine.getState();

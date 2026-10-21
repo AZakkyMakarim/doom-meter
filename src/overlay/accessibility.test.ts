@@ -10,10 +10,12 @@ function stateWith(videos: number): EngineState {
   let now = 1_700_000_000_000;
   const engine = createCountingEngine({ clock: { now: () => now } });
   engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok' });
-  for (let i = 0; i < videos; i += 1) {
+  // Focusing the feed counts the first video.
+  for (let i = 1; i < videos; i += 1) {
     now += 6000;
     engine.handle({ type: 'videoChanged', platform: 'tiktok' });
   }
+  now += 6000;
   engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok' });
   return engine.getState();
 }

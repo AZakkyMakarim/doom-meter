@@ -5,7 +5,8 @@ package com.doommeter.detection
  * unit tested with fake adapters and a fake clock.
  *
  * It reports what happened (focus gained or lost, the video changed) and never decides what
- * counts: the 5 second rule lives in the Counting engine.
+ * counts: the Counting engine does. The one hint it gives is `sameVideo`, when the feed comes back
+ * to the video it left inside the same app (a creator profile), so that video is not counted twice.
  *
  * A single "inactive" observation inside the same app is only tentative (a tree caught
  * mid-transition looks inactive), so focus is lost only when the next evaluation agrees. The
@@ -27,6 +28,10 @@ class SurfaceTracker(
     var foregroundPlatform: String? = null
         private set
     private var lastToken: Long? = null
+
+    /** Platform and video left when the surface went inactive inside its own app. */
+    private var leftPlatform: String? = null
+    private var leftToken: Long? = null
     private var inactiveSince: Long? = null
 
     /**
@@ -41,10 +46,12 @@ class SurfaceTracker(
         if (adapter == null) {
             // Another app is in the foreground: the surface is gone for certain.
             foregroundPlatform = null
+            leftPlatform = null
             loseFocus(now())
             return false
         }
         foregroundPlatform = adapter.platform
+        if (leftPlatform != adapter.platform) leftPlatform = null
         val root = snapshot() ?: return false
         val observation = adapter.observe(root)
         val at = now()
@@ -56,16 +63,21 @@ class SurfaceTracker(
                 inactiveSince = at
                 return true
             }
+            val token = lastToken
             loseFocus(since)
+            leftPlatform = adapter.platform
+            leftToken = token
             return false
         }
 
         inactiveSince = null
         if (activePlatform != adapter.platform) {
             loseFocus(at)
+            val same = leftPlatform == adapter.platform && leftToken != null && leftToken == observation.videoToken
+            leftPlatform = null
             activePlatform = adapter.platform
             lastToken = observation.videoToken
-            emit(RawEvent(RawEvent.SURFACE_FOCUS_GAINED, adapter.platform, at))
+            emit(RawEvent(RawEvent.SURFACE_FOCUS_GAINED, adapter.platform, at, sameVideo = same))
             return false
         }
         val token = observation.videoToken
@@ -80,7 +92,10 @@ class SurfaceTracker(
     }
 
     /** The service stopped or was interrupted: nothing can be watched any more. */
-    fun reset() = loseFocus(now())
+    fun reset() {
+        leftPlatform = null
+        loseFocus(now())
+    }
 
     private fun loseFocus(at: Long) {
         val platform = activePlatform

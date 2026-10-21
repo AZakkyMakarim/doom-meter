@@ -28,8 +28,9 @@ function setup(config: Config = {}, startAt = local(2026, 1, 10, 12)) {
 
 /** Watches exactly `n` videos of 5s each on TikTok, starting at `start`. */
 function watchVideos(engine: CountingEngine, n: number, start: number) {
+  if (n === 0) return;
   engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: start });
-  for (let i = 1; i <= n; i++) {
+  for (let i = 1; i < n; i++) {
     engine.handle({ type: 'videoChanged', platform: 'tiktok', at: start + i * 5000 });
   }
   engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: start + n * 5000 });
@@ -173,25 +174,25 @@ describe('Day rollover at 04:00 local time', () => {
     engine.handle({ type: 'videoChanged', platform: 'tiktok', at: local(2026, 1, 10, 3, 59, 56) });
     engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: local(2026, 1, 10, 4, 0, 20) });
 
-    // Day 1: a 6s Watched video plus 4s of the next one that was cut by the boundary.
+    // Day 1: two videos came into focus, the second one cut by the boundary.
     expect(ended).toHaveLength(1);
     expect(ended[0].day).toBe('2026-01-09');
-    expect(ended[0].state.totals).toEqual({ watchedVideos: 1, watchTimeMs: 10_000 });
+    expect(ended[0].state.totals).toEqual({ watchedVideos: 2, watchTimeMs: 10_000 });
 
-    // Day 2: the video restarts at 04:00 and runs 20s.
+    // Day 2: the same video carries on for 20s and is not counted a second time.
     advanceTo(local(2026, 1, 10, 4, 1));
     const state = engine.getState();
     expect(state.day).toBe('2026-01-10');
-    expect(state.totals).toEqual({ watchedVideos: 1, watchTimeMs: 20_000 });
+    expect(state.totals).toEqual({ watchedVideos: 0, watchTimeMs: 20_000 });
   });
 
-  it('does not count a sub-threshold remainder before the boundary as a Watched video', () => {
+  it('counts a video in the Day it came into focus, not in the Day it carries on into', () => {
     const start = local(2026, 1, 10, 3, 59, 58);
     const { engine, ended } = setup({}, start);
     engine.handle({ type: 'surfaceFocusGained', platform: 'youtube', at: start });
     engine.handle({ type: 'surfaceFocusLost', platform: 'youtube', at: local(2026, 1, 10, 4, 0, 10) });
-    expect(ended[0].state.totals).toEqual({ watchedVideos: 0, watchTimeMs: 2000 });
-    expect(engine.getState().totals).toEqual({ watchedVideos: 1, watchTimeMs: 10_000 });
+    expect(ended[0].state.totals).toEqual({ watchedVideos: 1, watchTimeMs: 2000 });
+    expect(engine.getState().totals).toEqual({ watchedVideos: 0, watchTimeMs: 10_000 });
   });
 
   it('rolls over when only the clock advances, without events', () => {

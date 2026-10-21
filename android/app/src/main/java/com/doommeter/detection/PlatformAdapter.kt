@@ -4,7 +4,7 @@ package com.doommeter.detection
  * What an adapter saw in one window of its Platform's app.
  *
  * @property surfaceActive the Short-form surface is visible with the main video in focus
- *   (CONTEXT.md: opening comments or a creator profile makes it inactive).
+ *   (CONTEXT.md: opening a creator profile makes it inactive; opening comments does not).
  * @property videoToken an opaque in-memory fingerprint of the video currently in focus, or null
  *   when it cannot be told. It is compared with the previous token to notice a swipe, never
  *   stored, logged or sent, and must not be reversible to titles or other content.

@@ -127,14 +127,14 @@ class YouTubeAdapterTest {
     }
 
     @Test
-    fun `an open comments sheet pauses the surface`() {
+    fun `an open comments sheet does not leave the surface`() {
         val feed = shortsFeed(shortsPage("@a", "b"))
-        assertFalse(adapter.observe(NodeSnapshot(children = listOf(feed, text("Comments")))).surfaceActive)
-        assertFalse(
-            adapter.observe(NodeSnapshot(children = listOf(feed, text("Add a comment...")))).surfaceActive,
-        )
-        val panel = NodeSnapshot(viewId = id("engagement_panel_container"))
-        assertFalse(adapter.observe(NodeSnapshot(children = listOf(feed, panel))).surfaceActive)
+        val closed = adapter.observe(feed)
+        for (sheet in listOf(text("Comments"), text("Add a comment..."), NodeSnapshot(viewId = id("engagement_panel_container")))) {
+            val open = adapter.observe(NodeSnapshot(children = listOf(feed, sheet)))
+            assertTrue(open.surfaceActive)
+            assertEquals(closed.videoToken, open.videoToken)
+        }
     }
 
     @Test

@@ -16,8 +16,12 @@ export interface Clock {
  * engine stamps the event with `clock.now()`.
  */
 export type EngineEvent =
-  /** The swipe feed of a Short-form surface became visible with the main video in focus. */
-  | { type: 'surfaceFocusGained'; platform: Platform; at?: number }
+  /**
+   * The swipe feed of a Short-form surface became visible with the main video in focus. Counts
+   * that video as a Watched video, unless `sameVideo` says it is the one the user left
+   * (back from comments or a creator profile).
+   */
+  | { type: 'surfaceFocusGained'; platform: Platform; sameVideo?: boolean; at?: number }
   /** The feed lost focus (comments, creator profile, other screen, app left). */
   | { type: 'surfaceFocusLost'; platform: Platform; at?: number }
   /** The user swiped to the next video inside the active feed. */
@@ -37,7 +41,7 @@ export type EngineEvent =
   | { type: 'usageForegroundEnded'; platform: Platform; at?: number };
 
 export interface PlatformState {
-  /** Watched videos: videos that stayed on screen for at least the threshold. */
+  /** Watched videos: videos that came into focus on a Short-form surface. */
   watchedVideos: number;
   /** Watch time in milliseconds. */
   watchTimeMs: number;
@@ -100,8 +104,6 @@ export interface EngineConfig {
 
 export interface CountingEngineOptions extends EngineConfig {
   clock: Clock;
-  /** Time a video must stay on screen to count as a Watched video. Default 5000. */
-  watchedThresholdMs?: number;
   /** Called once for each Day that ends, with that Day's final state. */
   onDayEnded?: (summary: DaySummary) => void;
 }

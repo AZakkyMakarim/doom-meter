@@ -145,6 +145,41 @@ class SurfaceTrackerTest {
         assertEquals("surfaceFocusLost:tiktok", types().last())
     }
 
+    private fun loseThenRegain(token: Long?) {
+        tiktok.next = SurfaceObservation(true, 1)
+        at(1_000, "tt")
+        tiktok.next = SurfaceObservation.INACTIVE
+        at(2_000, "tt")
+        at(2_300, "tt")
+        tiktok.next = SurfaceObservation(true, token)
+        at(9_000, "tt")
+    }
+
+    @Test
+    fun `returning to the same video after a profile is flagged so it is not counted again`() {
+        loseThenRegain(1)
+        assertEquals("surfaceFocusGained:tiktok", types().last())
+        assertTrue(events.last().sameVideo)
+    }
+
+    @Test
+    fun `returning to a different or unreadable video is a fresh focus`() {
+        loseThenRegain(2)
+        assertFalse(events.last().sameVideo)
+        events.clear()
+        loseThenRegain(null)
+        assertFalse(events.last().sameVideo)
+    }
+
+    @Test
+    fun `coming back from another app is a fresh focus even on the same video`() {
+        tiktok.next = SurfaceObservation(true, 1)
+        at(1_000, "tt")
+        at(2_000, "com.whatsapp")
+        at(3_000, "tt")
+        assertFalse(events.last().sameVideo)
+    }
+
     @Test
     fun `raw events serialise to the JSON the TypeScript side parses`() {
         assertEquals(
@@ -152,5 +187,9 @@ class SurfaceTrackerTest {
             RawEvent("videoChanged", "tiktok", 5).toJson(),
         )
         assertEquals("{\"type\":\"screenOff\",\"at\":9}", RawEvent("screenOff", null, 9).toJson())
+        assertEquals(
+            "{\"type\":\"surfaceFocusGained\",\"platform\":\"tiktok\",\"sameVideo\":true,\"at\":5}",
+            RawEvent("surfaceFocusGained", "tiktok", 5, sameVideo = true).toJson(),
+        )
     }
 }

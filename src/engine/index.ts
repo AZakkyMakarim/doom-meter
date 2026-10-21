@@ -1,4 +1,4 @@
-export { createCountingEngine, DEFAULT_WATCHED_THRESHOLD_MS } from './countingEngine';
+export { createCountingEngine } from './countingEngine';
 export { DEFAULT_ROLLOVER_HOUR } from './day';
 export { DEFAULT_TIER_THRESHOLDS } from './tier';
 export { PLATFORMS } from './types';

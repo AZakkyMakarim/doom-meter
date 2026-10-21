@@ -42,7 +42,7 @@ describe('detection runner', () => {
     expect(hides()).toBe(1);
   });
 
-  it('counts a video after 5 seconds and not a faster skip', () => {
+  it('counts every video that comes into focus, even a quick skip', () => {
     const { runner, advance } = setup();
     runner.handle({ type: 'surfaceFocusGained', platform: 'tiktok' });
 
@@ -50,14 +50,8 @@ describe('detection runner', () => {
       advance(2_000);
       runner.handle({ type: 'videoChanged', platform: 'tiktok' });
     }
-    expect(runner.getState().totals.watchedVideos).toBe(0);
+    expect(runner.getState().totals.watchedVideos).toBe(11);
     expect(runner.getState().totals.watchTimeMs).toBe(20_000);
-
-    for (let i = 0; i < 10; i += 1) {
-      advance(6_000);
-      runner.handle({ type: 'videoChanged', platform: 'tiktok' });
-    }
-    expect(runner.getState().totals.watchedVideos).toBe(10);
   });
 
   it('keeps the pill time moving while a video plays, without any event', () => {
@@ -106,7 +100,7 @@ describe('detection runner', () => {
     advance(6_000);
     runner.handle({ type: 'videoChanged', platform: 'tiktok' });
     expect(rendered).toHaveLength(0);
-    expect(runner.getState().totals.watchedVideos).toBe(1);
+    expect(runner.getState().totals.watchedVideos).toBe(2);
 
     runner.setPillEnabled(true);
     expect(runner.isPillShown()).toBe(true);
