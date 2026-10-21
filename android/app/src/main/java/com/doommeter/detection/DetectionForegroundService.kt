@@ -20,7 +20,7 @@ class DetectionForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
+        if (ServiceCommand.of(intent?.action, running) == ServiceCommand.STOP) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -62,12 +62,26 @@ class DetectionForegroundService : Service() {
                 Intent(this, MainActivity::class.java),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
+        // Android 14 lets users swipe this away; the delete intent starts the service again,
+        // which re-posts the notification under the same id.
+        val dismissed =
+            PendingIntent.getService(
+                this,
+                1,
+                Intent(this, DetectionForegroundService::class.java).setAction(ACTION_DISMISSED),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        if (Build.VERSION.SDK_INT >= 31) {
+            builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+        }
         return builder
             .setSmallIcon(R.drawable.ic_stat_doommeter)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(notificationText ?: getString(R.string.detection_notification_text))
             .setContentIntent(open)
+            .setDeleteIntent(dismissed)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
     }
 
@@ -86,6 +100,7 @@ class DetectionForegroundService : Service() {
         @Volatile var running = false
 
         const val ACTION_STOP = "com.doommeter.detection.STOP"
+        const val ACTION_DISMISSED = "com.doommeter.detection.DISMISSED"
         private const val CHANNEL_ID = "detection"
         private const val NOTIFICATION_ID = 1
     }
