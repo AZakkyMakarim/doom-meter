@@ -1,5 +1,6 @@
-import { PLATFORMS } from '../engine';
-import type { EngineState, Platform, Tier } from '../engine';
+import { PLATFORMS, PLATFORM_BY_ID } from '../design/catalog';
+import type { Platform } from '../design/catalog';
+import type { EngineState, Tier } from '../engine';
 import { formatClock, plural, spokenDuration } from '../format/duration';
 import { INCOMPLETE_NOTE } from '../history/historyViewModel';
 import { pillViewModelFor } from '../overlay/pillViewModel';
@@ -10,20 +11,7 @@ import type { NotCountingNotice } from '../permissions/permissionState';
  * (MASTER.md sections 6.4 and 6.5). The screen holds no counting or copy rules.
  */
 
-const PLATFORM_LABELS: Record<Platform, string> = {
-  instagram: 'Reels',
-  youtube: 'Shorts',
-  tiktok: 'TikTok',
-};
-
 export const EMPTY_MESSAGE = 'Nothing watched yet. Scroll as usual, DoomMeter keeps count.';
-
-/** Platform names as the warning says them (CONTEXT.md), unlike the feed names on the rows. */
-const PLATFORM_NAMES: Record<Platform, string> = {
-  instagram: 'Instagram',
-  youtube: 'YouTube',
-  tiktok: 'TikTok',
-};
 
 const ROW_WARNING = 'Detection not responding.';
 const WARNING_WITH_USAGE_ACCESS =
@@ -90,7 +78,7 @@ export function todayViewModelFor(
     const p = state.platforms[platform];
     const sharePercent =
       totals.watchTimeMs > 0 ? Math.round((p.watchTimeMs / totals.watchTimeMs) * 100) : 0;
-    const label = PLATFORM_LABELS[platform];
+    const { label } = PLATFORM_BY_ID[platform];
     return {
       platform,
       label,
@@ -107,7 +95,7 @@ export function todayViewModelFor(
   });
   const warnings = PLATFORMS.filter((platform) => !state.platforms[platform].detectionHealthy).map(
     (platform): DetectionWarningViewModel => {
-      const title = `${PLATFORM_NAMES[platform]} detection is not responding`;
+      const title = `${PLATFORM_BY_ID[platform].name} detection is not responding`;
       const message = usageAccess ? WARNING_WITH_USAGE_ACCESS : WARNING_WITHOUT_USAGE_ACCESS;
       return { platform, title, message, accessibilityLabel: `Warning. ${title}. ${message}` };
     },

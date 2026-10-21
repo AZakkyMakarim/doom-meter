@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { TIER_CATALOG } from '../design/catalog';
 import { colors } from '../design/tokens';
 import { useSafeAreaPadding } from '../design/useSafeAreaPadding';
 import type { PermissionId, PermissionStatus } from '../permissions/permissionState';
@@ -47,7 +48,7 @@ export function OnboardingScreen({ status, onOpenSettings, onFinish }: Onboardin
       {step === 'intro' && (
         <View style={styles.avatar}>
           <Image
-            source={{ uri: 'mood_0_fresh' }}
+            source={{ uri: TIER_CATALOG[0].avatar }}
             style={styles.avatarImage}
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"

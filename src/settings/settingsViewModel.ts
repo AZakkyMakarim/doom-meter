@@ -1,3 +1,4 @@
+import { PLATFORM_CATALOG, TIER_CATALOG } from '../design/catalog';
 import { permissionInfo } from '../permissions/permissionState';
 import type { PermissionId } from '../permissions/permissionState';
 import type { TierBounds, TierThresholds } from '../engine';
@@ -10,7 +11,13 @@ import type { Settings } from './settings';
  * screen only draws this (MASTER.md 6.4).
  */
 
-const TIER_NAMES = ['Drifting', 'Doomed', 'Cooked', 'Terminal'] as const;
+/** Tiers 1 to 4: the ones with thresholds. */
+const TIER_NAMES = TIER_CATALOG.slice(1).map(t => t.label);
+
+const PLATFORM_NAMES = PLATFORM_CATALOG.map(p => p.name);
+const PLATFORM_NAME_LIST = `${PLATFORM_NAMES.slice(0, -1).join(', ')} and ${
+  PLATFORM_NAMES[PLATFORM_NAMES.length - 1]
+}`;
 
 export interface ThresholdDraftRow {
   /** Name of the Tier these numbers start (Tiers 1 to 4). */
@@ -140,7 +147,7 @@ export function permissionRows(status: {
       status.overlayGranted,
       'Granted',
       'Missing',
-      'Lets the pill appear on top of Instagram, YouTube and TikTok.',
+      `Lets the pill appear on top of ${PLATFORM_NAME_LIST}.`,
     ),
     row(
       'accessibility',

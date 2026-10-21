@@ -1,3 +1,6 @@
+import { PLATFORM_CATALOG, TIER_CATALOG } from './catalog';
+import type { Platform } from './catalog';
+
 /**
  * Design tokens from design-system/doommeter/MASTER.md section 3.
  * The only place raw hex lives; components and the native overlay receive these values.
@@ -23,6 +26,10 @@ export const colors = {
   onAction: '#0B0D14',
   focusRing: '#FFFFFF',
   /** Platform chip colors (MASTER 3); always paired with a label. */
-  platform: { instagram: '#E1306C', youtube: '#FF3D3D', tiktok: '#25F4EE' },
-  sev: ['#34D399', '#FACC15', '#FB923C', '#F87171', '#FF4D8D'],
-} as const;
+  platform: Object.fromEntries(PLATFORM_CATALOG.map((p) => [p.id, p.color])) as Record<
+    Platform,
+    string
+  >,
+  /** Tier colors, indexed by Tier. */
+  sev: TIER_CATALOG.map((t) => t.color) as readonly string[],
+};
