@@ -1,0 +1,5 @@
+<resources>
+    <string name="accessibility_service_description">Mendeteksi saat kamu men-scroll feed video pendek (TikTok, Instagram Reels, YouTube Shorts, Facebook Reels) untuk menghitung video yang ditonton dan waktunya. Hanya jumlah dan waktu yang disimpan, di perangkat ini. Isi dan judul video tidak pernah disimpan atau dikirim.</string>
+    <string name="detection_channel_name">Deteksi</string>
+    <string name="detection_notification_text">Menghitung video pendek di perangkat ini</string>
+</resources>

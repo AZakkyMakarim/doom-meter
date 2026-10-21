@@ -1,4 +1,5 @@
 import { en } from './messages.en';
+import type { Message, MessageId } from './messages.en';
 import { id } from './messages.id';
 import { resolveLocale } from './locale';
 import { formatNumber, joinList, missingTranslations, translate } from './translate';
@@ -38,8 +39,6 @@ describe('translate', () => {
     const ref = { id: 'settings.language.title' } as const;
     expect(translate('id', ref)).toBe(id['settings.language.title']);
     expect(translate('id', ref)).not.toBe(en['settings.language.title']);
-    // An id missing from the Indonesian catalog reads in English rather than breaking.
-    expect(translate('id', { id: 'settings.title' })).toBe(en['settings.title']);
   });
 
   it('never has an Indonesian id the English catalog does not know', () => {
@@ -48,8 +47,31 @@ describe('translate', () => {
 
   it('lists which ids a locale still has to translate', () => {
     expect(missingTranslations('en')).toEqual([]);
-    expect(missingTranslations('id')).toContain('settings.title');
-    expect(missingTranslations('id')).not.toContain('settings.language.title');
+  });
+
+  it('has every shipped text translated to Indonesian, with the same {holes}', () => {
+    expect(missingTranslations('id')).toEqual([]);
+    const holes = (m: Message) =>
+      (typeof m === 'string' ? [m] : [m.one, m.other])
+        .flatMap((text) => text.match(/\{\w+\}/g) ?? [])
+        .sort()
+        .filter((hole, i, all) => all.indexOf(hole) === i);
+    const mismatched = (Object.keys(en) as MessageId[]).filter(
+      (key) => JSON.stringify(holes(en[key])) !== JSON.stringify(holes(id[key] as Message)),
+    );
+    expect(mismatched).toEqual([]);
+  });
+
+  it('leaves no English wording behind in Indonesian, except names that are the same', () => {
+    const SAME = new Set<string>([
+      'unit.video', 'count.video', 'settings.language.en', 'settings.language.id',
+      'settings.overlay.title', 'pill.description', 'history.rowLabel', 'chart.day', 'settings.permission.rowRequired', 'month.3', 'month.8', 'month.10',
+    ]);
+
+    const same = (Object.keys(en) as MessageId[]).filter(
+      (key) => !SAME.has(key) && JSON.stringify(en[key]) === JSON.stringify(id[key]),
+    );
+    expect(same).toEqual([]);
   });
 });
 
@@ -71,5 +93,16 @@ describe('Tier text', () => {
   it('names a Tier from the catalog and says it as a sentence', () => {
     expect(tierLabel(2, 'en')).toBe('Washed');
     expect(tierSentence(2, 'en')).toBe('Level 3 of 5, Washed.');
+  });
+
+  it('names the Tiers in Indonesian', () => {
+    expect([0, 1, 2, 3, 4].map((tier) => tierLabel(tier, 'id'))).toEqual([
+      'Santuy',
+      'Oleng',
+      'Madesu',
+      'Cengoh',
+      'Wassalam',
+    ]);
+    expect(tierSentence(2, 'id')).toBe('Tingkat 3 dari 5, Madesu.');
   });
 });

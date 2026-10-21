@@ -1,3 +1,4 @@
+import { tierLabel } from './text';
 import { createCountingEngine } from '../engine';
 import type { EngineState } from '../engine';
 import { formatClock, plural, spokenDuration } from '../format/duration';
@@ -35,6 +36,9 @@ describe('duration text', () => {
     expect(plural(1, 'video')).toBe('1 video');
     expect(plural(1, 'video', 'id')).toBe('1 video');
     expect(plural(2, 'video', 'id')).toBe('2 video');
+    expect(plural(1, 'minute', 'id')).toBe('1 menit');
+    expect(plural(2, 'minute', 'id')).toBe('2 menit');
+    expect(spokenDuration(3_723_000, 'id')).toBe('1 jam 2 menit 3 detik');
     expect(spokenDuration(3_723_000)).toBe('1 hour 2 minutes 3 seconds');
     expect(formatClock(3_723_000)).toBe('1:02:03');
   });
@@ -70,12 +74,48 @@ describe('Overlay pill and panel by locale', () => {
   });
 });
 
+describe('Tier names in Indonesian', () => {
+  it('names the Tier on the pill, the panel and Today', () => {
+    const heavy = stateWith(40, 0);
+    const pill = pillViewModelFor(heavy, { locale: 'id' });
+    expect(pill.labelText).toBe(tierLabel(pill.tier, 'id'));
+    expect(pill.contentDescription).toContain(`, ${pill.labelText}.`);
+    expect(['Santuy', 'Oleng', 'Madesu', 'Cengoh', 'Wassalam']).toContain(pill.labelText);
+    expect(pillViewModelFor(stateWith(0, 0), { locale: 'id' }).labelText).toBe('Santuy');
+    expect(todayViewModelFor(heavy, { locale: 'id' }).summaryLabel).toContain(pill.labelText);
+    expect(panelViewModelFor(heavy, 'id').tierName).toBe(pill.labelText);
+  });
+
+  it('names the Tiers in History and the 7-day chart', () => {
+    const records: DayRecord[] = [
+      {
+        day: '2026-10-21',
+        platforms: {
+          instagram: { watchedVideos: 3, watchTimeMs: 1000, incomplete: false },
+          youtube: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+          tiktok: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+          facebook: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+        },
+      },
+    ];
+    expect(historyViewModelFor(records, { today: '2026-10-21', locale: 'id' }).rows[0].tierLabel).toBe(
+      'Santuy',
+    );
+    const chart = weekChartFor(records, { today: '2026-10-21', locale: 'id' });
+    expect(chart.bars[6].tierLabel).toBe('Santuy');
+    expect(chart.summary).toMatch(/^7 hari terakhir\. 3 video, 0 menit 1 detik total./);
+    expect(chart.summary).toContain('Hari tersibuk: Rabu 21 Oktober, 3 video.');
+    expect(chart.summary).toContain('Selasa 20 Oktober: tidak ada yang tercatat.');
+    expect(chart.bars[6].weekday).toBe('Rab');
+  });
+});
+
 describe('permission text by locale', () => {
   it('words the banner and the notice from the catalog', () => {
     expect(permissionBanner(NONE)?.message).toBe(
       'DoomMeter is not counting. Turn on Accessibility service and Display over other apps.',
     );
-    expect(permissionBanner(NONE, 'id')?.fixes[0].label).toBe('Fix permission');
+    expect(permissionBanner(NONE, 'id')?.fixes[0].label).toBe('Perbaiki izin');
     expect(notCountingNotice(NONE, 'en')?.title).toBe('Not counting yet');
     expect(permissionInfo('overlay', 'en').title).toBe('Display over other apps');
   });
@@ -90,7 +130,7 @@ describe('Today by locale', () => {
     expect(english.summaryLabel).toMatch(/^Today\. 3 videos, /);
     const indonesian = todayViewModelFor(state, { locale: 'id' });
     expect(indonesian.rows[2].countText).toBe('3 video');
-    expect(indonesian.summaryLabel).toMatch(/^Today\. 3 video, 1 minute 13 seconds\./);
+    expect(indonesian.summaryLabel).toBe('Hari ini. 3 video, 1 menit 13 detik. Tingkat 1 dari 5, Santuy.');
   });
 
   it('names the Platform in a detection warning', () => {
@@ -133,11 +173,14 @@ describe('History by locale', () => {
     expect(vm.emptyTitle).toBe('No data yet');
   });
 
-  it('titles and counts Days in Indonesian when asked, English where not translated yet', () => {
+  it('titles and counts Days in Indonesian when asked', () => {
     const vm = historyViewModelFor(records, { today: '2026-10-21', locale: 'id' });
     expect(vm.rows[0].title).toBe('Hari ini');
     expect(vm.rows[0].countText).toBe('3 video');
-    expect(vm.rows[1].title).toBe('Mon 12 Oct');
+    expect(vm.rows[1].title).toBe('Sen 12 Okt');
+    expect(vm.rows[1].tierLabel).toBe('Santuy');
+    expect(vm.rows[1].accessibilityLabel).toMatch(/^Senin 12 Oktober\. 1 video, 0 menit 1 detik./);
+    expect(vm.emptyTitle).toBe('Belum ada data');
   });
 
   it('describes the 7-day chart in the language', () => {
