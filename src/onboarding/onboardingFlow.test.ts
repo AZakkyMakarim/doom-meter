@@ -1,6 +1,13 @@
 import { createMemoryKeyValueStore } from '../storage';
 import type { PermissionStatus } from '../permissions/permissionState';
-import { createOnboardingStore, onboardingSteps, onboardingStepViewModel } from './onboardingFlow';
+import {
+  backIndex,
+  createOnboardingStore,
+  onboardingSteps,
+  onboardingStepViewModel,
+  skipIndex,
+  tiersViewModel,
+} from './onboardingFlow';
 
 const granted: PermissionStatus = {
   accessibility: true,
@@ -18,9 +25,12 @@ const none: PermissionStatus = {
 };
 
 describe('onboarding steps', () => {
-  it('starts with the privacy intro, then required permissions, then optional ones', () => {
+  it('explains first (how it works, Tiers, privacy, calculator), then asks for permissions', () => {
     expect(onboardingSteps(none)).toEqual([
       'intro',
+      'tiers',
+      'privacy',
+      'calculator',
       'accessibility',
       'overlay',
       'usageAccess',
@@ -39,12 +49,51 @@ describe('onboarding steps', () => {
   });
 });
 
+describe('onboarding navigation', () => {
+  const steps = onboardingSteps(none);
+
+  it('Skip on an info screen jumps to the first permission, the calculator included', () => {
+    expect(steps[skipIndex(steps, 0)]).toBe('accessibility');
+    expect(steps[skipIndex(steps, 3)]).toBe('accessibility');
+  });
+
+  it('Skip on a permission screen moves to the next one', () => {
+    expect(skipIndex(steps, 4)).toBe(5);
+  });
+
+  it('Back goes one screen up and stays at the first', () => {
+    expect(backIndex(2)).toBe(1);
+    expect(backIndex(0)).toBe(0);
+  });
+});
+
 describe('onboarding step view model', () => {
-  it('states on the intro that no data leaves the device', () => {
+  it('explains how counting works on the intro, with Skip', () => {
     const vm = onboardingStepViewModel('intro', none);
-    expect(vm.body).toMatch(/no data leaves your device/i);
+    expect(vm.body).toMatch(/Tier/i);
     expect(vm.primaryAction).toBe('next');
-    expect(vm.skipLabel).toBeNull();
+    expect(vm.skipLabel).toBe('Skip');
+  });
+
+  it('states on the privacy screen that only counts are kept, on the device', () => {
+    const vm = onboardingStepViewModel('privacy', none);
+    expect(vm.body).toMatch(/no data leaves your device/i);
+    expect(vm.body).toMatch(/counts/i);
+    expect(vm.skipLabel).toBe('Skip');
+  });
+
+  it('lists the five Tiers with their faces, in the language shown', () => {
+    expect(tiersViewModel('en').map((x) => x.name)).toEqual([
+      'Vibing', 'Cooked', 'Washed', 'Brainrot', 'Doomed',
+    ]);
+    expect(tiersViewModel('id')[0].name).toBe('Santuy');
+    expect(tiersViewModel('en')[4].avatar).toBe('mood_4_doomed');
+  });
+
+  it('gives the Accessibility step the restricted settings hint until it is granted', () => {
+    expect(onboardingStepViewModel('accessibility', none).hint).toMatch(/Allow restricted settings/);
+    expect(onboardingStepViewModel('accessibility', granted).hint).toBeNull();
+    expect(onboardingStepViewModel('overlay', none).hint).toBeNull();
   });
 
   it('labels required steps and lets the user move on without granting them', () => {

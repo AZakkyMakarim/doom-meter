@@ -1,5 +1,10 @@
+import { TIER_CATALOG } from '../design/catalog';
 import { colors } from '../design/tokens';
 import type { EngineState, Tier } from '../engine';
+import { formatNumber, t } from '../i18n/translate';
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { tierLabel, tierSentence } from '../i18n/text';
 import { formatTime, plural, spokenTime } from './format';
 import { panelViewModelFor } from './panelViewModel';
 import type { PanelViewModel } from './panelViewModel';
@@ -24,15 +29,13 @@ export interface MotionFlags {
   numberRoll: boolean;
   /** Avatar scale pop on a Tier change. */
   scalePop: boolean;
-  /** Spring on expanding and collapsing the panel. */
-  panelSpring: boolean;
-  /** 200ms border color crossfade on a Tier change. */
-  borderCrossfade: boolean;
+  /** Panel grows down on open (about 220ms) and shrinks up on close (about 150ms). */
+  panelGrow: boolean;
 }
 
 export function motionFlags(reducedMotion: boolean): MotionFlags {
   const on = !reducedMotion;
-  return { pulse: on, numberRoll: on, scalePop: on, panelSpring: on, borderCrossfade: on };
+  return { pulse: on, numberRoll: on, scalePop: on, panelGrow: on };
 }
 
 export interface PillViewModel {
@@ -41,12 +44,18 @@ export interface PillViewModel {
   unitText: string;
   timeText: string;
   labelText: string;
+  /** What a screen reader hears as the pill's state while it is closed (the panel is the other state). */
+  collapsedLabel: string;
   /** Name of the mood avatar drawable (MASTER 2.1). */
   avatar: string;
   /** Tier color; also used for the label. */
   accentColor: string;
-  borderColor: string;
-  borderWidthDp: number;
+  /** Small Tier-colored dot beside the label; the pill has no border (MASTER 6.1). */
+  accentDotColor: string;
+  /** Corner radius of the pill and the panel. */
+  cornerRadiusDp: number;
+  verticalPaddingDp: number;
+  /** Avatar plus the vertical padding on both sides. */
   heightDp: number;
   countSizeSp: number;
   avatarSizeDp: number;
@@ -87,6 +96,8 @@ export interface PillOptions {
   positionDp?: number;
   /** The system asked to remove animations (MASTER 7). Default false. */
   reducedMotion?: boolean;
+  /** The language of every text on the pill and its panel. Default English. */
+  locale?: Locale;
 }
 
 /**
@@ -98,6 +109,7 @@ const pillPreferences: PillOptions = {
   haptics: true,
   positionDp: 0,
   reducedMotion: false,
+  locale: DEFAULT_LOCALE,
 };
 
 export function setPillPreferences(preferences: PillOptions): void {
@@ -116,11 +128,8 @@ export function isCompactMode(): boolean {
 export const PILL_DRAG_RANGE_DP = 160;
 const DRAG_RANGE_DP = PILL_DRAG_RANGE_DP;
 
+/** Pill sizing and motion per Tier; the Tier's name, avatar and color live in the catalog. */
 interface TierStyle {
-  label: string;
-  avatar: string;
-  borderWidthDp: number;
-  heightDp: number;
   countSizeSp: number;
   avatarSizeDp: number;
   pulseMs: number | null;
@@ -130,50 +139,30 @@ interface TierStyle {
 
 const TIER_STYLES: readonly TierStyle[] = [
   {
-    label: 'Fresh',
-    avatar: 'mood_0_fresh',
-    borderWidthDp: 1,
-    heightDp: 44,
     countSizeSp: 20,
     avatarSizeDp: 32,
     pulseMs: null,
     haptic: 'none',
   },
   {
-    label: 'Drifting',
-    avatar: 'mood_1_drifting',
-    borderWidthDp: 1.5,
-    heightDp: 44,
     countSizeSp: 20,
     avatarSizeDp: 32,
     pulseMs: null,
     haptic: 'light',
   },
   {
-    label: 'Doomed',
-    avatar: 'mood_2_doomed',
-    borderWidthDp: 2,
-    heightDp: 48,
     countSizeSp: 22,
     avatarSizeDp: 36,
     pulseMs: 2400,
     haptic: 'medium',
   },
   {
-    label: 'Cooked',
-    avatar: 'mood_3_cooked',
-    borderWidthDp: 2,
-    heightDp: 52,
     countSizeSp: 24,
     avatarSizeDp: 40,
     pulseMs: 1600,
     haptic: 'heavy',
   },
   {
-    label: 'Terminal',
-    avatar: 'mood_4_terminal',
-    borderWidthDp: 3,
-    heightDp: 56,
     countSizeSp: 26,
     avatarSizeDp: 44,
     pulseMs: 900,
@@ -181,8 +170,8 @@ const TIER_STYLES: readonly TierStyle[] = [
   },
 ];
 
-/** The Tier 0 border is drawn at 40% opacity (MASTER 2.2). */
-const TIER_0_BORDER_ALPHA = '66';
+const CORNER_RADIUS_DP = 20;
+const VERTICAL_PADDING_DP = 14;
 
 /** The pill for one engine state, with no knowledge of what came before. */
 export function pillViewModelFor(
@@ -191,21 +180,24 @@ export function pillViewModelFor(
 ): PillViewModel {
   const { tier, totals } = state;
   const style = TIER_STYLES[tier];
-  const accentColor = colors.sev[tier];
+  const { avatar, color, textColor: accentColor } = TIER_CATALOG[tier];
+  const locale = options.locale ?? DEFAULT_LOCALE;
   const count = totals.watchedVideos;
-  const tierAnnouncement = `Level ${tier + 1} of 5, ${style.label}.`;
+  const tierAnnouncement = tierSentence(tier, locale);
   const reducedMotion = options.reducedMotion ?? false;
   return {
     tier,
-    countText: `${count}`,
-    unitText: count === 1 ? 'video' : 'videos',
+    countText: formatNumber(locale, count),
+    unitText: t(locale, 'unit.video', { count }),
     timeText: formatTime(totals.watchTimeMs),
-    labelText: style.label,
-    avatar: style.avatar,
+    labelText: tierLabel(tier, locale),
+    collapsedLabel: t(locale, 'pill.collapsed'),
+    avatar,
     accentColor,
-    borderColor: tier === 0 ? `#${TIER_0_BORDER_ALPHA}${accentColor.slice(1)}` : accentColor,
-    borderWidthDp: style.borderWidthDp,
-    heightDp: style.heightDp,
+    accentDotColor: color,
+    cornerRadiusDp: CORNER_RADIUS_DP,
+    verticalPaddingDp: VERTICAL_PADDING_DP,
+    heightDp: style.avatarSizeDp + 2 * VERTICAL_PADDING_DP,
     countSizeSp: style.countSizeSp,
     avatarSizeDp: style.avatarSizeDp,
     pulseMs: reducedMotion ? null : style.pulseMs,
@@ -213,9 +205,11 @@ export function pillViewModelFor(
     surfaceColor: colors.overlayBg,
     textColor: colors.text,
     mutedTextColor: colors.textMuted,
-    contentDescription:
-      `Doom meter. ${plural(count, 'video')}, ${spokenTime(totals.watchTimeMs)}. ` +
-      tierAnnouncement,
+    contentDescription: t(locale, 'pill.description', {
+      videos: plural(count, 'video', locale),
+      time: spokenTime(totals.watchTimeMs, locale),
+      tier: tierAnnouncement,
+    }),
     tierAnnouncement,
     announcement: null,
     tierChange: 'none',
@@ -223,7 +217,7 @@ export function pillViewModelFor(
     compact: options.compact ?? false,
     dragRangeDp: DRAG_RANGE_DP,
     positionDp: Math.min(DRAG_RANGE_DP, Math.max(0, options.positionDp ?? 0)),
-    panel: panelViewModelFor(state),
+    panel: panelViewModelFor(state, locale),
   };
 }
 

@@ -20,10 +20,11 @@ class DetectionForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
+        if (ServiceCommand.of(intent?.action, running) == ServiceCommand.STOP) {
             stopSelf()
             return START_NOT_STICKY
         }
+        running = true
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(
@@ -61,17 +62,45 @@ class DetectionForegroundService : Service() {
                 Intent(this, MainActivity::class.java),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
+        // Android 14 lets users swipe this away; the delete intent starts the service again,
+        // which re-posts the notification under the same id.
+        val dismissed =
+            PendingIntent.getService(
+                this,
+                1,
+                Intent(this, DetectionForegroundService::class.java).setAction(ACTION_DISMISSED),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        if (Build.VERSION.SDK_INT >= 31) {
+            builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+        }
         return builder
-            .setSmallIcon(R.drawable.mood_0_fresh)
+            .setSmallIcon(R.drawable.ic_stat_doommeter)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.detection_notification_text))
+            .setContentText(notificationText ?: getString(R.string.detection_notification_text))
             .setContentIntent(open)
+            .setDeleteIntent(dismissed)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
     }
 
+    override fun onDestroy() {
+        running = false
+        super.onDestroy()
+    }
+
     companion object {
+        /**
+         * The notification text in the app language, set from JavaScript so a language change
+         * shows at once. Null until JavaScript has sent it; the string resource is the fallback.
+         */
+        @Volatile var notificationText: String? = null
+
+        @Volatile var running = false
+
         const val ACTION_STOP = "com.doommeter.detection.STOP"
+        const val ACTION_DISMISSED = "com.doommeter.detection.DISMISSED"
         private const val CHANNEL_ID = "detection"
         private const val NOTIFICATION_ID = 1
     }

@@ -8,26 +8,30 @@ import com.doommeter.detection.SurfaceObservation
  * TikTok (For You and Following). Every TikTok-specific selector lives in this file, so an app
  * update that breaks detection is fixed here and nowhere else.
  *
- * The adapter only reports what the UI is doing. It has no counting rules (no 5 second
- * threshold, no timers) and keeps nothing: text is matched against fixed labels or hashed into
+ * A creator profile has no For You / Following tabs, so it is simply not a surface. The comments
+ * sheet keeps the surface, but its text is not part of the video token (it is reported as
+ * unreadable), so scrolling comments never looks like a swipe.
+ *
+ * The adapter only reports what the UI is doing. It has no counting rules (no
+ * thresholds, no timers) and keeps nothing: text is matched against fixed labels or hashed into
  * an in-memory token, never stored or sent.
  *
  * The selectors are English-UI, best-effort and unverified against a live TikTok build; see the
  * manual checks on ticket doom-meter-v9k.4.
  */
-class TikTokAdapter : PlatformAdapter {
+class TikTokAdapter(
+    override val packageNames: Set<String> = setOf(PACKAGE_GLOBAL, PACKAGE_ASIA),
+) : PlatformAdapter {
     override val platform = "tiktok"
-
-    override val packageNames = setOf(PACKAGE_GLOBAL, PACKAGE_ASIA)
 
     override fun observe(root: NodeSnapshot): SurfaceObservation {
         val scan = Scan()
         scan.visit(root, parentSelected = false)
         val feedVisible = scan.forYouTab && scan.followingTab
-        if (!feedVisible || scan.otherTabSelected || scan.overlayOpen) {
+        if (!feedVisible || scan.otherTabSelected) {
             return SurfaceObservation.INACTIVE
         }
-        return SurfaceObservation(surfaceActive = true, videoToken = scan.token())
+        return SurfaceObservation(surfaceActive = true, videoToken = if (scan.commentsOpen) null else scan.token())
     }
 
     /** One pass over the tree, collecting just what the rules above need. */
@@ -35,7 +39,7 @@ class TikTokAdapter : PlatformAdapter {
         var forYouTab = false
         var followingTab = false
         var otherTabSelected = false
-        var overlayOpen = false
+        var commentsOpen = false
         private var hash = FNV_OFFSET
         private var hashed = 0
 
@@ -47,7 +51,7 @@ class TikTokAdapter : PlatformAdapter {
             if (hasLabel(node, FOR_YOU)) forYouTab = true
             if (hasLabel(node, FOLLOWING)) followingTab = true
             if (selected && OTHER_TABS.any { hasLabel(node, it) }) otherTabSelected = true
-            if (isOverlay(node)) overlayOpen = true
+            if (isCommentsSheet(node)) commentsOpen = true
             absorb(node)
 
             for (child in node.children) visit(child, selected)
@@ -76,8 +80,8 @@ class TikTokAdapter : PlatformAdapter {
         /** Top-bar tabs that replace the feed; if one is selected, no swipe feed is in focus. */
         private val OTHER_TABS = listOf("LIVE", "STEM", "Friends", "Explore", "Shop")
 
-        /** Titles of the sheets that cover the feed and pause counting (comments). */
-        private val OVERLAY_TEXTS =
+        /** Title and composer hint of the comments sheet. */
+        private val COMMENTS_TEXTS =
             listOf(
                 Regex("^[\\d.,]+\\s?[KMB]?\\s+comments?$", RegexOption.IGNORE_CASE),
                 Regex("^comments$", RegexOption.IGNORE_CASE),
@@ -96,9 +100,9 @@ class TikTokAdapter : PlatformAdapter {
             label.equals(node.text?.trim(), ignoreCase = true) ||
                 label.equals(node.contentDescription?.trim(), ignoreCase = true)
 
-        private fun isOverlay(node: NodeSnapshot): Boolean {
+        private fun isCommentsSheet(node: NodeSnapshot): Boolean {
             val text = node.text?.trim() ?: return false
-            return OVERLAY_TEXTS.any { it.matches(text) }
+            return COMMENTS_TEXTS.any { it.matches(text) }
         }
     }
 }

@@ -1,5 +1,7 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { colors } from '../design/tokens';
+import { useLocale } from '../i18n/LocaleContext';
+import { t } from '../i18n/translate';
 import { platformColors } from '../design/platformTokens';
 import type { EngineState } from '../engine';
 import type { NotCountingNotice } from '../permissions/permissionState';
@@ -23,36 +25,26 @@ function Avatar({ name, size }: { name: string; size: number }) {
   );
 }
 
-function PlatformRow({ row }: { row: PlatformRowViewModel }) {
+/** One equal-width tile: marker beside the name, the big count, the small time. Always drawn, even at zero. */
+function PlatformTile({ row, grid }: { row: PlatformRowViewModel; grid: boolean }) {
   return (
-    <View style={styles.platformRow} accessible accessibilityLabel={row.accessibilityLabel}>
-      <View style={styles.platformHeader}>
-        <View style={styles.platformName}>
-          <View style={[styles.platformDot, { backgroundColor: platformColors[row.platform] }]} />
-          <Text style={styles.platformLabel}>{row.label}</Text>
-        </View>
-        <Text style={styles.platformStats}>
-          {row.countText} · {row.timeText}
-        </Text>
+    <View
+      style={[styles.tile, grid ? styles.tileGrid : styles.tileRow]}
+      accessible
+      accessibilityLabel={row.accessibilityLabel}>
+      <View style={styles.tileName}>
+        <View style={[styles.platformDot, { backgroundColor: platformColors[row.platform] }]} />
+        <Text style={styles.tileLabel}>{row.label}</Text>
       </View>
-      <View style={styles.barRow}>
-        <View style={styles.barTrack}>
-          <View
-            style={[
-              styles.barFill,
-              { width: `${row.sharePercent}%`, backgroundColor: platformColors[row.platform] },
-            ]}
-          />
-        </View>
-        <Text style={styles.barLabel}>{row.shareText}</Text>
-      </View>
-      {row.warning !== null && <Text style={styles.warning}>{row.warning}</Text>}
+      <Text style={styles.tileCount}>{row.countText}</Text>
+      <Text style={styles.tileTime}>{row.timeText}</Text>
     </View>
   );
 }
 
 /** Names the Platform whose detection is not responding. Text first, colour second. */
 function DetectionWarning({ warning }: { warning: DetectionWarningViewModel }) {
+  const locale = useLocale();
   return (
     <View
       style={styles.warningCard}
@@ -60,7 +52,7 @@ function DetectionWarning({ warning }: { warning: DetectionWarningViewModel }) {
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
       accessibilityLabel={warning.accessibilityLabel}>
-      <Text style={styles.warningKicker}>Warning</Text>
+      <Text style={styles.warningKicker}>{t(locale, 'today.warningKicker')}</Text>
       <Text style={styles.warningTitle}>{warning.title}</Text>
       <Text style={styles.warningMessage}>{warning.message}</Text>
     </View>
@@ -97,19 +89,20 @@ function EmptyState({
   onEnableOverlay: (() => void) | null;
   notice: NotCountingNotice | null;
 }) {
+  const locale = useLocale();
   return (
     <View style={styles.card}>
       <View style={styles.emptyAvatar}>
         <Avatar name={vm.avatar} size={96} />
       </View>
-      <Text style={styles.emptyTitle}>{notice?.title ?? 'No data yet'}</Text>
+      <Text style={styles.emptyTitle}>{notice?.title ?? t(locale, 'today.emptyTitle')}</Text>
       <Text style={styles.body}>{notice?.message ?? vm.emptyMessage}</Text>
       {onEnableOverlay !== null && (
         <Pressable
           accessibilityRole="button"
           onPress={onEnableOverlay}
           style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Text style={styles.primaryButtonLabel}>Enable overlay</Text>
+          <Text style={styles.primaryButtonLabel}>{t(locale, 'today.enableOverlay')}</Text>
         </Pressable>
       )}
     </View>
@@ -135,11 +128,13 @@ export function TodayScreen({
   notCountingNotice = null,
   usageAccess = false,
 }: TodayScreenProps) {
-  const vm = todayViewModelFor(state, { usageAccess });
+  const locale = useLocale();
+  const { fontScale, width } = useWindowDimensions();
+  const vm = todayViewModelFor(state, { usageAccess, locale, fontScale, width });
   return (
     <View style={styles.screen}>
       <Text accessibilityRole="header" style={styles.title}>
-        Today
+        {t(locale, 'today.title')}
       </Text>
       {vm.warnings.map((warning) => (
         <DetectionWarning key={warning.platform} warning={warning} />
@@ -155,14 +150,13 @@ export function TodayScreen({
       ) : (
         <>
           <Summary vm={vm} />
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>By platform</Text>
-            {vm.rows.map((row) => (
-              <PlatformRow key={row.platform} row={row} />
-            ))}
-          </View>
         </>
       )}
+      <View style={styles.tiles}>
+        {vm.rows.map((row) => (
+          <PlatformTile key={row.platform} row={row} grid={vm.platformLayout === 'grid'} />
+        ))}
+      </View>
       <WeekChartCard state={state} />
     </View>
   );
@@ -235,68 +229,58 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '600',
   },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-  platformRow: {
-    gap: 8,
-  },
-  platformHeader: {
+  tiles: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
   },
-  platformName: {
+  tile: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 4,
+    alignItems: 'center',
+  },
+  // minWidth 0 lets four tiles share the row equally instead of growing with their text.
+  tileRow: {
+    flex: 1,
+    minWidth: 0,
+  },
+  tileGrid: {
+    flexGrow: 1,
+    flexBasis: '45%',
+  },
+  tileName: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   platformDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  platformLabel: {
+  tileLabel: {
     color: colors.text,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '500',
   },
-  platformStats: {
-    color: colors.textMuted,
-    fontFamily: MONO_MEDIUM,
-    fontSize: 14,
-    lineHeight: 20,
+  tileCount: {
+    color: colors.text,
+    fontFamily: MONO_BOLD,
+    fontSize: 20,
+    lineHeight: 28,
     fontVariant: ['tabular-nums'],
   },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  barTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.overlayBgAlt,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: 8,
-    borderRadius: 4,
-  },
-  barLabel: {
-    minWidth: 48,
-    textAlign: 'right',
+  tileTime: {
     color: colors.textMuted,
     fontFamily: MONO_MEDIUM,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
     fontVariant: ['tabular-nums'],
   },
   warning: {

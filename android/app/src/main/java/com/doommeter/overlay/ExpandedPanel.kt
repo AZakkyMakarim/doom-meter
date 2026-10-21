@@ -43,7 +43,7 @@ class ExpandedPanel(
     private val bodyFace = Typeface.create("sans-serif", Typeface.NORMAL)
     private val displayFace = Typeface.create("sans-serif", Typeface.BOLD)
 
-    private val card = GradientDrawable().apply { cornerRadius = dp(16f).toFloat() }
+    private val card = GradientDrawable()
     private val avatar = ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
     private val tierName = text(displayFace, 40f).apply {
         gravity = Gravity.CENTER
@@ -135,8 +135,7 @@ class ExpandedPanel(
         this.model = model
         val p = model.panel
         card.setColor(p.surfaceColor)
-        val strokePx = max(1, (model.borderWidthDp * density).roundToInt())
-        card.setStroke(strokePx, model.borderColor)
+        card.cornerRadius = dp(model.cornerRadiusDp).toFloat()
 
         (avatar.layoutParams as LinearLayout.LayoutParams).apply {
             width = dp(p.avatarSizeDp)

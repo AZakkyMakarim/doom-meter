@@ -1,5 +1,8 @@
+import { translate } from '../i18n/translate';
+import { createLockoutEngine } from '../lockout/lockoutEngine';
 import { createMemoryKeyValueStore } from '../storage';
 import { DEFAULT_SETTINGS } from './settings';
+import type { SettingsPatch } from './settings';
 import { SETTINGS_KEY, createSettingsStore } from './settingsStore';
 
 describe('settings store', () => {
@@ -30,7 +33,7 @@ describe('settings store', () => {
     store.subscribe(listener);
     const result = await store.update({ rolloverHour: 25 });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/0 to 23/);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/0 to 23/);
     expect(store.get().rolloverHour).toBe(DEFAULT_SETTINGS.rolloverHour);
     expect(listener).not.toHaveBeenCalled();
   });
@@ -108,7 +111,7 @@ describe('settings store', () => {
     const store = createSettingsStore({ store: kv });
     const result = await store.update({ haptics: false });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/could not save/i);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/could not save/i);
     expect(store.get().haptics).toBe(false);
   });
 
@@ -119,5 +122,68 @@ describe('settings store', () => {
     off();
     await store.update({ haptics: false });
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  describe('during a Lockout', () => {
+    const HOUR = 3_600_000;
+    const start = new Date(2026, 0, 10, 12, 0).getTime();
+
+    /** A store whose changes the Lockout engine may refuse, with a Lockout of 1 hour running. */
+    async function rig() {
+      let now = start;
+      const engine = createLockoutEngine({ clock: { now: () => now }, store: createMemoryKeyValueStore() });
+      engine.setRules({ punishments: ['1h', 'off', 'off', 'off'], rolloverHour: 4 });
+      await engine.load();
+      const kv = createMemoryKeyValueStore();
+      const store = createSettingsStore({ store: kv });
+      store.setRefusal(engine.refusal);
+      engine.observeTier('2026-01-10', 0); // the first look only seeds what the Day had reached
+      engine.observeTier('2026-01-10', 1);
+      return { store, kv, advance: (ms: number) => (now += ms) };
+    }
+
+    it.each([
+      ['a Punishment', { punishments: ['off', 'off', 'off', 'off'] as const }],
+      ['the thresholds', { thresholds: DEFAULT_SETTINGS.thresholds }],
+      ['the rollover hour', { rolloverHour: 3 }],
+    ])('refuses %s with the end time and changes and saves nothing', async (_name, patch) => {
+      const { store, kv } = await rig();
+      const listener = jest.fn();
+      store.subscribe(listener);
+      const before = store.get();
+      const result = await store.update(patch as SettingsPatch);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      const end = new Date(start + HOUR);
+      const hhmm = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+      expect(result.lockedUntil).toBe(start + HOUR);
+      expect(translate('en', result.error)).toBe("Can't change this, Lockout runs until " + hhmm);
+      expect(translate('id', result.error)).toBe('Tidak bisa diubah, Lockout sedang berjalan sampai ' + hhmm);
+      expect(store.get()).toBe(before);
+      expect(listener).not.toHaveBeenCalled();
+      expect(await kv.get(SETTINGS_KEY)).toBeNull();
+    });
+
+    it('waits for a refusal that is still being decided', async () => {
+      const { store } = await rig();
+      store.setRefusal(() => Promise.resolve({ endsAt: start + HOUR }));
+      const result = await store.update({ rolloverHour: 3 });
+      expect(result.ok).toBe(false);
+      expect(store.get().rolloverHour).not.toBe(3);
+    });
+
+    it('still saves the other settings', async () => {
+      const { store } = await rig();
+      expect((await store.update({ compactMode: true, haptics: false, language: 'id' })).ok).toBe(true);
+      expect(store.get().compactMode).toBe(true);
+    });
+
+    it('saves all three again once the Lockout ends', async () => {
+      const { store, advance } = await rig();
+      advance(HOUR);
+      const result = await store.update({ punishments: ['off', 'off', 'off', 'off'], rolloverHour: 3 });
+      expect(result.ok).toBe(true);
+      expect(store.get().rolloverHour).toBe(3);
+    });
   });
 });

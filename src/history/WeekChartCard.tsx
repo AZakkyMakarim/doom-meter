@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { weekChartLayoutFor } from '../design/fontScale';
 import { colors } from '../design/tokens';
+import { useLocale } from '../i18n/LocaleContext';
+import { t } from '../i18n/translate';
 import type { EngineState } from '../engine';
 import { recordsWithLiveDay, weekChartFor } from './historyViewModel';
 import type { WeekBarViewModel } from './historyViewModel';
@@ -62,19 +64,21 @@ export function WeekChartCard({ state }: { state: EngineState }) {
   // The last 7 stored Days always cover the window; today's bar is the live count.
   const stored = useStoredDays(7, state.day);
   const { thresholds } = useSettings();
+  const locale = useLocale();
   const chart = useMemo(
     () =>
       weekChartFor(recordsWithLiveDay(stored.records, state), {
         today: state.day,
         thresholds,
+        locale,
       }),
-    [stored.records, state, thresholds],
+    [stored.records, state, thresholds, locale],
   );
 
   return (
     <View style={styles.card}>
       <Text accessibilityRole="header" style={styles.title}>
-        Last 7 days
+        {t(locale, 'chart.title')}
       </Text>
       {chart.isEmpty ? (
         <View style={styles.empty}>

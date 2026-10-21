@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">DoomMeter</string>
-    <string name="accessibility_service_description">Detects when you scroll short-form video feeds (TikTok, Instagram Reels, YouTube Shorts) to count videos watched and time spent. Only counts and time are kept, on this device. Video content and titles are never stored or sent.</string>
+    <string name="accessibility_service_description">Detects when you scroll short-form video feeds (TikTok, Instagram Reels, YouTube Shorts, Facebook Reels) to count videos watched and time spent. Only counts and time are kept, on this device. Video content and titles are never stored or sent.</string>
     <string name="detection_channel_name">Detection</string>
+    <string name="widget_empty">No data yet</string>
+    <string name="widget_description">Today\'s mood face, Tier, Watched videos and Watch time.</string>
     <string name="detection_notification_text">Counting short-form videos on this device</string>
 </resources>

@@ -18,8 +18,6 @@ import {
   type PlatformState,
 } from './types';
 
-export const DEFAULT_WATCHED_THRESHOLD_MS = 5000;
-
 interface PlatformInternal {
   watchedVideos: number;
   watchTimeMs: number;
@@ -28,6 +26,8 @@ interface PlatformInternal {
   incomplete: boolean;
   /** The feed is visible and focused (regardless of screen state). */
   surfaceActive: boolean;
+  /** The video in focus came up while detection was down, so it still has to be counted. */
+  unobserved: boolean;
   /** Start of the current uninterrupted stretch of one video, or null when not accruing. */
   segmentStart: number | null;
   /** UsageStats says the Platform's app is in the foreground. */
@@ -43,6 +43,7 @@ function createPlatform(): PlatformInternal {
     detectionHealthy: true,
     incomplete: false,
     surfaceActive: false,
+    unobserved: false,
     segmentStart: null,
     usageForeground: false,
     usageStart: null,
@@ -51,7 +52,6 @@ function createPlatform(): PlatformInternal {
 
 export function createCountingEngine(options: CountingEngineOptions): CountingEngine {
   const { clock } = options;
-  const threshold = options.watchedThresholdMs ?? DEFAULT_WATCHED_THRESHOLD_MS;
   let rolloverHour = options.rolloverHour ?? DEFAULT_ROLLOVER_HOUR;
   assertRolloverHour(rolloverHour);
   let thresholds = options.thresholds ?? DEFAULT_TIER_THRESHOLDS;
@@ -74,7 +74,6 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     if (p.segmentStart === null) return;
     const elapsed = Math.max(0, at - p.segmentStart);
     p.watchTimeMs += elapsed;
-    if (elapsed >= threshold) p.watchedVideos += 1;
     p.segmentStart = null;
   }
 
@@ -98,7 +97,7 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     }
   }
 
-  function gain(platform: Platform, at: number) {
+  function gain(platform: Platform, at: number, sameVideo: boolean) {
     // Only one Platform can be in the foreground; end any other active surface.
     for (const other of PLATFORMS) {
       if (other !== platform && platforms[other].surfaceActive) {
@@ -109,6 +108,11 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     if (p.surfaceActive) return;
     p.surfaceActive = true;
     // While detection is down, surface events are not trusted: nothing is counted from them.
+    if (p.detectionHealthy) {
+      if (!sameVideo) p.watchedVideos += 1;
+    } else {
+      p.unobserved = !sameVideo;
+    }
     if (screenOn && p.detectionHealthy) startSegment(p, at);
   }
 
@@ -117,6 +121,7 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     if (!p.surfaceActive) return;
     endSegment(p, at);
     p.surfaceActive = false;
+    p.unobserved = false;
   }
 
   function changeVideo(platform: Platform, at: number) {
@@ -124,6 +129,7 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     if (p.segmentStart === null) return;
     endSegment(p, at);
     startSegment(p, at);
+    p.watchedVideos += 1;
   }
 
   function setScreen(on: boolean, at: number) {
@@ -158,6 +164,8 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
     if (p.detectionHealthy) return;
     endUsage(p, at);
     p.detectionHealthy = true;
+    if (p.unobserved) p.watchedVideos += 1;
+    p.unobserved = false;
     resume(p, at);
   }
 
@@ -236,7 +244,7 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
 
     switch (event.type) {
       case 'surfaceFocusGained':
-        gain(event.platform, at);
+        gain(event.platform, at, event.sameVideo === true);
         break;
       case 'surfaceFocusLost':
         lose(event.platform, at);
@@ -266,16 +274,13 @@ export function createCountingEngine(options: CountingEngineOptions): CountingEn
   }
 
   function snapshot(p: PlatformInternal, now: number): PlatformState {
-    let watchedVideos = p.watchedVideos;
     let watchTimeMs = p.watchTimeMs;
     if (p.segmentStart !== null) {
-      const elapsed = Math.max(0, now - p.segmentStart);
-      watchTimeMs += elapsed;
-      if (elapsed >= threshold) watchedVideos += 1;
+      watchTimeMs += Math.max(0, now - p.segmentStart);
     }
     if (p.usageStart !== null) watchTimeMs += Math.max(0, now - p.usageStart);
     return {
-      watchedVideos,
+      watchedVideos: p.watchedVideos,
       watchTimeMs,
       detectionHealthy: p.detectionHealthy,
       incomplete: p.incomplete,

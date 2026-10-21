@@ -10,10 +10,12 @@ function stateWith(videos: number): EngineState {
   let now = 1_700_000_000_000;
   const engine = createCountingEngine({ clock: { now: () => now } });
   engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok' });
-  for (let i = 0; i < videos; i += 1) {
+  // Focusing the feed counts the first video.
+  for (let i = 1; i < videos; i += 1) {
     now += 6000;
     engine.handle({ type: 'videoChanged', platform: 'tiktok' });
   }
+  now += 6000;
   engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok' });
   return engine.getState();
 }
@@ -48,8 +50,7 @@ describe('reduced motion (MASTER 7, 11)', () => {
       pulse: true,
       numberRoll: true,
       scalePop: true,
-      panelSpring: true,
-      borderCrossfade: true,
+      panelGrow: true,
     });
   });
 
@@ -60,10 +61,9 @@ describe('reduced motion (MASTER 7, 11)', () => {
     expect(pill.motion.scalePop).toBe(false);
   });
 
-  it('also swaps the panel and the border instantly', () => {
+  it('also opens and closes the panel instantly', () => {
     const pill = pillViewModelFor(atTier(2), { reducedMotion: true });
-    expect(pill.motion.panelSpring).toBe(false);
-    expect(pill.motion.borderCrossfade).toBe(false);
+    expect(pill.motion.panelGrow).toBe(false);
   });
 
   it.each([2, 3, 4] as const)('Tier %i has no pulse period under reduced motion', (tier) => {
@@ -71,11 +71,11 @@ describe('reduced motion (MASTER 7, 11)', () => {
     expect(pillViewModelFor(atTier(tier), { reducedMotion: true }).pulseMs).toBeNull();
   });
 
-  it('keeps severity readable: same size, border, avatar and label', () => {
+  it('keeps severity readable: same size, accent dot, avatar and label', () => {
     const full = pillViewModelFor(atTier(4));
     const reduced = pillViewModelFor(atTier(4), { reducedMotion: true });
     expect(reduced.heightDp).toBe(full.heightDp);
-    expect(reduced.borderWidthDp).toBe(full.borderWidthDp);
+    expect(reduced.accentDotColor).toBe(full.accentDotColor);
     expect(reduced.avatar).toBe(full.avatar);
     expect(reduced.labelText).toBe(full.labelText);
     expect(reduced.accentColor).toBe(full.accentColor);
@@ -113,10 +113,10 @@ describe('screen reader announcements (MASTER 8, 11)', () => {
   });
 
   it.each([
-    [1, 'Level 2 of 5, Drifting.'],
-    [2, 'Level 3 of 5, Doomed.'],
-    [3, 'Level 4 of 5, Cooked.'],
-    [4, 'Level 5 of 5, Terminal.'],
+    [1, 'Level 2 of 5, Cooked.'],
+    [2, 'Level 3 of 5, Washed.'],
+    [3, 'Level 4 of 5, Brainrot.'],
+    [4, 'Level 5 of 5, Doomed.'],
   ] as const)('announce entering Tier %i once', (tier, spoken) => {
     const present = createPillPresenter();
     present(atTier((tier - 1) as Tier));
@@ -128,12 +128,12 @@ describe('screen reader announcements (MASTER 8, 11)', () => {
   it('announce a decrease (Day rollover) too, since the Tier changed', () => {
     const present = createPillPresenter();
     present(atTier(3));
-    expect(present(atTier(0)).announcement).toBe('Level 1 of 5, Fresh.');
+    expect(present(atTier(0)).announcement).toBe('Level 1 of 5, Vibing.');
   });
 
   it('keep the label read on focus separate from the announcement', () => {
     const pill = pillViewModelFor(stateWith(47));
-    expect(pill.contentDescription).toMatch(/^Doom meter\. 47 videos, .*Level 3 of 5, Doomed\.$/);
+    expect(pill.contentDescription).toMatch(/^Doom meter\. 47 videos, .*Level 3 of 5, Washed\.$/);
     expect(pill.announcement).toBeNull();
   });
 });

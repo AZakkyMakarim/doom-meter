@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mood avatar, converted from design-system/doommeter/assets (MASTER 2.1). Colors baked in. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#F9A8D4" android:pathData="M11 22C6 12 14 3 25 4C28 4 30 5 32 7C34 5 36 4 39 4C50 3 58 12 53 22Z"/>
+    <path android:strokeColor="#BE185D" android:strokeWidth="1.6" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M32 7V22"/>
+    <path android:strokeColor="#BE185D" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M15 12q3-4 7-1t6-2M13 17q4-3 7 0t7-1M36 9q4-2 6 1t6 0M37 14q4-3 7 0t6-1"/>
+    <path android:fillColor="#A3E635" android:pathData="M10.25 20L15 25 20 19 26 25 32 19 38 25 44 19 49 25 53.75 20A27 27 0 1 1 10.25 20Z"/>
+    <path android:fillColor="#F8FAFC" android:strokeColor="#0B0D14" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M14.5,37 a7.5,7.5 0 1,0 15.0,0 a7.5,7.5 0 1,0 -15.0,0"/>
+    <path android:fillColor="#0B0D14" android:pathData="M21.4,39 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0"/>
+    <path android:strokeColor="#0B0D14" android:strokeWidth="3.6" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M38 32l10 10M48 32L38 42"/>
+    <path android:fillColor="#0B0D14" android:pathData="M25,48 H39 A4,4 0 0 1 43,52 V55 A4,4 0 0 1 39,59 H25 A4,4 0 0 1 21,55 V52 A4,4 0 0 1 25,48 Z"/>
+    <path android:strokeColor="#F8FAFC" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M27 48v5M32 48v5M37 48v5"/>
+</vector>

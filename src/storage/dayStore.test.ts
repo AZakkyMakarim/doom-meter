@@ -97,6 +97,33 @@ describe('day store', () => {
     });
   });
 
+  it('reads a Day stored before Facebook existed with Facebook at zero, and can save over it', async () => {
+    const kv = createMemoryKeyValueStore();
+    const zero = { watchedVideos: 0, watchTimeMs: 0, incomplete: false };
+    await kv.set(
+      'doommeter:v1:day:2026-10-15',
+      JSON.stringify({
+        day: '2026-10-15',
+        platforms: {
+          instagram: zero,
+          youtube: zero,
+          tiktok: { watchedVideos: 5, watchTimeMs: 30_000, incomplete: false },
+        },
+      }),
+    );
+    const store = createDayStore(kv);
+    const read = await store.getDay('2026-10-15');
+    expect(read?.platforms.facebook).toEqual(zero);
+    expect(read?.platforms.tiktok.watchedVideos).toBe(5);
+
+    const next = emptyDayRecord('2026-10-15');
+    next.platforms.facebook = { watchedVideos: 2, watchTimeMs: 12_000, incomplete: false };
+    await store.saveDay(next);
+    const saved = await store.getDay('2026-10-15');
+    expect(saved?.platforms.facebook.watchedVideos).toBe(2);
+    expect(saved?.platforms.tiktok.watchedVideos).toBe(5);
+  });
+
   it('keeps concurrent saves of the same Day from losing data', async () => {
     const store = createDayStore(createMemoryKeyValueStore());
     await Promise.all([

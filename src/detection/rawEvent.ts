@@ -45,7 +45,7 @@ export function parseRawEvent(json: string): RawDetectionEvent | null {
     return null;
   }
   if (typeof raw !== 'object' || raw === null) return null;
-  const { type, platform, at } = raw as Record<string, unknown>;
+  const { type, platform, at, sameVideo } = raw as Record<string, unknown>;
   const stamp = typeof at === 'number' && Number.isFinite(at) ? { at } : {};
 
   if (isScreenEvent(type)) return { type, ...stamp };
@@ -53,6 +53,10 @@ export function parseRawEvent(json: string): RawDetectionEvent | null {
   if (type === 'accessibilityDisconnected') {
     return isPlatform(platform) ? { type, platform, ...stamp } : { type, ...stamp };
   }
-  if (isPlatformEvent(type) && isPlatform(platform)) return { type, platform, ...stamp };
+  if (type === 'surfaceFocusGained' && isPlatform(platform)) {
+    return sameVideo === true ? { type, platform, sameVideo, ...stamp } : { type, platform, ...stamp };
+  }
+  // The cast: with four Platforms the type x platform union is too big for TS to check unaided.
+  if (isPlatformEvent(type) && isPlatform(platform)) return { type, platform, ...stamp } as RawDetectionEvent;
   return null;
 }

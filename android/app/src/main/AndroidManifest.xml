@@ -34,6 +34,16 @@
         </intent-filter>
       </activity>
 
+      <!-- The Lockout block screen (ADR 0007): its own task, never in Recents, started only by the service. -->
+      <activity
+        android:name=".lockout.LockoutBlockActivity"
+        android:excludeFromRecents="true"
+        android:exported="false"
+        android:launchMode="singleTask"
+        android:noHistory="true"
+        android:taskAffinity=""
+        android:theme="@style/LockoutTheme" />
+
       <service
         android:name=".detection.DoomMeterAccessibilityService"
         android:exported="true"
@@ -46,6 +56,18 @@
           android:name="android.accessibilityservice"
           android:resource="@xml/accessibility_service_config" />
       </service>
+
+      <receiver
+        android:name=".widget.DoomMeterWidgetProvider"
+        android:exported="true"
+        android:label="@string/app_name">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/doommeter_widget_info" />
+      </receiver>
 
       <service
         android:name=".detection.DetectionForegroundService"

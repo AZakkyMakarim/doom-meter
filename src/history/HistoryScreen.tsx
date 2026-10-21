@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { colors } from '../design/tokens';
 import { useSafeAreaPadding } from '../design/useSafeAreaPadding';
+import { useLocale } from '../i18n/LocaleContext';
+import { t } from '../i18n/translate';
 import type { EngineState } from '../engine';
 import { historyViewModelFor, recordsWithLiveDay } from './historyViewModel';
 import type { DayRowViewModel } from './historyViewModel';
@@ -70,13 +72,15 @@ export function HistoryScreen({ state }: { state: EngineState }) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   const stored = useStoredDays(limit, state.day);
   const { thresholds } = useSettings();
+  const locale = useLocale();
   const vm = useMemo(
     () =>
       historyViewModelFor(recordsWithLiveDay(stored.records, state), {
         today: state.day,
         thresholds,
+        locale,
       }),
-    [stored.records, state, thresholds],
+    [stored.records, state, thresholds, locale],
   );
 
   const loadMore = useCallback(() => {
@@ -99,7 +103,7 @@ export function HistoryScreen({ state }: { state: EngineState }) {
       onEndReachedThreshold={1.5}
       ListHeaderComponent={
         <Text accessibilityRole="header" style={styles.title}>
-          History
+          {t(locale, 'history.title')}
         </Text>
       }
       ListEmptyComponent={

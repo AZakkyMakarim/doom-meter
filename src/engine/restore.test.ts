@@ -1,5 +1,5 @@
 import { createCountingEngine } from './countingEngine';
-import type { Clock, DaySummary } from './types';
+import type { Clock, DaySnapshot, DaySummary } from './types';
 
 const at = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).getTime();
 
@@ -17,6 +17,7 @@ const saved = {
     instagram: { watchedVideos: 0, watchTimeMs: 0 },
     youtube: { watchedVideos: 2, watchTimeMs: 90_000 },
     tiktok: { watchedVideos: 10, watchTimeMs: 600_000 },
+    facebook: { watchedVideos: 0, watchTimeMs: 0 },
   },
 };
 
@@ -106,6 +107,7 @@ describe('engine.restore', () => {
           instagram: { watchedVideos: 0, watchTimeMs: 0 },
           youtube: { watchedVideos: 0, watchTimeMs: 0 },
           tiktok: { watchedVideos: 0, watchTimeMs: 0 },
+          facebook: { watchedVideos: 0, watchTimeMs: 0 },
         },
       });
 
@@ -125,6 +127,17 @@ describe('engine.restore', () => {
     });
   });
 
+  it('restores a snapshot saved before Facebook existed, with Facebook at zero', () => {
+    const { engine } = setup(at(15, 12));
+    const legacy = { ...saved.platforms, facebook: undefined };
+    engine.restore({ day: saved.day, platforms: legacy } as unknown as DaySnapshot);
+
+    const state = engine.getState();
+    expect(state.platforms.tiktok.watchedVideos).toBe(10);
+    expect(state.platforms.facebook.watchedVideos).toBe(0);
+    expect(state.totals.watchedVideos).toBe(12);
+  });
+
   it('ignores negative or non-finite numbers in a snapshot', () => {
     const { engine } = setup(at(15, 12));
     engine.restore({
@@ -133,6 +146,7 @@ describe('engine.restore', () => {
         instagram: { watchedVideos: -3, watchTimeMs: Number.NaN },
         youtube: { watchedVideos: 1.5, watchTimeMs: 1000 },
         tiktok: { watchedVideos: 1, watchTimeMs: Infinity },
+        facebook: { watchedVideos: 0, watchTimeMs: 0 },
       },
     });
 

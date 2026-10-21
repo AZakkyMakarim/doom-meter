@@ -1,10 +1,15 @@
+import { msg, translate } from '../i18n/translate';
 import { DEFAULT_SETTINGS, POSITION_MAX_DP, POSITION_STEP_DP } from './settings';
 import {
   draftsFor,
+  inlineError,
+  lockoutNotice,
+  lockoutStatusText,
   parseRolloverDraft,
   parseThresholdDrafts,
   permissionRows,
   positionControl,
+  punishmentRows,
   rolloverLabel,
 } from './settingsViewModel';
 
@@ -12,10 +17,10 @@ describe('threshold drafts', () => {
   it('shows the saved thresholds as text, one row per Tier 1 to 4', () => {
     const d = draftsFor(DEFAULT_SETTINGS);
     expect(d.thresholds).toEqual([
-      { tierName: 'Drifting', videos: '10', minutes: '10' },
-      { tierName: 'Doomed', videos: '30', minutes: '30' },
-      { tierName: 'Cooked', videos: '60', minutes: '60' },
-      { tierName: 'Terminal', videos: '120', minutes: '120' },
+      { tierName: 'Cooked', videos: '10', minutes: '10' },
+      { tierName: 'Washed', videos: '30', minutes: '30' },
+      { tierName: 'Brainrot', videos: '60', minutes: '60' },
+      { tierName: 'Doomed', videos: '120', minutes: '120' },
     ]);
     expect(d.rolloverHour).toBe('4');
   });
@@ -35,7 +40,7 @@ describe('threshold drafts', () => {
     rows[1].minutes = 'abc';
     const result = parseThresholdDrafts(rows);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/Doomed.*minutes.*whole number/i);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/Washed.*minutes.*whole number/i);
   });
 
   it('refuses an empty field', () => {
@@ -53,7 +58,7 @@ describe('rollover draft', () => {
   it('refuses text that is not a whole number', () => {
     const result = parseRolloverDraft('four');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/0 to 23/);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/0 to 23/);
   });
 
   it('leaves the range check (25) to the settings rules', () => {
@@ -143,5 +148,83 @@ describe('permission rows', () => {
     const [overlay] = permissionRows({ ...all, overlayGranted: false });
     expect(overlay.accessibilityLabel).toMatch(/Display over other apps/);
     expect(overlay.accessibilityLabel).toMatch(/missing|off|not/i);
+  });
+});
+
+describe('Settings text by locale', () => {
+  it('reads in English by default', () => {
+    expect(positionControl(0).valueText).toBe('Top');
+    expect(positionControl(16).valueText).toBe('16 dp below the top');
+    const [overlay] = permissionRows({
+      overlayGranted: false,
+      accessibilityOn: true,
+      usageAccessGranted: true,
+    });
+    expect(overlay.title).toBe('Display over other apps');
+    expect(overlay.explanation).toBe('Lets the pill appear on top of Instagram, YouTube, TikTok and Facebook.');
+    expect(overlay.accessibilityLabel).toBe('Display over other apps: Missing');
+  });
+
+  it('takes the language as a parameter, in Indonesian', () => {
+    expect(positionControl(0, 'id').valueText).toBe('Atas');
+    expect(draftsFor(DEFAULT_SETTINGS, 'id').thresholds[0].tierName).toBe('Oleng');
+    const rows = permissionRows(
+      { overlayGranted: true, accessibilityOn: false, usageAccessGranted: false },
+      'id',
+    );
+    expect(rows[1].fixLabel).toBe('Perbaiki izin');
+    expect(rows[2].accessibilityLabel).toBe('Akses penggunaan, opsional: Belum diizinkan');
+  });
+});
+
+
+describe('punishment card', () => {
+  it('has a row for each of Tiers 1 to 4 with the five options, all Off by default, and none for Vibing', () => {
+    const rows = punishmentRows(DEFAULT_SETTINGS.punishments);
+    expect(rows.map((r) => [r.tier, r.tierName])).toEqual([
+      [1, 'Cooked'],
+      [2, 'Washed'],
+      [3, 'Brainrot'],
+      [4, 'Doomed'],
+    ]);
+    for (const row of rows) {
+      expect(row.options.map((o) => o.label)).toEqual(['Off', '15 minutes', '1 hour', '3 hours', 'Until next Day']);
+      expect(row.options.filter((o) => o.selected).map((o) => o.value)).toEqual(['off']);
+    }
+  });
+
+  it('marks the saved choice of each Tier and sends the whole list when one Tier changes', () => {
+    const rows = punishmentRows(['off', '1h', 'off', 'untilDay']);
+    expect(rows[1].options.find((o) => o.selected)?.value).toBe('1h');
+    expect(rows[1].label).toBe('Washed punishment');
+    expect(rows[1].options.find((o) => o.value === '3h')?.patch).toEqual(['off', '3h', 'off', 'untilDay']);
+  });
+
+  it('reads in Indonesian', () => {
+    const row = punishmentRows(DEFAULT_SETTINGS.punishments, 'id')[0];
+    expect(row.label).toBe('Hukuman Oleng');
+    expect(row.options.map((o) => o.label)).toEqual(['Mati', '15 menit', '1 jam', '3 jam', 'Sampai pergantian Hari']);
+  });
+
+  it('shows the status line only while a Lockout runs, with the local end time', () => {
+    const endsAt = new Date(2026, 0, 10, 14, 5).getTime();
+    expect(lockoutStatusText({ active: false })).toBeNull();
+    const running = { active: true as const, tier: 1 as const, endsAt, platforms: [] };
+    expect(lockoutStatusText(running)).toBe('Lockout active until 14:05');
+    expect(lockoutStatusText(running, 'id')).toBe('Lockout aktif sampai 14:05');
+  });
+
+  it('says the three settings are read-only only while a Lockout runs', () => {
+    const running = { active: true as const, tier: 1 as const, endsAt: 1, platforms: [] };
+    expect(lockoutNotice({ active: false })).toBeNull();
+    expect(lockoutNotice(running)).toBe('Read-only while a Lockout runs.');
+    expect(lockoutNotice(running, 'id')).toBe('Hanya-baca selama Lockout berjalan.');
+  });
+
+  it('shows a refused change inline unless a Lockout refused it (that earns the failure toast)', () => {
+    const error = msg('settings.error.save');
+    expect(inlineError({ ok: true, settings: DEFAULT_SETTINGS })).toBeNull();
+    expect(inlineError({ ok: false, error })).toBe(error);
+    expect(inlineError({ ok: false, error, lockedUntil: 1 })).toBeNull();
   });
 });

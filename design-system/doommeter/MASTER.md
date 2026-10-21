@@ -18,11 +18,13 @@ Tier = the **higher** of the count tier and the time tier. Thresholds are initia
 
 | Tier | Name (label) | Videos | Time | Color token | Hex | Icon (Phosphor) |
 |------|--------------|--------|------|-------------|-----|-----------------|
-| 0 | `Fresh` | 0–9 | 0–9 min | `--sev-0` | `#34D399` | `check-circle` |
-| 1 | `Drifting` | 10–29 | 10–29 min | `--sev-1` | `#FACC15` | `warning` |
-| 2 | `Doomed` | 30–59 | 30–59 min | `--sev-2` | `#FB923C` | `fire-simple` |
-| 3 | `Cooked` | 60–119 | 60–119 min | `--sev-3` | `#F87171` | `skull` |
-| 4 | `Terminal` | 120+ | 120+ min | `--sev-4` | `#FF4D8D` | `siren` |
+| 0 | `Vibing` | 0–9 | 0–9 min | `--sev-0` | `#FACC15` | `smiley` |
+| 1 | `Cooked` | 10–29 | 10–29 min | `--sev-1` | `#FB923C` | `fire-simple` |
+| 2 | `Washed` | 30–59 | 30–59 min | `--sev-2` | `#F87171` | `drop` |
+| 3 | `Brainrot` | 60–119 | 60–119 min | `--sev-3` | `#A3E635` | `brain` |
+| 4 | `Doomed` | 120+ | 120+ min | `--sev-4` | `#6B7280` | `skull` |
+
+`Doomed` is grey (`#6B7280`) for the face, border and bars, but its label text and filled badges use the lighter `#9CA3AF` so text keeps 4.5:1 (`sevText` in `src/design/catalog.ts`). All other Tiers use their Hex for text too.
 
 ### 2.1 Mood Avatar (mascot face)
 
@@ -30,14 +32,14 @@ Each tier has a round flat face that replaces the tier icon in the pill and pane
 
 | Tier | Mood | Face |
 |------|------|------|
-| 0 Fresh | happy | `^ ^` eyes, wide smile |
-| 1 Drifting | bored | half-lidded eyes, flat mouth |
-| 2 Doomed | tired | droopy brows, eye bags, frown |
-| 3 Cooked | panicking | wide white eyes with tiny pupils, wobbly mouth |
-| 4 Terminal | dead | `X X` eyes, tongue out |
+| 0 Vibing | cool | sunglasses, wide smile |
+| 1 Cooked | worried | round eyes, raised brows, wobbly mouth, one sweat drop |
+| 2 Washed | drained | heavy lids, eye bags, flat mouth turned slightly down, one sweat drop |
+| 3 Brainrot | fried | open skull with a pink brain (two hemispheres, centre fissure, dark red folds), one round white eye, one `X` eye, open mouth with teeth |
+| 4 Doomed | dead | skull: `X X` eyes, triangle nose, teeth |
 
 Rules:
-- Faces are filled with the tier color; features use `--color-overlay-bg` (`#0B0D14`). Hex is baked into the SVGs, so regenerate them if tier colors change.
+- Faces are filled with the tier color; features use `--color-overlay-bg` (`#0B0D14`). Brainrot is the exception: an open skull in lime with a pink brain (`#F9A8D4`, folds `#BE185D`), eye white `#F8FAFC`. Hex is baked into the SVGs, so regenerate them if tier colors change.
 - Sizes follow the pill: 32 (T0–T1), 36 (T2), 40 (T3), 44 (T4); 96 in the expanded panel.
 - The face is **decorative** next to the tier label (`aria-hidden`); the label carries the meaning. Shape of the face, not just its color, changes per tier.
 - Face changes on tier change only (swap with scale pop, see §6.3). No idle animation by default; optional blink every 4–6s on T0–T1 only, disabled under reduced motion.
@@ -45,14 +47,14 @@ Rules:
 
 ### 2.2 Severity rules
 - Color is **never the only signal**: every tier also has a distinct face/icon + text label (colorblind-safe, `color-not-only`).
-- All tier colors on the pill surface (`#0B0D14`) are ≥ 7:1 (verified by approximation; re-verify with a contrast tool before shipping).
+- Contrast on the pill surface (`#0B0D14`), checked with the contrast tool (`src/design/contrast.test.ts`): face colors ≥ 3:1 (Doomed grey 4.0:1), label text colors ≥ 7:1 (Doomed text `#9CA3AF` 7.6:1), Brainrot brain pink 10.7:1.
 - Escalation rules:
 
 | Property | T0 | T1 | T2 | T3 | T4 |
 |----------|----|----|----|----|----|
-| Border | 1px @ 40% | 1.5px | 2px | 2px | 3px |
+| Border | none (the pill has no border; the Tier shows in face, label and accent dot) | | | | |
 | Icon glow/pulse | none | none | slow pulse (2.4s) | pulse (1.6s) | fast pulse (0.9s) |
-| Pill height | 44 | 44 | 48 | 52 | 56 |
+| Pill height (avatar + 2 x 14 padding) | 60 | 60 | 64 | 68 | 72 |
 | Number size | 20 | 20 | 22 | 24 | 26 |
 | Haptic on enter | none | light | medium | heavy | heavy ×2 |
 
@@ -86,6 +88,7 @@ Use semantic tokens only; no raw hex in components. Dark-only (the HUD overlays 
   --plat-reels:  #E1306C;  /* Instagram Reels */
   --plat-shorts: #FF3D3D;  /* YouTube Shorts */
   --plat-tiktok: #25F4EE;  /* TikTok */
+  --plat-facebook: #1877F2;  /* Facebook Reels (4.1:1 on #0B0D14) */
 
   /* Interaction */
   --color-focus-ring: #FFFFFF;
@@ -128,11 +131,11 @@ Collapsed (default), centered, below the status bar / camera cutout (respect saf
 
 ```
 ┌───────────────────────────────────────────┐
-│ [icon]  47 videos  ·  38:12   [Doomed]    │   height 48, tier 2
+│ [icon]  47 videos  ·  38:12  ● [Doomed]   │   height 64, tier 2
 └───────────────────────────────────────────┘
 ```
 - Content: mood avatar (§2.1) · `{count}` + "videos" · `{h:mm:ss or mm:ss}` · tier label.
-- Surface `--color-overlay-bg`, border `--sev-N`.
+- Surface `--color-overlay-bg`, **no border**, corner radius 20, vertical padding 14. The Tier is marked by the face, the label and a small 8dp dot in `--sev-N` (>= 3:1 on the surface); color is never the only signal.
 - Tap → expands to the panel (6.2). Tap again or swipe up → collapses.
 - Drag to reposition vertically along the top edge; **visible fallback**: settings has a "Position" control (no gesture-only critical action).
 - Touch target ≥ 48dp (Android) / 44pt (iOS); extend the hit area beyond the visual bounds.
@@ -140,7 +143,7 @@ Collapsed (default), centered, below the status bar / camera cutout (respect saf
 - Compact mode (setting): icon + count only, for people who find the full pill too big.
 
 ### 6.2 Expanded Panel
-Same top anchor, grows downward (spring, 220ms). Contains:
+Same top anchor, grows downward from the pill (height reveal, 220ms), no border, corner radius 20. Contains:
 1. Mood avatar (96) + tier name large (`display`) in tier color.
 2. Total count and total time.
 3. Breakdown rows per platform: platform chip · count · time · proportion bar (bar has numeric label, not color-only).
@@ -148,7 +151,7 @@ Same top anchor, grows downward (spring, 220ms). Contains:
 5. Close affordance (explicit close button, not only swipe).
 
 ### 6.3 Tier Transition
-When the tier increases: the pill border color crossfades (200ms), icon swaps with a scale pop (0.9→1.1→1), one haptic per the table in §2. Never animate on every video increment; the count change is a 120ms number roll (opacity/translate only).
+When the tier increases: icon swaps with a scale pop (0.9→1.1→1), one haptic per the table in §2. Never animate on every video increment; the count change is a 120ms number roll (opacity/translate only).
 
 ### 6.4 In-app screens
 - **Today** (home): big `display` count + time, tier badge, platform breakdown, 7-day bar chart (bars labeled with values; text summary for screen readers).
@@ -168,11 +171,11 @@ When the tier increases: the pill border color crossfades (200ms), icon swaps wi
 |-------|-------|-----|
 | `--dur-fast` | 120ms | number roll, press feedback |
 | `--dur-base` | 200ms | color crossfade, chip changes |
-| `--dur-panel` | 220ms spring (enter), 150ms (exit) | expand/collapse |
+| `--dur-panel` | 220ms decelerate (open, grows down), 150ms accelerate (close, shrinks up) | expand/collapse, vertical only, no horizontal slide |
 | `--dur-pulse` | 2.4s / 1.6s / 0.9s | tier 2/3/4 icon pulse |
 
-- Animate `transform` and `opacity` only.
-- **Reduced motion**: no pulse, no number roll, no scale pop; tier change is an instant swap with the haptic retained. Severity must still read via color + icon + label + size.
+- Animate `transform` and `opacity` only, except the panel open/close, which reveals by height (vertical clip).
+- **Reduced motion**: no pulse, no number roll, no scale pop, panel opens and closes instantly; tier change is an instant swap with the haptic retained. Severity must still read via color + icon + label + size.
 - Pulsing must be subtle on the pill (a distracting overlay on top of someone's video is itself an anti-pattern). Max 1 animated element (the icon).
 - Never animate in a way that blocks input; all animations are interruptible.
 

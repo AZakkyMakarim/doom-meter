@@ -1,4 +1,6 @@
+import { msg } from '../i18n/translate';
 import type { KeyValueStore } from '../storage';
+import { clockLabel } from './clockLabel';
 import { DEFAULT_SETTINGS, applyPatch, sanitizeSettings } from './settings';
 import type { Settings, SettingsPatch, SettingsResult } from './settings';
 
@@ -16,7 +18,14 @@ export interface SettingsStore {
    */
   update(patch: SettingsPatch): Promise<SettingsResult>;
   subscribe(listener: (settings: Settings) => void): () => void;
+  /**
+   * Lets a running Lockout veto changes: return its end time (epoch ms) to refuse a patch, else null.
+   * A promise holds the change back until the answer is known.
+   */
+  setRefusal(refusal: (patch: SettingsPatch) => Verdict | Promise<Verdict>): void;
 }
+
+type Verdict = { endsAt: number } | null;
 
 export interface SettingsStoreOptions {
   store: KeyValueStore;
@@ -32,6 +41,7 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
   let earlyPatch: SettingsPatch = {};
   let earlySaveFailed = false;
   let writes: Promise<unknown> = Promise.resolve();
+  let refusal: Parameters<SettingsStore['setRefusal']>[0] = () => null;
 
   function notify() {
     listeners.forEach((listener) => listener(current));
@@ -79,6 +89,15 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
     load: ensureLoaded,
 
     async update(patch) {
+      const decided = refusal(patch);
+      const locked = decided instanceof Promise ? await decided : decided;
+      if (locked !== null) {
+        return {
+          ok: false,
+          error: msg('settings.error.lockout', { time: clockLabel(locked.endsAt) }),
+          lockedUntil: locked.endsAt,
+        };
+      }
       const result = applyPatch(current, patch);
       if (!result.ok) return result;
       current = result.settings;
@@ -95,8 +114,12 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
         }
         return { ok: true, settings: current };
       } catch {
-        return { ok: false, error: 'Could not save this setting on the device.' };
+        return { ok: false, error: msg('settings.error.save') };
       }
+    },
+
+    setRefusal(next) {
+      refusal = next;
     },
 
     subscribe(listener) {

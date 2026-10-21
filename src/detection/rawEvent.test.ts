@@ -1,6 +1,26 @@
 import { parseRawEvent } from './rawEvent';
 
 describe('parseRawEvent', () => {
+  it('reads events from the Facebook Platform', () => {
+    expect(parseRawEvent('{"type":"videoChanged","platform":"facebook","at":5}')).toEqual({
+      type: 'videoChanged',
+      platform: 'facebook',
+      at: 5,
+    });
+  });
+
+  it('reads the same-video hint on a focus gain, and only there', () => {
+    expect(
+      parseRawEvent('{"type":"surfaceFocusGained","platform":"tiktok","sameVideo":true,"at":1}'),
+    ).toEqual({ type: 'surfaceFocusGained', platform: 'tiktok', sameVideo: true, at: 1 });
+    expect(
+      parseRawEvent('{"type":"surfaceFocusGained","platform":"tiktok","sameVideo":"yes"}'),
+    ).toEqual({ type: 'surfaceFocusGained', platform: 'tiktok' });
+    expect(
+      parseRawEvent('{"type":"videoChanged","platform":"tiktok","sameVideo":true}'),
+    ).toEqual({ type: 'videoChanged', platform: 'tiktok' });
+  });
+
   it('parses a surface event with a timestamp', () => {
     expect(
       parseRawEvent('{"type":"surfaceFocusGained","platform":"tiktok","at":1700000000000}'),

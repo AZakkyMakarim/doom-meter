@@ -31,3 +31,11 @@ local.properties
 
 # testing
 /coverage
+
+# kept locally, never pushed
+/.agents/skills/beads/
+/.codex/
+/.maestro/doommeter-v1/
+/apkref/
+/docs/
+/scripts/
