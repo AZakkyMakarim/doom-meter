@@ -1,3 +1,4 @@
+import { TIER_CATALOG, tierSentence } from '../design/catalog';
 import { colors } from '../design/tokens';
 import type { EngineState, Tier } from '../engine';
 import { formatTime, plural, spokenTime } from './format';
@@ -116,9 +117,8 @@ export function isCompactMode(): boolean {
 export const PILL_DRAG_RANGE_DP = 160;
 const DRAG_RANGE_DP = PILL_DRAG_RANGE_DP;
 
+/** Pill sizing and motion per Tier; the Tier's name, avatar and color live in the catalog. */
 interface TierStyle {
-  label: string;
-  avatar: string;
   borderWidthDp: number;
   heightDp: number;
   countSizeSp: number;
@@ -130,8 +130,6 @@ interface TierStyle {
 
 const TIER_STYLES: readonly TierStyle[] = [
   {
-    label: 'Fresh',
-    avatar: 'mood_0_fresh',
     borderWidthDp: 1,
     heightDp: 44,
     countSizeSp: 20,
@@ -140,8 +138,6 @@ const TIER_STYLES: readonly TierStyle[] = [
     haptic: 'none',
   },
   {
-    label: 'Drifting',
-    avatar: 'mood_1_drifting',
     borderWidthDp: 1.5,
     heightDp: 44,
     countSizeSp: 20,
@@ -150,8 +146,6 @@ const TIER_STYLES: readonly TierStyle[] = [
     haptic: 'light',
   },
   {
-    label: 'Doomed',
-    avatar: 'mood_2_doomed',
     borderWidthDp: 2,
     heightDp: 48,
     countSizeSp: 22,
@@ -160,8 +154,6 @@ const TIER_STYLES: readonly TierStyle[] = [
     haptic: 'medium',
   },
   {
-    label: 'Cooked',
-    avatar: 'mood_3_cooked',
     borderWidthDp: 2,
     heightDp: 52,
     countSizeSp: 24,
@@ -170,8 +162,6 @@ const TIER_STYLES: readonly TierStyle[] = [
     haptic: 'heavy',
   },
   {
-    label: 'Terminal',
-    avatar: 'mood_4_terminal',
     borderWidthDp: 3,
     heightDp: 56,
     countSizeSp: 26,
@@ -191,17 +181,17 @@ export function pillViewModelFor(
 ): PillViewModel {
   const { tier, totals } = state;
   const style = TIER_STYLES[tier];
-  const accentColor = colors.sev[tier];
+  const { label, avatar, color: accentColor } = TIER_CATALOG[tier];
   const count = totals.watchedVideos;
-  const tierAnnouncement = `Level ${tier + 1} of 5, ${style.label}.`;
+  const tierAnnouncement = tierSentence(tier);
   const reducedMotion = options.reducedMotion ?? false;
   return {
     tier,
     countText: `${count}`,
     unitText: count === 1 ? 'video' : 'videos',
     timeText: formatTime(totals.watchTimeMs),
-    labelText: style.label,
-    avatar: style.avatar,
+    labelText: label,
+    avatar,
     accentColor,
     borderColor: tier === 0 ? `#${TIER_0_BORDER_ALPHA}${accentColor.slice(1)}` : accentColor,
     borderWidthDp: style.borderWidthDp,

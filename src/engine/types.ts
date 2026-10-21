@@ -1,7 +1,7 @@
-export const PLATFORMS = ['instagram', 'youtube', 'tiktok'] as const;
+import type { Platform } from '../design/catalog';
 
-/** One of the three sources of short-form video (see CONTEXT.md). */
-export type Platform = (typeof PLATFORMS)[number];
+export { PLATFORMS } from '../design/catalog';
+export type { Platform };
 
 /** Injectable time source, in epoch milliseconds. */
 export interface Clock {

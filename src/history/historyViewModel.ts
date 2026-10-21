@@ -1,7 +1,7 @@
-import { DEFAULT_TIER_THRESHOLDS, PLATFORMS } from '../engine';
+import { PLATFORMS, TIER_CATALOG, tierSentence } from '../design/catalog';
+import { DEFAULT_TIER_THRESHOLDS } from '../engine';
 import type { EngineState, Tier, TierThresholds } from '../engine';
 import { computeTier } from '../engine/tier';
-import { colors } from '../design/tokens';
 import { formatClock, plural, spokenDuration } from '../format/duration';
 import type { DayRecord } from '../storage';
 
@@ -19,15 +19,6 @@ export const INCOMPLETE_NOTE =
   'Incomplete: detection stopped, the count may be low.';
 
 const CHART_DAYS = 7;
-
-/** Tier names and mood avatars (MASTER 2.1); the Overlay pill uses the same ones. */
-const TIER_STYLES = [
-  { label: 'Fresh', avatar: 'mood_0_fresh' },
-  { label: 'Drifting', avatar: 'mood_1_drifting' },
-  { label: 'Doomed', avatar: 'mood_2_doomed' },
-  { label: 'Cooked', avatar: 'mood_3_cooked' },
-  { label: 'Terminal', avatar: 'mood_4_terminal' },
-] as const;
 
 const WEEKDAYS = [
   'Sunday',
@@ -116,10 +107,6 @@ function hasData(figures: DayFigures): boolean {
   return figures.videos > 0 || figures.watchTimeMs > 0;
 }
 
-function tierSentence(tier: Tier): string {
-  return `Level ${tier + 1} of 5, ${TIER_STYLES[tier].label}.`;
-}
-
 export interface ViewOptions {
   /** The current Day label (YYYY-MM-DD). */
   today: string;
@@ -169,7 +156,7 @@ export function historyViewModelFor(
   for (const record of newestFirst) {
     const figures = figuresFor(record, thresholds);
     if (!hasData(figures)) continue;
-    const style = TIER_STYLES[figures.tier];
+    const style = TIER_CATALOG[figures.tier];
     const incompleteNote = figures.incomplete ? INCOMPLETE_NOTE : null;
     rows.push({
       day: record.day,
@@ -179,7 +166,7 @@ export function historyViewModelFor(
       tier: figures.tier,
       tierLabel: style.label,
       avatar: style.avatar,
-      accentColor: colors.sev[figures.tier],
+      accentColor: style.color,
       incomplete: figures.incomplete,
       incompleteNote,
       accessibilityLabel:
@@ -282,8 +269,8 @@ export function weekChartFor(
       valueText: `${f.videos}`,
       heightFraction: maxVideos > 0 ? f.videos / maxVideos : 0,
       tier: f.tier,
-      tierLabel: TIER_STYLES[f.tier].label,
-      color: colors.sev[f.tier],
+      tierLabel: TIER_CATALOG[f.tier].label,
+      color: TIER_CATALOG[f.tier].color,
       isToday: day === options.today,
     };
   });

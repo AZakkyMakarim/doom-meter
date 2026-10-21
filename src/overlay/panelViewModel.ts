@@ -1,6 +1,7 @@
+import { PLATFORMS, PLATFORM_BY_ID, TIER_CATALOG, tierSentence } from '../design/catalog';
 import { colors } from '../design/tokens';
-import { PLATFORMS } from '../engine';
-import type { EngineState, Platform } from '../engine';
+import type { Platform } from '../design/catalog';
+import type { EngineState } from '../engine';
 import { formatTime, plural, spokenTime } from './format';
 
 /**
@@ -51,27 +52,6 @@ export interface PanelViewModel {
   contentDescription: string;
 }
 
-const PLATFORM_LABELS: Record<Platform, string> = {
-  instagram: 'Reels',
-  youtube: 'Shorts',
-  tiktok: 'TikTok',
-};
-
-const TIER_NAMES = [
-  'Fresh',
-  'Drifting',
-  'Doomed',
-  'Cooked',
-  'Terminal',
-] as const;
-const AVATARS = [
-  'mood_0_fresh',
-  'mood_1_drifting',
-  'mood_2_doomed',
-  'mood_3_cooked',
-  'mood_4_terminal',
-] as const;
-
 const PANEL_AVATAR_DP = 96;
 const PANEL_WIDTH_DP = 360;
 const LANDSCAPE_MAX_HEIGHT_FRACTION = 0.6;
@@ -102,11 +82,11 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
   const percents = shares(PLATFORMS.map(p => state.platforms[p].watchTimeMs));
   const rows = PLATFORMS.map((platform, i): PlatformRowViewModel => {
     const { watchedVideos, watchTimeMs } = state.platforms[platform];
-    const label = PLATFORM_LABELS[platform];
+    const { label, color } = PLATFORM_BY_ID[platform];
     return {
       platform,
       label,
-      color: colors.platform[platform],
+      color,
       countText: `${watchedVideos}`,
       unitText: watchedVideos === 1 ? 'video' : 'videos',
       timeText: formatTime(watchTimeMs),
@@ -119,11 +99,12 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
     };
   });
   const count = totals.watchedVideos;
+  const { label: tierName, avatar, color: accentColor } = TIER_CATALOG[tier];
   return {
-    avatar: AVATARS[tier],
+    avatar,
     avatarSizeDp: PANEL_AVATAR_DP,
-    tierName: TIER_NAMES[tier],
-    accentColor: colors.sev[tier],
+    tierName,
+    accentColor,
     countText: `${count}`,
     unitText: count === 1 ? 'video' : 'videos',
     timeText: formatTime(totals.watchTimeMs),
@@ -139,8 +120,6 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
     landscapeMaxHeightFraction: LANDSCAPE_MAX_HEIGHT_FRACTION,
     contentDescription:
       `Doom meter details for today. ${plural(count, 'video')}, ` +
-      `${spokenTime(totals.watchTimeMs)}. Level ${tier + 1} of 5, ${
-        TIER_NAMES[tier]
-      }.`,
+      `${spokenTime(totals.watchTimeMs)}. ${tierSentence(tier)}`,
   };
 }
