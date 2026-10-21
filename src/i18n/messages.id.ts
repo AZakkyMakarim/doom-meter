@@ -188,6 +188,7 @@ export const id: Partial<Record<MessageId, Message>> = {
   'settings.language.system': 'Sistem',
   'settings.language.en': 'English',
   'settings.language.id': 'Bahasa Indonesia',
+  'settings.saved': 'Pengaturan disimpan',
 
   // Why a setting was refused.
   'settings.error.videosWhole': 'Video {tier} harus berupa bilangan bulat.',
