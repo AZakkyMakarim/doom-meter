@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification small icon: one colour (Android only reads alpha), strokes >=1.5dp so it holds at 24dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="1.7" android:pathData="M1.85,12a10.15,10.15 0 1,0 20.3,0a10.15,10.15 0 1,0 -20.3,0"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M6.8,9.4a1.6,1.6 0 1,0 3.2,0a1.6,1.6 0 1,0 -3.2,0"/>
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round" android:pathData="M14.15,7.93L17.5,11.28M17.5,7.93L14.15,11.28"/>
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M6.26,14.39C8.17,18.46 11.52,18.94 13.67,17.03C15.35,15.59 16.78,16.07 18.22,17.98"/>
+</vector>

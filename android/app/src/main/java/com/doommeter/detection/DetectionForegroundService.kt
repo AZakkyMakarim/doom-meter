@@ -62,7 +62,7 @@ class DetectionForegroundService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         return builder
-            .setSmallIcon(R.drawable.mood_0_fresh)
+            .setSmallIcon(R.drawable.ic_stat_doommeter)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(getString(R.string.detection_notification_text))
             .setContentIntent(open)
