@@ -137,6 +137,7 @@ describe('settings store', () => {
       const kv = createMemoryKeyValueStore();
       const store = createSettingsStore({ store: kv });
       store.setRefusal(engine.refusal);
+      engine.observeTier('2026-01-10', 0); // the first look only seeds what the Day had reached
       engine.observeTier('2026-01-10', 1);
       return { store, kv, advance: (ms: number) => (now += ms) };
     }
@@ -161,6 +162,14 @@ describe('settings store', () => {
       expect(store.get()).toBe(before);
       expect(listener).not.toHaveBeenCalled();
       expect(await kv.get(SETTINGS_KEY)).toBeNull();
+    });
+
+    it('waits for a refusal that is still being decided', async () => {
+      const { store } = await rig();
+      store.setRefusal(() => Promise.resolve({ endsAt: start + HOUR }));
+      const result = await store.update({ rolloverHour: 3 });
+      expect(result.ok).toBe(false);
+      expect(store.get().rolloverHour).not.toBe(3);
     });
 
     it('still saves the other settings', async () => {

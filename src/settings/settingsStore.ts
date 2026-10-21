@@ -18,9 +18,14 @@ export interface SettingsStore {
    */
   update(patch: SettingsPatch): Promise<SettingsResult>;
   subscribe(listener: (settings: Settings) => void): () => void;
-  /** Lets a running Lockout veto changes: return its end time (epoch ms) to refuse a patch, else null. */
-  setRefusal(refusal: (patch: SettingsPatch) => { endsAt: number } | null): void;
+  /**
+   * Lets a running Lockout veto changes: return its end time (epoch ms) to refuse a patch, else null.
+   * A promise holds the change back until the answer is known.
+   */
+  setRefusal(refusal: (patch: SettingsPatch) => Verdict | Promise<Verdict>): void;
 }
+
+type Verdict = { endsAt: number } | null;
 
 export interface SettingsStoreOptions {
   store: KeyValueStore;
@@ -84,7 +89,8 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
     load: ensureLoaded,
 
     async update(patch) {
-      const locked = refusal(patch);
+      const decided = refusal(patch);
+      const locked = decided instanceof Promise ? await decided : decided;
       if (locked !== null) {
         return {
           ok: false,
