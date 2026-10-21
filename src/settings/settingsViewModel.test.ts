@@ -161,14 +161,14 @@ describe('Settings text by locale', () => {
     expect(overlay.accessibilityLabel).toBe('Display over other apps: Missing');
   });
 
-  it('takes the language as a parameter, with English where not translated yet', () => {
-    expect(positionControl(0, 'id').valueText).toBe('Top');
-    expect(draftsFor(DEFAULT_SETTINGS, 'id').thresholds[0].tierName).toBe('Cooked');
+  it('takes the language as a parameter, in Indonesian', () => {
+    expect(positionControl(0, 'id').valueText).toBe('Atas');
+    expect(draftsFor(DEFAULT_SETTINGS, 'id').thresholds[0].tierName).toBe('Oleng');
     const rows = permissionRows(
       { overlayGranted: true, accessibilityOn: false, usageAccessGranted: false },
       'id',
     );
-    expect(rows[1].fixLabel).toBe('Fix permission');
-    expect(rows[2].accessibilityLabel).toBe('Usage access, optional: Not granted');
+    expect(rows[1].fixLabel).toBe('Perbaiki izin');
+    expect(rows[2].accessibilityLabel).toBe('Akses penggunaan, opsional: Belum diizinkan');
   });
 });
