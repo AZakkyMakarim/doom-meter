@@ -19,10 +19,10 @@ import com.doommeter.detection.SurfaceObservation
  * The selectors are English-UI, best-effort and unverified against a live TikTok build; see the
  * manual checks on ticket doom-meter-v9k.4.
  */
-class TikTokAdapter : PlatformAdapter {
+class TikTokAdapter(
+    override val packageNames: Set<String> = setOf(PACKAGE_GLOBAL, PACKAGE_ASIA),
+) : PlatformAdapter {
     override val platform = "tiktok"
-
-    override val packageNames = setOf(PACKAGE_GLOBAL, PACKAGE_ASIA)
 
     override fun observe(root: NodeSnapshot): SurfaceObservation {
         val scan = Scan()
