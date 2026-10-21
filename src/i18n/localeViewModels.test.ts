@@ -126,10 +126,10 @@ describe('Today by locale', () => {
     const state = stateWith(2, 61_000);
     const english = todayViewModelFor(state);
     expect(english.unitText).toBe('videos');
-    expect(english.rows[2].countText).toBe('3 videos');
+    expect(english.rows[2].accessibilityLabel).toMatch(/^TikTok, 3 videos, /);
     expect(english.summaryLabel).toMatch(/^Today\. 3 videos, /);
     const indonesian = todayViewModelFor(state, { locale: 'id' });
-    expect(indonesian.rows[2].countText).toBe('3 video');
+    expect(indonesian.rows[2].accessibilityLabel).toMatch(/^TikTok, 3 video, /);
     expect(indonesian.summaryLabel).toBe('Hari ini. 3 video, 1 menit 13 detik. Tingkat 1 dari 5, Santuy.');
   });
 

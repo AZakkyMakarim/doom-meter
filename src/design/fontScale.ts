@@ -13,6 +13,18 @@ export function weekChartLayoutFor(fontScale: number): WeekChartLayout {
   return Number.isFinite(fontScale) && fontScale >= CHART_ROWS_FROM_SCALE ? 'rows' : 'columns';
 }
 
+/** Four equal tiles fit one row only at the default font on a 360dp-wide screen. */
+const HEADER_GRID_FROM_SCALE = 1.1;
+const HEADER_ROW_MIN_WIDTH = 340;
+
+export type PlatformHeaderLayout = 'row' | 'grid';
+
+/** One row of four tiles, or a 2x2 grid before the labels would clip. */
+export function platformHeaderLayoutFor(fontScale: number, width: number): PlatformHeaderLayout {
+  const large = Number.isFinite(fontScale) && fontScale >= HEADER_GRID_FROM_SCALE;
+  return large || width < HEADER_ROW_MIN_WIDTH ? 'grid' : 'row';
+}
+
 /**
  * The bottom navigation gives each label a third of the width, so its labels stop growing
  * here (like Material tab bars). Everything else scales without a cap.

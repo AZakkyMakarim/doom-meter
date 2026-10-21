@@ -72,6 +72,7 @@ export const en = {
   'today.emptyTitle': 'No data yet',
   'today.enableOverlay': 'Enable overlay',
   'today.summary': 'Today. {videos}, {time}. {tier}',
+  'today.tileLabel': '{name}, {videos}, {time}',
   'today.rowLabel': '{label}. {videos}, {time}, {percent} percent.',
   'today.rowWarning': 'Detection not responding.',
   'today.warningKicker': 'Warning',

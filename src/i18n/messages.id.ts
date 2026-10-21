@@ -55,6 +55,7 @@ export const id: Partial<Record<MessageId, Message>> = {
 
   // The Overlay pill and its expanded panel.
   'pill.description': 'Doom meter. {videos}, {time}. {tier}',
+  'today.tileLabel': '{name}, {videos}, {time}',
   'pill.collapsed': 'Tertutup',
   'panel.description': 'Detail doom meter hari ini. {videos}, {time}. {tier}',
   'panel.rowDescription': '{label}, {videos}, {time}, {percent} persen',

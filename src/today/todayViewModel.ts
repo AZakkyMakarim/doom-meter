@@ -1,3 +1,5 @@
+import { platformHeaderLayoutFor } from '../design/fontScale';
+import type { PlatformHeaderLayout } from '../design/fontScale';
 import { PLATFORMS, PLATFORM_BY_ID } from '../design/catalog';
 import type { Platform } from '../design/catalog';
 import type { EngineState, Tier } from '../engine';
@@ -27,17 +29,18 @@ export interface TodayOptions {
   usageAccess?: boolean;
   /** The language of every text. Default English. */
   locale?: Locale;
+  /** System font scale and window width in dp, which decide the Platform header layout. */
+  fontScale?: number;
+  width?: number;
 }
 
 export interface PlatformRowViewModel {
   platform: Platform;
   /** Reels, Shorts, TikTok: text identity, never colour alone. */
   label: string;
+  /** The bare number; the tile label carries the unit. */
   countText: string;
   timeText: string;
-  /** Share of today's Watch time, 0-100. */
-  sharePercent: number;
-  shareText: string;
   warning: string | null;
   accessibilityLabel: string;
 }
@@ -59,6 +62,8 @@ export interface TodayViewModel {
   avatar: string;
   accentColor: string;
   rows: PlatformRowViewModel[];
+  /** One row of four equal tiles, or a 2x2 grid when text is large or the screen narrow. */
+  platformLayout: PlatformHeaderLayout;
   /** One label for the whole summary block (MASTER 8). */
   summaryLabel: string;
 }
@@ -74,23 +79,18 @@ export function todayViewModelFor(
   const { totals } = state;
   const rows = PLATFORMS.map((platform): PlatformRowViewModel => {
     const p = state.platforms[platform];
-    const sharePercent =
-      totals.watchTimeMs > 0 ? Math.round((p.watchTimeMs / totals.watchTimeMs) * 100) : 0;
-    const { label } = PLATFORM_BY_ID[platform];
+    const { label, name } = PLATFORM_BY_ID[platform];
     return {
       platform,
       label,
-      countText: plural(p.watchedVideos, 'video', locale),
+      countText: `${p.watchedVideos}`,
       timeText: formatClock(p.watchTimeMs),
-      sharePercent,
-      shareText: `${sharePercent}%`,
       warning: p.detectionHealthy ? null : rowWarning,
       accessibilityLabel:
-        t(locale, 'today.rowLabel', {
-          label,
+        t(locale, 'today.tileLabel', {
+          name,
           videos: plural(p.watchedVideos, 'video', locale),
           time: spokenDuration(p.watchTimeMs, locale),
-          percent: sharePercent,
         }) + (p.detectionHealthy ? '' : ` ${rowWarning}`),
     };
   });
@@ -125,6 +125,7 @@ export function todayViewModelFor(
     avatar: pill.avatar,
     accentColor: pill.accentColor,
     rows,
+    platformLayout: platformHeaderLayoutFor(options.fontScale ?? 1, options.width ?? 360),
     summaryLabel:
       t(locale, 'today.summary', {
         videos: plural(totals.watchedVideos, 'video', locale),

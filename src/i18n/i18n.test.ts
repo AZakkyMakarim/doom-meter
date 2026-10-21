@@ -65,7 +65,7 @@ describe('translate', () => {
   it('leaves no English wording behind in Indonesian, except names that are the same', () => {
     const SAME = new Set<string>([
       'unit.video', 'count.video', 'settings.language.en', 'settings.language.id',
-      'settings.overlay.title', 'pill.description', 'history.rowLabel', 'chart.day', 'settings.permission.rowRequired', 'month.3', 'month.8', 'month.10',
+      'settings.overlay.title', 'pill.description', 'history.rowLabel', 'chart.day', 'settings.permission.rowRequired', 'month.3', 'month.8', 'month.10', 'today.tileLabel',
     ]);
 
     const same = (Object.keys(en) as MessageId[]).filter(
