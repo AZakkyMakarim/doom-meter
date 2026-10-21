@@ -4,7 +4,9 @@ import { deviceLocaleTag } from '../i18n/deviceLocale';
 import { DEFAULT_LOCALE } from '../i18n/locale';
 import type { Locale } from '../i18n/locale';
 import { t } from '../i18n/translate';
+import { lockoutNative } from '../lockout/lockoutBridge';
 import { createLockoutEngine } from '../lockout/lockoutEngine';
+import { lockoutViewModelFor } from '../lockout/lockoutViewModel';
 import { overlay } from '../overlay/overlayBridge';
 import { setPillPreferences } from '../overlay/pillViewModel';
 import { watchReducedMotion } from '../overlay/reducedMotion';
@@ -53,6 +55,15 @@ let widgetLocale: Locale = DEFAULT_LOCALE;
 // Held back until the saved counts are restored, so an empty engine never blanks the widget.
 let widgetReady = false;
 
+// The block screen reads its own device copy of the Lockout (see lockoutViewModel). Held back until
+// the saved Lockout is read, so an empty engine never wipes the copy and unblocks a running Lockout.
+let lockoutReady = false;
+
+function syncLockout(): void {
+  if (!lockoutReady) return;
+  lockoutNative.update(JSON.stringify(lockoutViewModelFor(lockoutEngine.status(), widgetLocale)));
+}
+
 function syncWidget(): void {
   if (!widgetReady) return;
   widgetSync.update(
@@ -99,6 +110,7 @@ export function startDetection(): void {
         detectionNative.setNotificationText(t(locale, 'notification.text'));
         widgetLocale = locale;
         syncWidget();
+        syncLockout();
       },
     });
   settingsStore.subscribe(applyCurrent);
@@ -131,6 +143,11 @@ export function startDetection(): void {
     .load()
     .catch(() => undefined)
     .then(() => lockoutEngine.load())
+    .then(() => {
+      lockoutReady = true;
+      lockoutEngine.subscribe(syncLockout);
+      syncLockout();
+    })
     .then(() => recorder.restoreInto(engine, debugClock.now()))
     .catch(() => undefined);
   restored.then(() => {

@@ -134,6 +134,10 @@ export const en = {
   'widget.emptyDescription': 'Doom meter today. No data yet.',
   'widget.description': 'Doom meter today. {videos}, {time}. {tier}',
 
+  // The block screen shown over a Platform app during a Lockout.
+  'lockout.blockedUntil': 'Blocked until {time}',
+  'lockout.back': 'Back to Home',
+
   // Onboarding.
   'onboarding.step': 'Step {step} of {total}',
   'onboarding.welcomeTitle': 'Welcome to DoomMeter',
