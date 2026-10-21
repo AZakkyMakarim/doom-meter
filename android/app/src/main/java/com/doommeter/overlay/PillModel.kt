@@ -15,8 +15,9 @@ data class PillModel(
     val labelText: String,
     val avatar: String,
     val accentColor: Int,
-    val borderColor: Int,
-    val borderWidthDp: Float,
+    val accentDotColor: Int,
+    val cornerRadiusDp: Float,
+    val verticalPaddingDp: Float,
     val heightDp: Float,
     val countSizeSp: Float,
     val avatarSizeDp: Float,
@@ -48,8 +49,9 @@ data class PillModel(
                 labelText = o.getString("labelText"),
                 avatar = o.getString("avatar"),
                 accentColor = Color.parseColor(o.getString("accentColor")),
-                borderColor = Color.parseColor(o.getString("borderColor")),
-                borderWidthDp = o.getDouble("borderWidthDp").toFloat(),
+                accentDotColor = Color.parseColor(o.getString("accentDotColor")),
+                cornerRadiusDp = o.getDouble("cornerRadiusDp").toFloat(),
+                verticalPaddingDp = o.getDouble("verticalPaddingDp").toFloat(),
                 heightDp = o.getDouble("heightDp").toFloat(),
                 countSizeSp = o.getDouble("countSizeSp").toFloat(),
                 avatarSizeDp = o.getDouble("avatarSizeDp").toFloat(),
@@ -80,8 +82,7 @@ data class MotionFlags(
     val pulse: Boolean,
     val numberRoll: Boolean,
     val scalePop: Boolean,
-    val panelSpring: Boolean,
-    val borderCrossfade: Boolean,
+    val panelGrow: Boolean,
 ) {
     companion object {
         fun parse(o: JSONObject) =
@@ -89,8 +90,7 @@ data class MotionFlags(
                 pulse = o.getBoolean("pulse"),
                 numberRoll = o.getBoolean("numberRoll"),
                 scalePop = o.getBoolean("scalePop"),
-                panelSpring = o.getBoolean("panelSpring"),
-                borderCrossfade = o.getBoolean("borderCrossfade"),
+                panelGrow = o.getBoolean("panelGrow"),
             )
     }
 }

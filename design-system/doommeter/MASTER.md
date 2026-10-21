@@ -52,9 +52,9 @@ Rules:
 
 | Property | T0 | T1 | T2 | T3 | T4 |
 |----------|----|----|----|----|----|
-| Border | 1px @ 40% | 1.5px | 2px | 2px | 3px |
+| Border | none (the pill has no border; the Tier shows in face, label and accent dot) | | | | |
 | Icon glow/pulse | none | none | slow pulse (2.4s) | pulse (1.6s) | fast pulse (0.9s) |
-| Pill height | 44 | 44 | 48 | 52 | 56 |
+| Pill height (avatar + 2 x 14 padding) | 60 | 60 | 64 | 68 | 72 |
 | Number size | 20 | 20 | 22 | 24 | 26 |
 | Haptic on enter | none | light | medium | heavy | heavy ×2 |
 
@@ -130,11 +130,11 @@ Collapsed (default), centered, below the status bar / camera cutout (respect saf
 
 ```
 ┌───────────────────────────────────────────┐
-│ [icon]  47 videos  ·  38:12   [Doomed]    │   height 48, tier 2
+│ [icon]  47 videos  ·  38:12  ● [Doomed]   │   height 64, tier 2
 └───────────────────────────────────────────┘
 ```
 - Content: mood avatar (§2.1) · `{count}` + "videos" · `{h:mm:ss or mm:ss}` · tier label.
-- Surface `--color-overlay-bg`, border `--sev-N`.
+- Surface `--color-overlay-bg`, **no border**, corner radius 20, vertical padding 14. The Tier is marked by the face, the label and a small 8dp dot in `--sev-N` (>= 3:1 on the surface); color is never the only signal.
 - Tap → expands to the panel (6.2). Tap again or swipe up → collapses.
 - Drag to reposition vertically along the top edge; **visible fallback**: settings has a "Position" control (no gesture-only critical action).
 - Touch target ≥ 48dp (Android) / 44pt (iOS); extend the hit area beyond the visual bounds.
@@ -142,7 +142,7 @@ Collapsed (default), centered, below the status bar / camera cutout (respect saf
 - Compact mode (setting): icon + count only, for people who find the full pill too big.
 
 ### 6.2 Expanded Panel
-Same top anchor, grows downward (spring, 220ms). Contains:
+Same top anchor, grows downward from the pill (height reveal, 220ms), no border, corner radius 20. Contains:
 1. Mood avatar (96) + tier name large (`display`) in tier color.
 2. Total count and total time.
 3. Breakdown rows per platform: platform chip · count · time · proportion bar (bar has numeric label, not color-only).
@@ -150,7 +150,7 @@ Same top anchor, grows downward (spring, 220ms). Contains:
 5. Close affordance (explicit close button, not only swipe).
 
 ### 6.3 Tier Transition
-When the tier increases: the pill border color crossfades (200ms), icon swaps with a scale pop (0.9→1.1→1), one haptic per the table in §2. Never animate on every video increment; the count change is a 120ms number roll (opacity/translate only).
+When the tier increases: icon swaps with a scale pop (0.9→1.1→1), one haptic per the table in §2. Never animate on every video increment; the count change is a 120ms number roll (opacity/translate only).
 
 ### 6.4 In-app screens
 - **Today** (home): big `display` count + time, tier badge, platform breakdown, 7-day bar chart (bars labeled with values; text summary for screen readers).
@@ -170,11 +170,11 @@ When the tier increases: the pill border color crossfades (200ms), icon swaps wi
 |-------|-------|-----|
 | `--dur-fast` | 120ms | number roll, press feedback |
 | `--dur-base` | 200ms | color crossfade, chip changes |
-| `--dur-panel` | 220ms spring (enter), 150ms (exit) | expand/collapse |
+| `--dur-panel` | 220ms decelerate (open, grows down), 150ms accelerate (close, shrinks up) | expand/collapse, vertical only, no horizontal slide |
 | `--dur-pulse` | 2.4s / 1.6s / 0.9s | tier 2/3/4 icon pulse |
 
-- Animate `transform` and `opacity` only.
-- **Reduced motion**: no pulse, no number roll, no scale pop; tier change is an instant swap with the haptic retained. Severity must still read via color + icon + label + size.
+- Animate `transform` and `opacity` only, except the panel open/close, which reveals by height (vertical clip).
+- **Reduced motion**: no pulse, no number roll, no scale pop, panel opens and closes instantly; tier change is an instant swap with the haptic retained. Severity must still read via color + icon + label + size.
 - Pulsing must be subtle on the pill (a distracting overlay on top of someone's video is itself an anti-pattern). Max 1 animated element (the icon).
 - Never animate in a way that blocks input; all animations are interruptible.
 

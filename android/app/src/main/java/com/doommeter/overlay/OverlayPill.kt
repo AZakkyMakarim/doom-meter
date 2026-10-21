@@ -1,11 +1,14 @@
 package com.doommeter.overlay
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -17,12 +20,11 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.view.ViewPropertyAnimator
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.AccelerateInterpolator
-import android.view.animation.OvershootInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -51,17 +53,18 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     private var root: FrameLayout? = null
     private var params: WindowManager.LayoutParams? = null
     private var views: Views? = null
-    private var currentBorderColor = 0
-    private var borderAnimator: ValueAnimator? = null
     private var pulseAnimator: ObjectAnimator? = null
     private var lastPulseMs: Long? = null
     private var lastAvatar: String? = null
     private var panelView: ExpandedPanel? = null
     private var expanded = false
-    private var swapAnimator: ViewPropertyAnimator? = null
+    private var revealAnimator: ValueAnimator? = null
 
-    /** Whether the panel may spring open; JavaScript turns it off under reduced motion. */
-    private var panelSpring = true
+    /** Visible height of the panel while it grows or shrinks; the pill's height when closed. */
+    private var revealPx = 0
+
+    /** Whether the panel may grow and shrink; JavaScript turns it off under reduced motion. */
+    private var panelGrow = true
 
     /**
      * Vertical offset from the top-edge anchor. JavaScript owns it: Settings sets it through
@@ -93,6 +96,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         val pill: PillLayout,
         val pillHost: FrameLayout,
         val background: GradientDrawable,
+        val accentDot: GradientDrawable,
         val avatarHolder: FrameLayout,
         val avatar: ImageView,
         val count: TextView,
@@ -122,7 +126,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
             if (!dragging) dragOffsetPx = dp(model.positionDp)
         }
         dragOffsetPx = dragOffsetPx.coerceIn(0, dragRangePx)
-        panelSpring = model.motion.panelSpring
+        panelGrow = model.motion.panelGrow
         panelView?.update(model, animate = !firstDraw && model.motion.scalePop && !systemReducedMotion())
         // Only a Tier change is spoken; a new video or a time update never is (MASTER 8).
         model.announcement?.let { if (!firstDraw) root?.announceForAccessibility(it) }
@@ -131,14 +135,12 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     }
 
     fun hide() {
-        borderAnimator?.cancel()
         pulseAnimator?.cancel()
-        borderAnimator = null
         pulseAnimator = null
         lastPulseMs = null
         lastAvatar = null
-        swapAnimator?.cancel()
-        swapAnimator = null
+        revealAnimator?.cancel()
+        revealAnimator = null
         expanded = false
         panelView = null
         val r = root ?: return
@@ -158,7 +160,6 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         pill.background = background
         pill.orientation = LinearLayout.HORIZONTAL
         pill.gravity = Gravity.CENTER_VERTICAL
-        pill.setPadding(dp(16f), 0, dp(16f), 0)
         // The face and numbers are read through the root's single label, not one by one.
         pill.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
 
@@ -186,7 +187,12 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         pill.addView(unit, gap(4))
         pill.addView(dot, gap(8))
         pill.addView(time, gap(8))
-        pill.addView(label, gap(12))
+        // A small Tier-colored dot: with the face and the label, color is never the only mark.
+        val accentDot = GradientDrawable().apply { shape = GradientDrawable.OVAL }
+        val accentDotView = View(appContext).apply { this.background = accentDot }
+        pill.addView(accentDotView, LinearLayout.LayoutParams(dp(8f), dp(8f)).apply { marginStart = dp(12f) })
+        pill.addView(label, gap(6))
+        pill.accentDotView = accentDotView
         pill.collapsibles = listOf(unit, dot, label)
 
         // The hit area is at least 48dp, larger than the drawn pill (MASTER 6.1).
@@ -266,7 +272,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         }
         root = container
         params = lp
-        views = Views(pill, pillHost, background, avatarHolder, avatar, count, unit, dot, time, label)
+        views = Views(pill, pillHost, background, accentDot, avatarHolder, avatar, count, unit, dot, time, label)
         panelView = panel
         expanded = false
         appContext.registerComponentCallbacks(configCallbacks)
@@ -278,9 +284,10 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         // too in case the two disagree for a moment. The haptic is not affected.
         val motion = animate && !systemReducedMotion()
         val roll = motion && model.motion.numberRoll
-        val crossfade = motion && model.motion.borderCrossfade
         val pop = motion && model.motion.scalePop
         v.pill.minimumHeight = dp(model.heightDp)
+        v.background.cornerRadius = dp(model.cornerRadiusDp).toFloat()
+        v.accentDot.setColor(model.accentDotColor)
         (v.avatarHolder.layoutParams as LinearLayout.LayoutParams).apply {
             width = dp(model.avatarSizeDp)
             height = dp(model.avatarSizeDp)
@@ -302,31 +309,15 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         v.dot.visibility = extras
         v.time.visibility = extras
         v.label.visibility = extras
+        v.pill.accentDotView?.visibility = extras
         v.pill.compact = model.compact
         if (model.compact) v.unit.visibility = View.GONE
-        v.pill.setPadding(dp(if (model.compact) 12f else 16f), 0, dp(if (model.compact) 12f else 16f), 0)
+        val padH = dp(if (model.compact) 12f else 16f)
+        v.pill.setPadding(padH, dp(model.verticalPaddingDp), padH, dp(model.verticalPaddingDp))
 
         // Count: a 120ms roll on change (opacity and translate only), nothing for time.
         if (v.count.text.toString() != model.countText) {
             if (roll) rollCount(v.count, model.countText) else setCountNow(v.count, model.countText)
-        }
-
-        // Border: 200ms crossfade on a Tier change, instant otherwise.
-        val widthPx = max(1, (model.borderWidthDp * density).roundToInt())
-        borderAnimator?.cancel()
-        if (crossfade && model.tierChange != "none" && currentBorderColor != 0) {
-            borderAnimator =
-                ValueAnimator.ofArgb(currentBorderColor, model.borderColor).apply {
-                    duration = DUR_BASE
-                    addUpdateListener {
-                        currentBorderColor = it.animatedValue as Int
-                        v.background.setStroke(widthPx, currentBorderColor)
-                    }
-                    start()
-                }
-        } else {
-            currentBorderColor = model.borderColor
-            v.background.setStroke(widthPx, model.borderColor)
         }
 
         // Avatar: swap on Tier change only, with a scale pop 0.9 -> 1.1 -> 1.
@@ -408,75 +399,94 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     }
 
     /**
-     * Swaps the pill for the panel, or back (MASTER 6.2 and 7). Opens with a 220ms spring-like
-     * overshoot, closes in 150ms; transform and opacity only, and every animation is
-     * interruptible. Reduced motion swaps instantly.
+     * Opens the panel downward from the pill, or closes it upward back into it (MASTER 6.2
+     * and 7): the visible height grows in 220ms and shrinks in 150ms, a vertical reveal with no
+     * horizontal movement. Any tap during the animation reverses it from where it is. Reduced
+     * motion swaps instantly.
      */
     private fun setExpanded(open: Boolean, animate: Boolean) {
         val v = views ?: return
         val panel = panelView ?: return
         if (open == expanded) return
         expanded = open
-        swapAnimator?.cancel()
-        swapAnimator = null
-        val motion = animate && panelSpring && !systemReducedMotion()
+        revealAnimator?.cancel()
+        revealAnimator = null
+        val motion = animate && panelGrow && !systemReducedMotion()
         val pillHost = v.pillHost
         val panelRoot = panel.view
+        val pillPx = max(pillHost.height, dp(MIN_TOUCH_TARGET_DP))
 
-        fun settle() {
-            panelRoot.alpha = 1f
-            panelRoot.scaleX = 1f
-            panelRoot.scaleY = 1f
+        fun clip(heightPx: Int) {
+            revealPx = heightPx
+            panelRoot.clipBounds = Rect(0, 0, panelRoot.layoutParams?.width ?: panelRoot.width, heightPx)
+        }
+
+        fun finishClosed() {
+            panelRoot.clipBounds = null
+            panelRoot.visibility = View.GONE
+            pillHost.visibility = View.VISIBLE
         }
 
         if (open) {
+            val wasClosed = pillHost.visibility != View.GONE
             pillHost.visibility = View.GONE
-            pillHost.alpha = 1f
             panelRoot.visibility = View.VISIBLE
             panel.applySizing()
             panel.announceOpened()
-            settle()
-            if (motion) {
-                panelRoot.pivotX = (panelRoot.layoutParams?.width ?: 0) / 2f
-                panelRoot.pivotY = 0f
-                panelRoot.alpha = 0f
-                panelRoot.scaleX = 0.94f
-                panelRoot.scaleY = 0.85f
-                swapAnimator =
-                    panelRoot.animate()
-                        .alpha(1f)
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(DUR_PANEL_ENTER)
-                        .setInterpolator(OvershootInterpolator(1f))
-                        .withEndAction { swapAnimator = null }
-                        .also { it.start() }
+            if (!motion) {
+                panelRoot.clipBounds = null
+                return
+            }
+            panelRoot.measure(
+                View.MeasureSpec.makeMeasureSpec(panelRoot.layoutParams?.width ?: 0, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(appContext.resources.displayMetrics.heightPixels, View.MeasureSpec.AT_MOST),
+            )
+            val full = panelRoot.measuredHeight
+            val from = if (wasClosed) pillPx else revealPx
+            clip(from)
+            revealAnimator = reveal(from, full, DUR_PANEL_ENTER, DecelerateInterpolator(), ::clip) {
+                panelRoot.clipBounds = null
             }
         } else {
-            fun finish() {
-                if (expanded) return
-                panelRoot.visibility = View.GONE
-                settle()
-                pillHost.alpha = 1f
-                pillHost.visibility = View.VISIBLE
-                swapAnimator = null
+            if (!motion) {
+                finishClosed()
+                return
             }
-            if (motion) {
-                panelRoot.pivotX = (panelRoot.layoutParams?.width ?: 0) / 2f
-                panelRoot.pivotY = 0f
-                swapAnimator =
-                    panelRoot.animate()
-                        .alpha(0f)
-                        .scaleY(0.9f)
-                        .setDuration(DUR_PANEL_EXIT)
-                        .setInterpolator(AccelerateInterpolator())
-                        .withEndAction { finish() }
-                        .also { it.start() }
-            } else {
-                finish()
+            val from = if (panelRoot.clipBounds != null) revealPx else panelRoot.height
+            revealAnimator = reveal(from, pillPx, DUR_PANEL_EXIT, AccelerateInterpolator(), ::clip) {
+                finishClosed()
             }
         }
     }
+
+    /** Runs a height animation; [onDone] fires only when it ends, not when it is interrupted. */
+    private fun reveal(
+        from: Int,
+        to: Int,
+        durationMs: Long,
+        ease: android.view.animation.Interpolator,
+        onFrame: (Int) -> Unit,
+        onDone: () -> Unit,
+    ): ValueAnimator =
+        ValueAnimator.ofInt(from, to).apply {
+            duration = durationMs
+            interpolator = ease
+            addUpdateListener { onFrame(it.animatedValue as Int) }
+            addListener(
+                object : AnimatorListenerAdapter() {
+                    private var cancelled = false
+
+                    override fun onAnimationCancel(animation: Animator) {
+                        cancelled = true
+                    }
+
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!cancelled) onDone()
+                    }
+                },
+            )
+            start()
+        }
 
     /** Tap opens the panel; a vertical drag moves the pill within the top-edge band. */
     private fun onPillTouch(v: View, ev: MotionEvent): Boolean {
@@ -583,7 +593,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
      * Horizontal pill. When the content is wider than the screen (large fonts), drops the
      * least important pieces one by one, so the count, time and face are never truncated:
      * first the "videos" unit, then the separator dot, then the Tier label (the face, the
-     * border and the screen reader label still carry the Tier).
+     * accent dot and the screen reader label still carry the Tier).
      */
     private class PillLayout(context: Context) : LinearLayout(context) {
         /** In the order they are dropped. */
@@ -591,6 +601,9 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
 
         /** Compact mode already hides the extras; nothing to collapse then. */
         var compact = false
+
+        /** The Tier accent dot; it shares the compact rule with the label. */
+        var accentDotView: View? = null
 
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             if (!compact && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED) {
