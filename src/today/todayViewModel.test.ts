@@ -33,7 +33,7 @@ describe('Today view model', () => {
     );
   });
 
-  it('is not empty once there is Watch time even if no video reached 5 seconds', () => {
+  it('is not empty once there is Watch time even if no video was counted', () => {
     expect(todayViewModelFor(state({ tiktok: [0, 3000] })).isEmpty).toBe(false);
   });
 

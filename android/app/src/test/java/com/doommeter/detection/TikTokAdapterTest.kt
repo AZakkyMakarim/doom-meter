@@ -75,7 +75,7 @@ class TikTokAdapterTest {
     }
 
     @Test
-    fun `an open comments sheet pauses the surface`() {
+    fun `an open comments sheet keeps the surface but hides the token, so scrolling comments is no swipe`() {
         val withComments =
             NodeSnapshot(
                 children =
@@ -85,10 +85,12 @@ class TikTokAdapterTest {
                         text("1,204 comments"),
                     ),
             )
-        assertFalse(adapter.observe(withComments).surfaceActive)
+        assertTrue(adapter.observe(withComments).surfaceActive)
+        assertNull(adapter.observe(withComments).videoToken)
         val withCommentBox =
             NodeSnapshot(children = listOf(tabBar(), videoPage("@a", "b"), text("Add comment...")))
-        assertFalse(adapter.observe(withCommentBox).surfaceActive)
+        assertTrue(adapter.observe(withCommentBox).surfaceActive)
+        assertNull(adapter.observe(withCommentBox).videoToken)
     }
 
     @Test

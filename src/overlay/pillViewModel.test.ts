@@ -17,13 +17,14 @@ function stateWith(videos: number, watchTimeMs: number): EngineState {
   let now = 1_700_000_000_000;
   const engine = createCountingEngine({ clock: { now: () => now } });
   engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok' });
-  // Each video stays 6s; any extra Watch time is folded into the last one.
+  // Focusing the feed counts one video; each video stays 6s and any extra Watch time is
+  // folded into the last one. Zero videos is not reachable, so it also gets the one.
   const extra = Math.max(0, watchTimeMs - videos * 6000);
-  for (let i = 0; i < videos; i += 1) {
-    now += 6000 + (i === videos - 1 ? extra : 0);
+  for (let i = 1; i < videos; i += 1) {
+    now += 6000;
     engine.handle({ type: 'videoChanged', platform: 'tiktok' });
   }
-  if (videos === 0) now += extra;
+  now += videos === 0 ? extra : 6000 + extra;
   engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok' });
   return engine.getState();
 }

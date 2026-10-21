@@ -1,10 +1,10 @@
 import { createCountingEngine } from './countingEngine';
 import type { Clock } from './types';
 
-function setup(options: { watchedThresholdMs?: number } = {}) {
+function setup() {
   let now = 0;
   const clock: Clock = { now: () => now };
-  const engine = createCountingEngine({ clock, ...options });
+  const engine = createCountingEngine({ clock });
   return {
     engine,
     advanceTo(t: number) {
@@ -13,56 +13,54 @@ function setup(options: { watchedThresholdMs?: number } = {}) {
   };
 }
 
-describe('Watched video threshold', () => {
-  it('does not count a video that stays 4.9s', () => {
+describe('Watched video', () => {
+  it('counts a video the moment it comes into focus, even if it is skipped at once', () => {
     const { engine } = setup();
     engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: 0 });
-    engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: 4900 });
+    expect(engine.getState().platforms.tiktok.watchedVideos).toBe(1);
 
-    const state = engine.getState();
-    expect(state.platforms.tiktok.watchedVideos).toBe(0);
-    expect(state.totals.watchedVideos).toBe(0);
+    engine.handle({ type: 'videoChanged', platform: 'tiktok', at: 300 });
+    engine.handle({ type: 'videoChanged', platform: 'tiktok', at: 600 });
+    expect(engine.getState().totals.watchedVideos).toBe(3);
   });
 
-  it('counts a video that stays exactly 5.0s', () => {
+  it('does not count the same video again when the feed returns to it', () => {
     const { engine } = setup();
-    engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: 0 });
-    engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: 5000 });
+    engine.handle({ type: 'surfaceFocusGained', platform: 'instagram', at: 0 });
+    engine.handle({ type: 'surfaceFocusLost', platform: 'instagram', at: 3000 });
+    engine.handle({ type: 'surfaceFocusGained', platform: 'instagram', sameVideo: true, at: 13000 });
 
-    const state = engine.getState();
-    expect(state.platforms.tiktok.watchedVideos).toBe(1);
-    expect(state.totals.watchedVideos).toBe(1);
-  });
-
-  it('counts a video live once it is past the threshold, before it ends', () => {
-    const { engine, advanceTo } = setup();
-    engine.handle({ type: 'surfaceFocusGained', platform: 'youtube', at: 0 });
-
-    advanceTo(4999);
-    expect(engine.getState().totals.watchedVideos).toBe(0);
-
-    advanceTo(5000);
     expect(engine.getState().totals.watchedVideos).toBe(1);
   });
 
-  it('honours a configured threshold', () => {
-    const { engine } = setup({ watchedThresholdMs: 2000 });
-    engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: 0 });
-    engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: 2000 });
+  it('counts a different video when the feed returns to the surface', () => {
+    const { engine } = setup();
+    engine.handle({ type: 'surfaceFocusGained', platform: 'instagram', at: 0 });
+    engine.handle({ type: 'surfaceFocusLost', platform: 'instagram', at: 3000 });
+    engine.handle({ type: 'surfaceFocusGained', platform: 'instagram', at: 13000 });
+
+    expect(engine.getState().totals.watchedVideos).toBe(2);
+  });
+
+  it('does not count a video that is still in focus after the screen comes back', () => {
+    const { engine } = setup();
+    engine.handle({ type: 'surfaceFocusGained', platform: 'youtube', at: 0 });
+    engine.handle({ type: 'screenOff', at: 4000 });
+    engine.handle({ type: 'screenOn', at: 64000 });
 
     expect(engine.getState().totals.watchedVideos).toBe(1);
   });
 });
 
 describe('Watch time', () => {
-  it('adds a skipped video to Watch time only', () => {
+  it('adds a skipped video to both the count and Watch time', () => {
     const { engine } = setup();
     engine.handle({ type: 'surfaceFocusGained', platform: 'instagram', at: 0 });
     engine.handle({ type: 'videoChanged', platform: 'instagram', at: 1500 });
     engine.handle({ type: 'surfaceFocusLost', platform: 'instagram', at: 3000 });
 
     const { platforms, totals } = engine.getState();
-    expect(platforms.instagram.watchedVideos).toBe(0);
+    expect(platforms.instagram.watchedVideos).toBe(2);
     expect(platforms.instagram.watchTimeMs).toBe(3000);
     expect(totals.watchTimeMs).toBe(3000);
   });
@@ -76,7 +74,7 @@ describe('Watch time', () => {
     engine.handle({ type: 'surfaceFocusLost', platform: 'instagram', at: 14000 });
 
     const { platforms } = engine.getState();
-    expect(platforms.instagram.watchedVideos).toBe(2);
+    expect(platforms.instagram.watchedVideos).toBe(4);
     expect(platforms.instagram.watchTimeMs).toBe(14000);
   });
 
@@ -99,7 +97,7 @@ describe('Watch time', () => {
     expect(platforms.tiktok.watchedVideos).toBe(1);
   });
 
-  it('starts a fresh video when the feed is regained after comments', () => {
+  it('counts a fresh video when the feed is regained without the same-video hint', () => {
     const { engine } = setup();
     engine.handle({ type: 'surfaceFocusGained', platform: 'tiktok', at: 0 });
     engine.handle({ type: 'surfaceFocusLost', platform: 'tiktok', at: 3000 });
@@ -108,7 +106,7 @@ describe('Watch time', () => {
 
     const { platforms } = engine.getState();
     expect(platforms.tiktok.watchTimeMs).toBe(6000);
-    expect(platforms.tiktok.watchedVideos).toBe(0);
+    expect(platforms.tiktok.watchedVideos).toBe(2);
   });
 });
 
@@ -122,8 +120,7 @@ describe('screen on and off', () => {
 
     const { platforms } = engine.getState();
     expect(platforms.youtube.watchTimeMs).toBe(5000);
-    // 4s + 1s are two separate stretches of video, neither reaches 5s.
-    expect(platforms.youtube.watchedVideos).toBe(0);
+    expect(platforms.youtube.watchedVideos).toBe(1);
   });
 
   it('does not accrue while off even if queried with the clock far ahead', () => {
@@ -160,9 +157,9 @@ describe('per Platform breakdown', () => {
 
     const { platforms, totals } = engine.getState();
     expect(platforms.instagram).toMatchObject({ watchedVideos: 1, watchTimeMs: 6000 });
-    expect(platforms.youtube).toMatchObject({ watchedVideos: 0, watchTimeMs: 2000 });
+    expect(platforms.youtube).toMatchObject({ watchedVideos: 1, watchTimeMs: 2000 });
     expect(platforms.tiktok).toMatchObject({ watchedVideos: 1, watchTimeMs: 10000 });
-    expect(totals).toEqual({ watchedVideos: 2, watchTimeMs: 18000 });
+    expect(totals).toEqual({ watchedVideos: 3, watchTimeMs: 18000 });
   });
 
   it('starts with zeroes for every Platform', () => {
@@ -242,7 +239,7 @@ describe('malformed event streams', () => {
 
     const { platforms } = engine.getState();
     expect(platforms.tiktok.watchTimeMs).toBe(8000);
-    expect(platforms.tiktok.watchedVideos).toBe(1);
+    expect(platforms.tiktok.watchedVideos).toBe(2);
   });
 
   it('does not go negative when the clock is behind the latest event', () => {

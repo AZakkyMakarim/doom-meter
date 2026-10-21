@@ -9,11 +9,11 @@ import com.doommeter.detection.SurfaceObservation
  * breaks detection is fixed here and nowhere else.
  *
  * Only the vertical Shorts pager counts. Regular and long videos (the watch player), the home
- * feed and its Shorts shelf are never matched, so they stay inactive. Comments and a channel
- * profile pause the surface.
+ * feed and its Shorts shelf are never matched, so they stay inactive. A channel profile
+ * pauses the surface; the comments sheet does not.
  *
- * The adapter only reports what the UI is doing. It has no counting rules (no 5 second
- * threshold, no timers) and keeps nothing: text is matched against fixed labels or hashed into
+ * The adapter only reports what the UI is doing. It has no counting rules (no
+ * thresholds, no timers) and keeps nothing: text is matched against fixed labels or hashed into
  * an in-memory token, never stored or sent.
  *
  * The selectors are English-UI, best-effort and unverified against a live YouTube build; see the
@@ -27,14 +27,14 @@ class YouTubeAdapter : PlatformAdapter {
     override fun observe(root: NodeSnapshot): SurfaceObservation {
         val scan = Scan()
         scan.visit(root, inPager = false)
-        if (!scan.pagerVisible || scan.overlayOpen) return SurfaceObservation.INACTIVE
+        if (!scan.pagerVisible || scan.profileOpen) return SurfaceObservation.INACTIVE
         return SurfaceObservation(surfaceActive = true, videoToken = scan.token())
     }
 
     /** One pass over the tree, collecting just what the rules above need. */
     private class Scan {
         var pagerVisible = false
-        var overlayOpen = false
+        var profileOpen = false
         private var hash = FNV_OFFSET
         private var hashed = 0
 
@@ -45,7 +45,7 @@ class YouTubeAdapter : PlatformAdapter {
             val name = idName(node.viewId)
             val pager = inPager || name in PAGER_IDS
             if (name in PAGER_IDS) pagerVisible = true
-            if (isOverlay(node, name)) overlayOpen = true
+            if (name != null && name in PROFILE_IDS) profileOpen = true
             if (pager) absorb(node)
 
             for (child in node.children) visit(child, pager)
@@ -72,23 +72,8 @@ class YouTubeAdapter : PlatformAdapter {
         /** The vertical Shorts pager and its page container. The watch player is never listed. */
         private val PAGER_IDS = setOf("reel_recycler", "reel_player_page_container")
 
-        /** Comments / engagement panel and the channel page header. */
-        private val OVERLAY_IDS =
-            setOf(
-                "engagement_panel_container",
-                "engagement_panel_title",
-                "comments_composer",
-                "channel_header",
-                "channel_page_header",
-                "c4_tabbed_header",
-            )
-
-        /** Sheet title and composer hint of the comments sheet (matched on text only). */
-        private val OVERLAY_TEXTS =
-            listOf(
-                Regex("^comments$", RegexOption.IGNORE_CASE),
-                Regex("^add a comment.*", RegexOption.IGNORE_CASE),
-            )
+        /** The channel page header. */
+        private val PROFILE_IDS = setOf("channel_header", "channel_page_header", "c4_tabbed_header")
 
         private val BUTTON_LABELS = listOf("Subscribe", "Subscribed", "Remix", "Shorts")
 
@@ -102,11 +87,5 @@ class YouTubeAdapter : PlatformAdapter {
 
         /** `com.google.android.youtube:id/name` -> `name`; tolerates ids without a package prefix. */
         private fun idName(viewId: String?): String? = viewId?.substringAfterLast('/')
-
-        private fun isOverlay(node: NodeSnapshot, name: String?): Boolean {
-            if (name != null && name in OVERLAY_IDS) return true
-            val text = node.text?.trim() ?: return false
-            return OVERLAY_TEXTS.any { it.matches(text) }
-        }
     }
 }

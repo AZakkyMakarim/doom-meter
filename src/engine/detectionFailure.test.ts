@@ -19,7 +19,7 @@ function setup() {
 }
 
 describe('detection failure: no count is invented', () => {
-  it('keeps the time of the video in progress but does not count it when detection fails', () => {
+  it('keeps the time and count of the video in progress when detection fails', () => {
     const { engine, send } = setup();
     send(
       { type: 'surfaceFocusGained', platform: 'tiktok', at: 0 },
@@ -27,7 +27,7 @@ describe('detection failure: no count is invented', () => {
     );
 
     const tiktok = engine.getState().platforms.tiktok;
-    expect(tiktok.watchedVideos).toBe(0);
+    expect(tiktok.watchedVideos).toBe(1);
     expect(tiktok.watchTimeMs).toBe(10_000);
   });
 
@@ -60,18 +60,32 @@ describe('detection failure: no count is invented', () => {
     expect(state.platforms.youtube.incomplete).toBe(false);
   });
 
-  it('resumes counting from the moment detection is healthy again', () => {
+  it('counts the video in focus when detection is healthy again, and the ones after it', () => {
     const { engine, send } = setup();
     send(
       { type: 'detectionFailed', platform: 'tiktok', at: 0 },
       { type: 'surfaceFocusGained', platform: 'tiktok', at: 1000 },
       { type: 'detectionHealthy', platform: 'tiktok', at: 20_000 },
+      { type: 'videoChanged', platform: 'tiktok', at: 23_000 },
       { type: 'surfaceFocusLost', platform: 'tiktok', at: 26_000 },
     );
 
     const tiktok = engine.getState().platforms.tiktok;
-    expect(tiktok.watchedVideos).toBe(1);
+    expect(tiktok.watchedVideos).toBe(2);
     expect(tiktok.watchTimeMs).toBe(6000);
+  });
+});
+
+describe('detection failure: recovery', () => {
+  it('does not count again a video that was counted before the failure', () => {
+    const { engine, send } = setup();
+    send(
+      { type: 'surfaceFocusGained', platform: 'tiktok', at: 0 },
+      { type: 'detectionFailed', platform: 'tiktok', at: 1000 },
+      { type: 'detectionHealthy', platform: 'tiktok', at: 2000 },
+    );
+
+    expect(engine.getState().platforms.tiktok.watchedVideos).toBe(1);
   });
 });
 

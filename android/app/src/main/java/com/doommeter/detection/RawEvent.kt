@@ -11,11 +11,14 @@ data class RawEvent(
     val platform: String? = null,
     /** Epoch milliseconds at which the thing happened. */
     val at: Long,
+    /** On a focus gain: the feed is back on the video the user left (comments, creator profile). */
+    val sameVideo: Boolean = false,
 ) {
     fun toJson(): String =
         buildString {
             append("{\"type\":\"").append(type).append('"')
             if (platform != null) append(",\"platform\":\"").append(platform).append('"')
+            if (sameVideo) append(",\"sameVideo\":true")
             append(",\"at\":").append(at).append('}')
         }
 

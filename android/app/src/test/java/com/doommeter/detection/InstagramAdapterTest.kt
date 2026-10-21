@@ -139,135 +139,25 @@ class InstagramAdapterTest {
         assertFalse(adapter.observe(NodeSnapshot(children = listOf(hidden, tabBar()))).surfaceActive)
     }
 
-    @Test
-    fun `an open comments sheet pauses the surface`() {
-        val byComposer =
+    /** Every sign of the comments sheet an older build of this adapter used to treat as a pause. */
+    private fun commentsSheet() =
+        listOf(
+            NodeSnapshot(viewId = id("layout_comment_thread_edittext")),
+            NodeSnapshot(viewId = id("row_comment_container"), children = listOf(text("nice reel"))),
             NodeSnapshot(
                 children =
-                    listOf(
-                        pager(reelPage("a", "b")),
-                        NodeSnapshot(viewId = id("layout_comment_thread_edittext")),
-                    ),
-            )
-        assertFalse(adapter.observe(byComposer).surfaceActive)
-        val byTitle = NodeSnapshot(children = listOf(pager(reelPage("a", "b")), text("Comments")))
-        assertFalse(adapter.observe(byTitle).surfaceActive)
-        val byHint =
-            NodeSnapshot(children = listOf(pager(reelPage("a", "b")), text("Add a comment for alice...")))
-        assertFalse(adapter.observe(byHint).surfaceActive)
-    }
-
-    @Test
-    fun `the Reels comments sheet composer hint pauses the surface`() {
-        val sheet = NodeSnapshot(children = listOf(pager(reelPage("a", "b")), text("What do you think of this?")))
-        assertFalse(adapter.observe(sheet).surfaceActive)
-        // Closing the sheet removes the hint; the same Reel resumes with the same token.
-        val closed = NodeSnapshot(children = listOf(pager(reelPage("a", "b"))))
-        assertTrue(adapter.observe(closed).surfaceActive)
-        assertEquals(adapter.observe(closed).videoToken, adapter.observe(closed).videoToken)
-    }
-
-    /** The quick-reaction row of the comments sheet; the emoji are exposed as text or as descriptions. */
-    private fun emojiRow() =
-        NodeSnapshot(
-            children =
-                listOf("❤️", "🙌", "🔥", "👏").map { text(it) } +
-                    listOf("😢", "😍", "😮", "😂").map { NodeSnapshot(contentDescription = it) },
-        )
-
-    private fun sheetOver(vararg extra: NodeSnapshot) =
-        NodeSnapshot(children = listOf(pager(reelPage("a", "b"))) + extra.toList() + tabBar())
-
-    private fun textRow(vararg labels: String) = NodeSnapshot(children = labels.map { text(it) })
-
-    @Test
-    fun `three distinct emoji nodes do not pause, four do`() {
-        assertTrue(adapter.observe(sheetOver(textRow("❤️", "🙌", "🔥"))).surfaceActive)
-        assertFalse(adapter.observe(sheetOver(textRow("❤️", "🙌", "🔥", "👏"))).surfaceActive)
-        // Repeats of one emoji are not distinct.
-        assertTrue(adapter.observe(sheetOver(textRow("🔥", "🔥", "🔥", "🔥"))).surfaceActive)
-    }
-
-    @Test
-    fun `only real single emoji count toward the reaction row`() {
-        val symbols = textRow("©", "®", "™", "°", "1", "a")
-        assertTrue(adapter.observe(sheetOver(symbols)).surfaceActive)
-        // Strings of several emoji are not a single emoji.
-        assertTrue(adapter.observe(sheetOver(textRow("🔥🔥", "🔥🙌", "🙌👏", "👏🔥"))).surfaceActive)
-        // ZWJ, skin tone and flag sequences are single emoji.
-        val sequences = textRow("👨‍👩‍👧‍👦", "👍🏽", "🇮🇩", "🏳️‍🌈")
-        assertFalse(adapter.observe(sheetOver(sequences)).surfaceActive)
-        // Long text is skipped outright.
-        assertTrue(adapter.observe(sheetOver(textRow("🔥".repeat(40)))).surfaceActive)
-    }
-
-    @Test
-    fun `the comments sheet with the Join the conversation hint pauses the surface`() {
-        assertFalse(adapter.observe(sheetOver(text("Join the conversation..."))).surfaceActive)
-        assertFalse(adapter.observe(sheetOver(text("Join the conversation…"))).surfaceActive)
-    }
-
-    @Test
-    fun `the comments sheet pauses the surface whatever its hint says`() {
-        // Hint text varies by build; the emoji reaction row is language-independent.
-        val unknownHint = text("Say something nice", className = "android.widget.EditText")
-        assertFalse(adapter.observe(sheetOver(emojiRow(), unknownHint)).surfaceActive)
-        // ...and the thread rows' ids alone are enough too.
-        val rows = NodeSnapshot(viewId = id("row_comment_container"), children = listOf(text("nice reel")))
-        assertFalse(adapter.observe(sheetOver(rows)).surfaceActive)
-    }
-
-    @Test
-    fun `the Reel resumes with the same token once the comments sheet closes`() {
-        val open = adapter.observe(sheetOver(emojiRow()))
-        val before = adapter.observe(sheetOver())
-        assertFalse(open.surfaceActive)
-        assertTrue(before.surfaceActive)
-        assertEquals(before.videoToken, adapter.observe(sheetOver()).videoToken)
-    }
-
-    @Test
-    fun `a stray emoji in a caption or the persistent bar is not a comments sheet`() {
-        val caption = NodeSnapshot(children = listOf(text("🔥"), NodeSnapshot(contentDescription = "😂")))
-        assertTrue(adapter.observe(sheetOver(caption)).surfaceActive)
-        val barWithEmoji = NodeSnapshot(children = listOf(standaloneViewer("comment_composer_parent", "android.widget.TextView"), caption))
-        assertTrue(adapter.observe(barWithEmoji).surfaceActive)
-    }
-
-    @Test
-    fun `the persistent Add comment bar of the Explore and feed viewers does not pause the surface`() {
-        val bar = text("Add comment…", id("comment_composer_hint"))
-        val fromExplore =
-            NodeSnapshot(children = listOf(pager(reelPage("a", "b")), bar, tabBar("Search and explore")))
-        assertTrue(adapter.observe(fromExplore).surfaceActive)
-        val fromFeed = NodeSnapshot(children = listOf(pager(reelPage("a", "b")), bar, tabBar("Home")))
-        assertTrue(adapter.observe(fromFeed).surfaceActive)
-    }
-
-    /** Explore / feed viewer: 'Reels' header with back arrow, pager, and a persistent bottom bar. */
-    private fun standaloneViewer(barId: String, barClass: String) =
-        NodeSnapshot(
-            children =
-                listOf(
-                    NodeSnapshot(
-                        viewId = id("action_bar"),
-                        children =
-                            listOf(
-                                NodeSnapshot(contentDescription = "Back"),
-                                text("Reels", id("action_bar_title")),
-                            ),
-                    ),
-                    pager(reelPage("alice", "morning run")),
-                    text("Add comment…", id(barId), className = barClass),
-                ),
+                    listOf("❤️", "🙌", "🔥", "👏").map { text(it) } +
+                        listOf(text("Comments"), text("Add a comment for alice..."), text("Join the conversation...")),
+            ),
         )
 
     @Test
-    fun `the persistent bar of the Explore and feed viewers is not a comments overlay whatever its id`() {
-        for (barId in listOf("comment_composer_parent", "comment_composer_text_view", "layout_comment_thread_edittext")) {
-            for (cls in listOf("android.widget.TextView", "android.widget.EditText")) {
-                assertTrue("$barId/$cls", adapter.observe(standaloneViewer(barId, cls)).surfaceActive)
-            }
+    fun `an open comments sheet does not leave the surface and keeps the same token`() {
+        val closed = adapter.observe(NodeSnapshot(children = listOf(pager(reelPage("a", "b")), tabBar())))
+        for (sheet in commentsSheet()) {
+            val open = adapter.observe(NodeSnapshot(children = listOf(pager(reelPage("a", "b")), sheet, tabBar())))
+            assertTrue(open.surfaceActive)
+            assertEquals(closed.videoToken, open.videoToken)
         }
     }
 
@@ -281,22 +171,6 @@ class InstagramAdapterTest {
             )
         assertTrue(adapter.observe(tree).surfaceActive)
         assertNotNull(adapter.observe(tree).videoToken)
-    }
-
-    @Test
-    fun `the Comment button on the rail does not pause the surface`() {
-        val rail =
-            NodeSnapshot(
-                viewId = id("clips_ufi_component"),
-                children =
-                    listOf(
-                        NodeSnapshot(contentDescription = "Comment"),
-                        NodeSnapshot(contentDescription = "Comment number is 1,204"),
-                        text("1,204", id("comment_count")),
-                    ),
-            )
-        val tree = NodeSnapshot(children = listOf(pager(reelPage("a", "b"), rail), tabBar()))
-        assertTrue(adapter.observe(tree).surfaceActive)
     }
 
     @Test
