@@ -27,7 +27,7 @@ data class SurfaceObservation(
  * instance from that Platform's file in `registrations/` (see [AdapterRegistry]).
  */
 interface PlatformAdapter {
-    /** The engine Platform id: "instagram", "youtube" or "tiktok". */
+    /** The engine Platform id: "instagram", "youtube", "tiktok" or "facebook". */
     val platform: String
 
     /** Android package names of the Platform's app (a Platform may ship under several). */

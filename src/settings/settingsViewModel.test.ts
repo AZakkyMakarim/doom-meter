@@ -157,7 +157,7 @@ describe('Settings text by locale', () => {
       usageAccessGranted: true,
     });
     expect(overlay.title).toBe('Display over other apps');
-    expect(overlay.explanation).toBe('Lets the pill appear on top of Instagram, YouTube and TikTok.');
+    expect(overlay.explanation).toBe('Lets the pill appear on top of Instagram, YouTube, TikTok and Facebook.');
     expect(overlay.accessibilityLabel).toBe('Display over other apps: Missing');
   });
 

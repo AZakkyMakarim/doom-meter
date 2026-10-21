@@ -56,6 +56,7 @@ export function parseRawEvent(json: string): RawDetectionEvent | null {
   if (type === 'surfaceFocusGained' && isPlatform(platform)) {
     return sameVideo === true ? { type, platform, sameVideo, ...stamp } : { type, platform, ...stamp };
   }
-  if (isPlatformEvent(type) && isPlatform(platform)) return { type, platform, ...stamp };
+  // The cast: with four Platforms the type x platform union is too big for TS to check unaided.
+  if (isPlatformEvent(type) && isPlatform(platform)) return { type, platform, ...stamp } as RawDetectionEvent;
   return null;
 }

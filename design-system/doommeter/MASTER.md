@@ -88,6 +88,7 @@ Use semantic tokens only; no raw hex in components. Dark-only (the HUD overlays 
   --plat-reels:  #E1306C;  /* Instagram Reels */
   --plat-shorts: #FF3D3D;  /* YouTube Shorts */
   --plat-tiktok: #25F4EE;  /* TikTok */
+  --plat-facebook: #1877F2;  /* Facebook Reels (4.1:1 on #0B0D14) */
 
   /* Interaction */
   --color-focus-ring: #FFFFFF;

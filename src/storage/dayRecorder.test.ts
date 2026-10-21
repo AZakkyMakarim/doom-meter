@@ -16,6 +16,7 @@ function stateOf(
     platforms: {
       instagram: zero,
       youtube: zero,
+      facebook: zero,
       tiktok: { detectionHealthy: true, incomplete: false, ...tiktok },
     },
     totals: { watchedVideos: tiktok.watchedVideos, watchTimeMs: tiktok.watchTimeMs },
@@ -271,6 +272,7 @@ describe('day recorder: configured rollover hour', () => {
         instagram: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
         youtube: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
         tiktok: { watchedVideos: 7, watchTimeMs: 60_000, incomplete: false },
+        facebook: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
       },
     });
     const recorder = createDayRecorder({ store });

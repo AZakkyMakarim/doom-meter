@@ -112,6 +112,7 @@ describe('History by locale', () => {
         instagram: { watchedVideos: 3, watchTimeMs: 61_000, incomplete: false },
         youtube: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
         tiktok: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+        facebook: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
       },
     },
     {
@@ -120,6 +121,7 @@ describe('History by locale', () => {
         instagram: { watchedVideos: 1, watchTimeMs: 1000, incomplete: true },
         youtube: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
         tiktok: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
+        facebook: { watchedVideos: 0, watchTimeMs: 0, incomplete: false },
       },
     },
   ];
