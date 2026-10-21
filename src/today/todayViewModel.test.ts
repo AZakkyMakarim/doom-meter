@@ -2,23 +2,23 @@ import type { EngineState } from '../engine';
 import { showsEnableOverlayAction, todayViewModelFor } from './todayViewModel';
 
 function state(
-  platforms: Partial<Record<'instagram' | 'youtube' | 'tiktok', [number, number]>>,
+  platforms: Partial<Record<'instagram' | 'youtube' | 'tiktok' | 'facebook', [number, number]>>,
   tier: EngineState['tier'] = 0,
   unhealthy: string[] = [],
 ): EngineState {
-  const make = (key: 'instagram' | 'youtube' | 'tiktok') => ({
+  const make = (key: 'instagram' | 'youtube' | 'tiktok' | 'facebook') => ({
     watchedVideos: platforms[key]?.[0] ?? 0,
     watchTimeMs: platforms[key]?.[1] ?? 0,
     detectionHealthy: !unhealthy.includes(key),
     incomplete: unhealthy.includes(key),
   });
-  const p = { instagram: make('instagram'), youtube: make('youtube'), tiktok: make('tiktok') };
+  const p = { instagram: make('instagram'), youtube: make('youtube'), tiktok: make('tiktok'), facebook: make('facebook') };
   return {
     day: '2026-10-15',
     platforms: p,
     totals: {
-      watchedVideos: p.instagram.watchedVideos + p.youtube.watchedVideos + p.tiktok.watchedVideos,
-      watchTimeMs: p.instagram.watchTimeMs + p.youtube.watchTimeMs + p.tiktok.watchTimeMs,
+      watchedVideos: p.instagram.watchedVideos + p.youtube.watchedVideos + p.tiktok.watchedVideos + p.facebook.watchedVideos,
+      watchTimeMs: p.instagram.watchTimeMs + p.youtube.watchTimeMs + p.tiktok.watchTimeMs + p.facebook.watchTimeMs,
     },
     tier,
   };
@@ -53,10 +53,10 @@ describe('Today view model', () => {
     expect(vm.timeText).toBe('1:02:05');
   });
 
-  it('always lists the three Platforms with their display names, in a stable order', () => {
+  it('always lists the four Platforms with their display names, in a stable order', () => {
     const vm = todayViewModelFor(state({ tiktok: [3, 60_000] }));
-    expect(vm.rows.map((r) => r.label)).toEqual(['Reels', 'Shorts', 'TikTok']);
-    expect(vm.rows.map((r) => r.platform)).toEqual(['instagram', 'youtube', 'tiktok']);
+    expect(vm.rows.map((r) => r.label)).toEqual(['Reels', 'Shorts', 'TikTok', 'Facebook']);
+    expect(vm.rows.map((r) => r.platform)).toEqual(['instagram', 'youtube', 'tiktok', 'facebook']);
   });
 
   it('gives each Platform row its count, time, and share of Watch time', () => {
@@ -71,6 +71,14 @@ describe('Today view model', () => {
     expect(shorts.sharePercent).toBe(0);
     expect(tiktok.sharePercent).toBe(75);
     expect(tiktok.timeText).toBe('05:00');
+  });
+
+  it('counts Facebook in its own row and in the totals', () => {
+    const vm = todayViewModelFor(state({ facebook: [3, 90_000] }));
+    expect(vm.rows[3].platform).toBe('facebook');
+    expect(vm.rows[3].countText).toBe('3 videos');
+    expect(vm.rows[3].timeText).toBe('01:30');
+    expect(vm.isEmpty).toBe(false);
   });
 
   it('has a zero share for every Platform when there is no Watch time', () => {

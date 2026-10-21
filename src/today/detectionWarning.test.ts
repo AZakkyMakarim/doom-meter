@@ -13,7 +13,7 @@ function state(
     detectionHealthy: !failed.includes(key),
     incomplete: incomplete.includes(key),
   });
-  const platforms = { instagram: make('instagram'), youtube: make('youtube'), tiktok: make('tiktok') };
+  const platforms = { instagram: make('instagram'), youtube: make('youtube'), tiktok: make('tiktok'), facebook: make('facebook') };
   return {
     day: '2026-10-15',
     platforms,

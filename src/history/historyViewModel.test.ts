@@ -15,12 +15,12 @@ const MIN = 60_000;
 function record(
   day: string,
   platforms: Partial<
-    Record<'instagram' | 'youtube' | 'tiktok', [number, number]>
+    Record<'instagram' | 'youtube' | 'tiktok' | 'facebook', [number, number]>
   > = {},
   incomplete: string[] = [],
 ): DayRecord {
   const r = emptyDayRecord(day);
-  for (const key of ['instagram', 'youtube', 'tiktok'] as const) {
+  for (const key of ['instagram', 'youtube', 'tiktok', 'facebook'] as const) {
     const [videos, minutes] = platforms[key] ?? [0, 0];
     r.platforms[key] = {
       watchedVideos: videos,
@@ -34,11 +34,11 @@ function record(
 function engineState(
   day: string,
   platforms: Partial<
-    Record<'instagram' | 'youtube' | 'tiktok', [number, number]>
+    Record<'instagram' | 'youtube' | 'tiktok' | 'facebook', [number, number]>
   >,
   unhealthy: string[] = [],
 ): EngineState {
-  const make = (key: 'instagram' | 'youtube' | 'tiktok') => ({
+  const make = (key: 'instagram' | 'youtube' | 'tiktok' | 'facebook') => ({
     watchedVideos: platforms[key]?.[0] ?? 0,
     watchTimeMs: (platforms[key]?.[1] ?? 0) * MIN,
     detectionHealthy: !unhealthy.includes(key),
@@ -48,6 +48,7 @@ function engineState(
     instagram: make('instagram'),
     youtube: make('youtube'),
     tiktok: make('tiktok'),
+    facebook: make('facebook'),
   };
   return {
     day,
@@ -56,9 +57,10 @@ function engineState(
       watchedVideos:
         p.instagram.watchedVideos +
         p.youtube.watchedVideos +
-        p.tiktok.watchedVideos,
+        p.tiktok.watchedVideos +
+        p.facebook.watchedVideos,
       watchTimeMs:
-        p.instagram.watchTimeMs + p.youtube.watchTimeMs + p.tiktok.watchTimeMs,
+        p.instagram.watchTimeMs + p.youtube.watchTimeMs + p.tiktok.watchTimeMs + p.facebook.watchTimeMs,
     },
     tier: 0,
   };
@@ -109,6 +111,14 @@ describe('History rows', () => {
     expect(yesterday.avatar).toBe('mood_2_washed');
     expect(earlier.tier).toBe(0);
     expect(earlier.tierLabel).toBe('Vibing');
+  });
+
+  it('adds Facebook videos and time into the Day totals', () => {
+    const vm = historyViewModelFor([record('2026-10-14', { tiktok: [5, 8], facebook: [4, 2] })], {
+      today: TODAY,
+    });
+    expect(vm.rows[0].countText).toBe('9 videos');
+    expect(vm.rows[0].timeText).toBe('10:00');
   });
 
   it('takes the higher of the count Tier and the time Tier, like the engine', () => {

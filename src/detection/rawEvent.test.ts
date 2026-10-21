@@ -1,6 +1,14 @@
 import { parseRawEvent } from './rawEvent';
 
 describe('parseRawEvent', () => {
+  it('reads events from the Facebook Platform', () => {
+    expect(parseRawEvent('{"type":"videoChanged","platform":"facebook","at":5}')).toEqual({
+      type: 'videoChanged',
+      platform: 'facebook',
+      at: 5,
+    });
+  });
+
   it('reads the same-video hint on a focus gain, and only there', () => {
     expect(
       parseRawEvent('{"type":"surfaceFocusGained","platform":"tiktok","sameVideo":true,"at":1}'),

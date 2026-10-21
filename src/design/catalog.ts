@@ -8,6 +8,7 @@ export const PLATFORM_CATALOG = [
   { id: 'instagram', label: 'Reels', name: 'Instagram', color: '#E1306C' },
   { id: 'youtube', label: 'Shorts', name: 'YouTube', color: '#FF3D3D' },
   { id: 'tiktok', label: 'TikTok', name: 'TikTok', color: '#25F4EE' },
+  { id: 'facebook', label: 'Facebook', name: 'Facebook', color: '#1877F2' },
 ] as const;
 
 export const PLATFORMS = PLATFORM_CATALOG.map((p) => p.id) as unknown as readonly Platform[];

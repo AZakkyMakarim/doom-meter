@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PLATFORMS, PLATFORM_CATALOG, TIER_CATALOG, tierSentence } from './catalog';
 import { colors } from './tokens';
+import { contrastRatio } from './contrast';
 import { platformColors } from './platformTokens';
 import { PLATFORMS as ENGINE_PLATFORMS } from '../engine';
 
@@ -21,8 +22,9 @@ describe('Platform and Tier catalog', () => {
       { id: 'instagram', label: 'Reels', name: 'Instagram', color: '#E1306C' },
       { id: 'youtube', label: 'Shorts', name: 'YouTube', color: '#FF3D3D' },
       { id: 'tiktok', label: 'TikTok', name: 'TikTok', color: '#25F4EE' },
+      { id: 'facebook', label: 'Facebook', name: 'Facebook', color: '#1877F2' },
     ]);
-    expect(PLATFORMS).toEqual(['instagram', 'youtube', 'tiktok']);
+    expect(PLATFORMS).toEqual(['instagram', 'youtube', 'tiktok', 'facebook']);
     expect(ENGINE_PLATFORMS).toBe(PLATFORMS);
   });
 
@@ -40,6 +42,12 @@ describe('Platform and Tier catalog', () => {
     expect(colors.sev).toEqual(TIER_CATALOG.map((t) => t.color));
     expect(platformColors).toEqual(colors.platform);
     expect(Object.keys(colors.platform)).toEqual([...PLATFORMS]);
+  });
+
+  it('keeps every Platform color at 3:1 or better on the overlay background', () => {
+    for (const p of PLATFORM_CATALOG) {
+      expect(contrastRatio(p.color, colors.overlayBg)).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it('says a Tier as one sentence', () => {
