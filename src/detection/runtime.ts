@@ -4,6 +4,7 @@ import { deviceLocaleTag } from '../i18n/deviceLocale';
 import { DEFAULT_LOCALE } from '../i18n/locale';
 import type { Locale } from '../i18n/locale';
 import { t } from '../i18n/translate';
+import { createLockoutEngine } from '../lockout/lockoutEngine';
 import { overlay } from '../overlay/overlayBridge';
 import { setPillPreferences } from '../overlay/pillViewModel';
 import { watchReducedMotion } from '../overlay/reducedMotion';
@@ -12,6 +13,7 @@ import { applySettings } from '../settings/applySettings';
 import { settingsStore } from '../settings/deviceSettings';
 import { positionFromDrag } from '../settings/settings';
 import { createDayRecorder } from '../storage';
+import { createAsyncStorageKeyValueStore } from '../storage/asyncStorageKeyValueStore';
 import { dayStore } from '../storage/deviceDayStore';
 import { widgetNative } from '../widget/widgetBridge';
 import { createWidgetSync } from '../widget/widgetSync';
@@ -36,6 +38,12 @@ const USAGE_POLL_MS = 5000;
 
 const recorder = createDayRecorder({ store: dayStore });
 const engine = createCountingEngine({ clock: debugClock, onDayEnded: recorder.onDayEnded });
+
+/**
+ * The Lockout engine: starts a Lockout when a Punished Tier is reached and keeps its end time on the
+ * device. The block screen and the settings lock ask it; it never blocks anything itself.
+ */
+export const lockoutEngine = createLockoutEngine({ clock: debugClock, store: createAsyncStorageKeyValueStore() });
 
 let runner: DetectionRunner | null = null;
 
@@ -84,6 +92,7 @@ export function startDetection(): void {
       runner: active,
       setPillPreferences,
       setRecorderRolloverHour: recorder.setRolloverHour,
+      lockout: lockoutEngine,
       deviceLocale: deviceLocaleTag,
       // Native owns the notification text; the pill's texts travel inside the pill itself.
       setLocale: (locale) => {
@@ -121,12 +130,20 @@ export function startDetection(): void {
   restored = settingsStore
     .load()
     .catch(() => undefined)
+    .then(() => lockoutEngine.load())
     .then(() => recorder.restoreInto(engine, debugClock.now()))
     .catch(() => undefined);
   restored.then(() => {
     widgetReady = true;
     active.subscribe(syncWidget);
     syncWidget();
+    // Only now: the restored counts must not look like a Tier that was just reached.
+    const observeTier = () => {
+      const { day, tier } = active.getState();
+      lockoutEngine.observeTier(day, tier);
+    };
+    active.subscribe(observeTier);
+    observeTier();
   });
   restored.then(startFeeds);
 }

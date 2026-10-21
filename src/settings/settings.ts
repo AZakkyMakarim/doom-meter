@@ -10,6 +10,12 @@ import { PILL_DRAG_RANGE_DP } from '../overlay/pillViewModel';
  * User settings (MASTER.md 6.4) and the rules for what is a valid value. Pure: no
  * storage, no React Native; the store, the applier and the screen build on this.
  */
+export const PUNISHMENT_OPTIONS = ['off', '15m', '1h', '3h', 'untilDay'] as const;
+/** What happens when a Tier is reached: nothing, or a Lockout of this length. */
+export type Punishment = (typeof PUNISHMENT_OPTIONS)[number];
+/** One Punishment for each of Tiers 1 to 4 (Vibing cannot be punished). */
+export type PunishmentRules = readonly [Punishment, Punishment, Punishment, Punishment];
+
 export interface Settings {
   /** Whether the Overlay pill may appear at all. */
   overlayEnabled: boolean;
@@ -24,6 +30,8 @@ export interface Settings {
   thresholds: TierThresholds;
   /** The language of the app, the pill and the notification; System follows the device. */
   language: LanguagePreference;
+  /** The Punishment for Tiers 1 to 4, in that order. */
+  punishments: PunishmentRules;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rolloverHour: DEFAULT_ROLLOVER_HOUR,
   thresholds: DEFAULT_TIER_THRESHOLDS,
   language: 'system',
+  punishments: ['off', 'off', 'off', 'off'],
 };
 
 export const POSITION_MIN_DP = 0;
@@ -106,6 +115,14 @@ function languageError(language: unknown): MessageRef | null {
   return isLanguagePreference(language) ? null : msg('settings.error.language');
 }
 
+function punishmentsError(rules: unknown): MessageRef | null {
+  return Array.isArray(rules) &&
+    rules.length === 4 &&
+    rules.every((r) => (PUNISHMENT_OPTIONS as readonly unknown[]).includes(r))
+    ? null
+    : msg('settings.error.punishment');
+}
+
 /** The first problem with a patch, or null when every field in it is valid. */
 function patchError(patch: SettingsPatch): MessageRef | null {
   if (patch.rolloverHour !== undefined) {
@@ -124,6 +141,10 @@ function patchError(patch: SettingsPatch): MessageRef | null {
     const e = languageError(patch.language);
     if (e) return e;
   }
+  if (patch.punishments !== undefined) {
+    const e = punishmentsError(patch.punishments);
+    if (e) return e;
+  }
   return null;
 }
 
@@ -138,6 +159,7 @@ export function applyPatch(current: Settings, patch: SettingsPatch): SettingsRes
   if (patch.positionDp !== undefined) settings.positionDp = patch.positionDp;
   if (patch.rolloverHour !== undefined) settings.rolloverHour = patch.rolloverHour;
   if (patch.language !== undefined) settings.language = patch.language;
+  if (patch.punishments !== undefined) settings.punishments = [...patch.punishments] as unknown as PunishmentRules;
   if (patch.thresholds !== undefined) {
     const { videos, minutes } = patch.thresholds;
     settings.thresholds = {
@@ -162,6 +184,7 @@ export function sanitizeSettings(raw: unknown): Settings {
   if (languageError(saved.language) === null) patch.language = saved.language as LanguagePreference;
   if (rolloverError(saved.rolloverHour) === null) patch.rolloverHour = saved.rolloverHour as number;
   if (positionError(saved.positionDp) === null) patch.positionDp = saved.positionDp as number;
+  if (punishmentsError(saved.punishments) === null) patch.punishments = saved.punishments as PunishmentRules;
   const thresholds = saved.thresholds as TierThresholds | undefined;
   if (typeof thresholds === 'object' && thresholds !== null && thresholdsError(thresholds) === null) {
     patch.thresholds = thresholds;

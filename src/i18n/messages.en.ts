@@ -222,6 +222,16 @@ export const en = {
   'settings.language.system': 'System',
   'settings.language.en': 'English',
   'settings.language.id': 'Bahasa Indonesia',
+  'settings.punishment.title': 'Punishment',
+  'settings.punishment.hint':
+    'The first time you reach a Tier in a Day, every Platform app is blocked for the length you pick. A Lockout cannot be ended early. Vibing is never punished.',
+  'settings.punishment.off': 'Off',
+  'settings.punishment.15m': '15 minutes',
+  'settings.punishment.1h': '1 hour',
+  'settings.punishment.3h': '3 hours',
+  'settings.punishment.untilDay': 'Until next Day',
+  'settings.punishment.rowLabel': '{tier} punishment',
+  'settings.punishment.status': 'Lockout active until {time}',
   'settings.saved': 'Settings saved',
 
   // Why a setting was refused.
@@ -234,7 +244,9 @@ export const en = {
   'settings.error.rollover': 'Day rollover hour must be a whole number from 0 to 23.',
   'settings.error.position': 'Position must be a whole number from {min} to {max}.',
   'settings.error.language': 'Language must be System, English or Bahasa Indonesia.',
-  'settings.error.save': 'Could not save this setting on the device.',
+  'settings.error.punishment':
+    'Punishment must be Off, 15 minutes, 1 hour, 3 hours or Until next Day for each of Tiers 1 to 4.',
+  'settings.error.save':'Could not save this setting on the device.',
 } satisfies Record<string, Message>;
 
 export type MessageId = keyof typeof en;

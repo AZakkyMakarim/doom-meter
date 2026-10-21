@@ -1,6 +1,7 @@
 import {
   DEFAULT_SETTINGS,
   POSITION_MAX_DP,
+  PUNISHMENT_OPTIONS,
   applyPatch,
   parseNumberDraft,
   positionFromDrag,
@@ -135,5 +136,31 @@ describe('language', () => {
     expect(sanitizeSettings({ compactMode: true }).language).toBe('system');
     expect(sanitizeSettings({ language: 'id' }).language).toBe('id');
     expect(sanitizeSettings({ language: 'xx' }).language).toBe('system');
+  });
+});
+
+describe('punishments', () => {
+  it('are off for every Tier from Cooked to Doomed by default', () => {
+    expect(DEFAULT_SETTINGS.punishments).toEqual(['off', 'off', 'off', 'off']);
+  });
+
+  it('offers off, 15 minutes, 1 hour, 3 hours and until the next Day', () => {
+    expect(PUNISHMENT_OPTIONS).toEqual(['off', '15m', '1h', '3h', 'untilDay']);
+  });
+
+  it('sets one Tier without touching the others', () => {
+    const result = applyPatch(DEFAULT_SETTINGS, { punishments: ['15m', 'off', '3h', 'untilDay'] });
+    expect(result.ok && result.settings.punishments).toEqual(['15m', 'off', '3h', 'untilDay']);
+  });
+
+  it('refuses an unknown option or the wrong number of Tiers', () => {
+    expect(applyPatch(DEFAULT_SETTINGS, { punishments: ['2h', 'off', 'off', 'off'] as never }).ok).toBe(false);
+    expect(applyPatch(DEFAULT_SETTINGS, { punishments: ['off', 'off', 'off'] as never }).ok).toBe(false);
+  });
+
+  it('reads settings saved before punishments existed as all off, and ignores a bad saved value', () => {
+    expect(sanitizeSettings({ compactMode: true }).punishments).toEqual(['off', 'off', 'off', 'off']);
+    expect(sanitizeSettings({ punishments: ['1h', 'off', 'off', 'off'] }).punishments[0]).toBe('1h');
+    expect(sanitizeSettings({ punishments: ['1h', 'x', 'off', 'off'] }).punishments).toEqual(['off', 'off', 'off', 'off']);
   });
 });

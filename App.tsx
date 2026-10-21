@@ -11,6 +11,7 @@ import { pillViewModelFor } from './src/overlay/pillViewModel';
 import { createSimulator } from './src/overlay/simulator';
 import { BottomNav } from './src/history/BottomNav';
 import { HistoryScreen } from './src/history/HistoryScreen';
+import { useLockoutStatus } from './src/lockout/useLockoutStatus';
 import { settingsStore } from './src/settings/deviceSettings';
 import { useSettings } from './src/settings/useSettings';
 import { SettingsScreen } from './src/settings/SettingsScreen';
@@ -65,6 +66,7 @@ function Main() {
   const simulator = useRef(__DEV__ ? createSimulator(runner, debugClock) : null).current;
   // Settings are applied to the engine and the pill by the detection runtime; this only shows them.
   const [settings, setSettings] = useState(() => settingsStore.get());
+  const lockout = useLockoutStatus();
   const enabled = settings.overlayEnabled;
   const [permitted, setPermitted] = useState(false);
   const [accessible, setAccessible] = useState(false);
@@ -170,6 +172,7 @@ function Main() {
           accessibilityOn={accessible}
           usageAccessGranted={permissionStatus?.usageAccess ?? false}
           onFixPermission={fixPermission}
+          lockout={lockout}
         />
       ) : (
         <>

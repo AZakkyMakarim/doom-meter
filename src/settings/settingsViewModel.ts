@@ -8,8 +8,15 @@ import type { MessageRef } from '../i18n/translate';
 import { permissionInfo } from '../permissions/permissionState';
 import type { PermissionId } from '../permissions/permissionState';
 import type { TierBounds, TierThresholds } from '../engine';
-import { POSITION_MAX_DP, POSITION_MIN_DP, POSITION_STEP_DP, parseNumberDraft } from './settings';
-import type { Settings } from './settings';
+import type { LockoutStatus } from '../lockout/lockoutEngine';
+import {
+  POSITION_MAX_DP,
+  POSITION_MIN_DP,
+  POSITION_STEP_DP,
+  PUNISHMENT_OPTIONS,
+  parseNumberDraft,
+} from './settings';
+import type { Punishment, PunishmentRules, Settings } from './settings';
 
 /**
  * What the Settings screen shows and how typed text becomes values. Pure, so the
@@ -73,6 +80,50 @@ export function parseRolloverDraft(text: string): Parsed<number> {
 /** The hour as a clock time, e.g. 04:00. */
 export function rolloverLabel(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`;
+}
+
+export interface PunishmentRow {
+  /** The Tier this row punishes (1 to 4). */
+  tier: 1 | 2 | 3 | 4;
+  tierName: string;
+  /** Names the group for screen readers, e.g. "Cooked punishment". */
+  label: string;
+  options: {
+    value: Punishment;
+    label: string;
+    selected: boolean;
+    /** The whole list of Punishments with this Tier set to this option. */
+    patch: PunishmentRules;
+  }[];
+}
+
+/** The Punishment card: one row per Tier from Cooked up (Vibing cannot be punished). */
+export function punishmentRows(rules: PunishmentRules, locale: Locale = DEFAULT_LOCALE): PunishmentRow[] {
+  return ([1, 2, 3, 4] as const).map((tier) => {
+    const tierName = tierLabel(tier, locale);
+    return {
+      tier,
+      tierName,
+      label: t(locale, 'settings.punishment.rowLabel', { tier: tierName }),
+      options: PUNISHMENT_OPTIONS.map((value) => ({
+        value,
+        label: t(locale, `settings.punishment.${value}`),
+        selected: rules[tier - 1] === value,
+        patch: rules.map((r, i) => (i === tier - 1 ? value : r)) as unknown as PunishmentRules,
+      })),
+    };
+  });
+}
+
+/** A time of day as HH:MM in the device's time zone. */
+function clockLabel(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** "Lockout active until HH:MM" while a Lockout runs, otherwise null. */
+export function lockoutStatusText(status: LockoutStatus, locale: Locale = DEFAULT_LOCALE): string | null {
+  return status.active ? t(locale, 'settings.punishment.status', { time: clockLabel(status.endsAt) }) : null;
 }
 
 export interface PositionControl {
