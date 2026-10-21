@@ -1,6 +1,8 @@
 import { translate } from '../i18n/translate';
+import { createLockoutEngine } from '../lockout/lockoutEngine';
 import { createMemoryKeyValueStore } from '../storage';
 import { DEFAULT_SETTINGS } from './settings';
+import type { SettingsPatch } from './settings';
 import { SETTINGS_KEY, createSettingsStore } from './settingsStore';
 
 describe('settings store', () => {
@@ -120,5 +122,59 @@ describe('settings store', () => {
     off();
     await store.update({ haptics: false });
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  describe('during a Lockout', () => {
+    const HOUR = 3_600_000;
+    const start = new Date(2026, 0, 10, 12, 0).getTime();
+
+    /** A store whose changes the Lockout engine may refuse, with a Lockout of 1 hour running. */
+    async function rig() {
+      let now = start;
+      const engine = createLockoutEngine({ clock: { now: () => now }, store: createMemoryKeyValueStore() });
+      engine.setRules({ punishments: ['1h', 'off', 'off', 'off'], rolloverHour: 4 });
+      await engine.load();
+      const kv = createMemoryKeyValueStore();
+      const store = createSettingsStore({ store: kv });
+      store.setRefusal(engine.refusal);
+      engine.observeTier('2026-01-10', 1);
+      return { store, kv, advance: (ms: number) => (now += ms) };
+    }
+
+    it.each([
+      ['a Punishment', { punishments: ['off', 'off', 'off', 'off'] as const }],
+      ['the thresholds', { thresholds: DEFAULT_SETTINGS.thresholds }],
+      ['the rollover hour', { rolloverHour: 3 }],
+    ])('refuses %s with the end time and changes and saves nothing', async (_name, patch) => {
+      const { store, kv } = await rig();
+      const listener = jest.fn();
+      store.subscribe(listener);
+      const before = store.get();
+      const result = await store.update(patch as SettingsPatch);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      const end = new Date(start + HOUR);
+      const hhmm = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+      expect(result.lockedUntil).toBe(start + HOUR);
+      expect(translate('en', result.error)).toBe("Can't change this, Lockout runs until " + hhmm);
+      expect(translate('id', result.error)).toBe('Tidak bisa diubah, Lockout sedang berjalan sampai ' + hhmm);
+      expect(store.get()).toBe(before);
+      expect(listener).not.toHaveBeenCalled();
+      expect(await kv.get(SETTINGS_KEY)).toBeNull();
+    });
+
+    it('still saves the other settings', async () => {
+      const { store } = await rig();
+      expect((await store.update({ compactMode: true, haptics: false, language: 'id' })).ok).toBe(true);
+      expect(store.get().compactMode).toBe(true);
+    });
+
+    it('saves all three again once the Lockout ends', async () => {
+      const { store, advance } = await rig();
+      advance(HOUR);
+      const result = await store.update({ punishments: ['off', 'off', 'off', 'off'], rolloverHour: 3 });
+      expect(result.ok).toBe(true);
+      expect(store.get().rolloverHour).toBe(3);
+    });
   });
 });

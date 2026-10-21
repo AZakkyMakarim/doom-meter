@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { TIER_CATALOG } from '../design/catalog';
 import { colors } from '../design/tokens';
 import { useLocale } from '../i18n/LocaleContext';
 import { translate } from '../i18n/translate';
@@ -67,6 +68,15 @@ export function ToastHost() {
         <Animated.View
           key={toast.id}
           style={[styles.toast, toast.variant === 'failure' ? styles.failure : styles.success, { opacity }]}>
+          {toast.variant === 'failure' && (
+            // Decorative: the words carry the meaning, the Washed (red) face carries the mood.
+            <Image
+              source={{ uri: TIER_CATALOG[2].avatar }}
+              style={styles.icon}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
+          )}
           <Text style={styles.text}>{translate(locale, toast.message)}</Text>
         </Animated.View>
       )}
@@ -88,7 +98,9 @@ const styles = StyleSheet.create({
     bottom: 16,
     maxWidth: '90%',
     minHeight: 48,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -98,10 +110,16 @@ const styles = StyleSheet.create({
   success: {
     borderColor: colors.sev[0],
   },
+  // Washed (Tier 2) is the red Tier.
   failure: {
-    borderColor: colors.sev[3],
+    borderColor: colors.sev[2],
+  },
+  icon: {
+    width: 24,
+    height: 24,
   },
   text: {
+    flexShrink: 1,
     color: colors.text,
     fontSize: 16,
     lineHeight: 24,

@@ -45,6 +45,9 @@ const engine = createCountingEngine({ clock: debugClock, onDayEnded: recorder.on
  */
 export const lockoutEngine = createLockoutEngine({ clock: debugClock, store: createAsyncStorageKeyValueStore() });
 
+// While a Lockout runs, Punishment, thresholds and rollover hour cannot change (ADR 0007).
+settingsStore.setRefusal(lockoutEngine.refusal);
+
 let runner: DetectionRunner | null = null;
 
 // The Home widget keeps its own copy of today's numbers on the device (see widgetSync).

@@ -27,4 +27,12 @@ describe('when a settings save shows the success toast', () => {
   it('shows no success toast when the change was refused', () => {
     for (const [, patch] of shown) expect(saveToastFor(patch, refused)).toBeNull();
   });
+
+  it('shows the failure toast, with the end time, when a Lockout refused the change', () => {
+    const error = msg('settings.error.lockout', { time: '14:05' });
+    expect(saveToastFor({ rolloverHour: 3 }, { ok: false, error, lockedUntil: 1 })).toEqual({
+      variant: 'failure',
+      message: error,
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import { msg } from '../i18n/translate';
 import type { KeyValueStore } from '../storage';
+import { clockLabel } from './clockLabel';
 import { DEFAULT_SETTINGS, applyPatch, sanitizeSettings } from './settings';
 import type { Settings, SettingsPatch, SettingsResult } from './settings';
 
@@ -17,6 +18,8 @@ export interface SettingsStore {
    */
   update(patch: SettingsPatch): Promise<SettingsResult>;
   subscribe(listener: (settings: Settings) => void): () => void;
+  /** Lets a running Lockout veto changes: return its end time (epoch ms) to refuse a patch, else null. */
+  setRefusal(refusal: (patch: SettingsPatch) => { endsAt: number } | null): void;
 }
 
 export interface SettingsStoreOptions {
@@ -33,6 +36,7 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
   let earlyPatch: SettingsPatch = {};
   let earlySaveFailed = false;
   let writes: Promise<unknown> = Promise.resolve();
+  let refusal: Parameters<SettingsStore['setRefusal']>[0] = () => null;
 
   function notify() {
     listeners.forEach((listener) => listener(current));
@@ -80,6 +84,14 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
     load: ensureLoaded,
 
     async update(patch) {
+      const locked = refusal(patch);
+      if (locked !== null) {
+        return {
+          ok: false,
+          error: msg('settings.error.lockout', { time: clockLabel(locked.endsAt) }),
+          lockedUntil: locked.endsAt,
+        };
+      }
       const result = applyPatch(current, patch);
       if (!result.ok) return result;
       current = result.settings;
@@ -98,6 +110,10 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
       } catch {
         return { ok: false, error: msg('settings.error.save') };
       }
+    },
+
+    setRefusal(next) {
+      refusal = next;
     },
 
     subscribe(listener) {

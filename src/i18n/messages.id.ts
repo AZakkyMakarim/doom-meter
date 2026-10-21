@@ -221,6 +221,8 @@ export const id: Partial<Record<MessageId, Message>> = {
   'settings.punishment.rowLabel': 'Hukuman {tier}',
   'settings.punishment.status': 'Lockout aktif sampai {time}',
   'settings.saved': 'Pengaturan disimpan',
+  'settings.lockout.readOnly': 'Hanya-baca selama Lockout berjalan.',
+  'settings.error.lockout': 'Tidak bisa diubah, Lockout sedang berjalan sampai {time}',
 
   // Why a setting was refused.
   'settings.error.videosWhole': 'Video {tier} harus berupa bilangan bulat.',
