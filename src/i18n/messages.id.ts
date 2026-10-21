@@ -11,6 +11,7 @@ export const id: Partial<Record<MessageId, Message>> = {
   'day.today': 'Hari ini',
   'nav.today': 'Hari ini',
   'today.title': 'Hari ini',
+  'today.tileLabel': '{name}, {videos}, {time}',
   'pill.collapsed': 'Tertutup',
   'panel.close': 'Tutup',
   'settings.language.title': 'Bahasa',
