@@ -1,3 +1,4 @@
+import { contrastRatio } from '../design/contrast';
 import { createCountingEngine } from '../engine';
 import type { EngineState, Tier } from '../engine';
 import {
@@ -74,11 +75,11 @@ describe('pill text', () => {
 
 describe('tier escalation (MASTER 2.1 and 2.2)', () => {
   it.each([
-    [0, 'Vibing', '#FACC15', 44, 20, 32],
-    [1, 'Cooked', '#FB923C', 44, 20, 32],
-    [2, 'Washed', '#F87171', 48, 22, 36],
-    [3, 'Brainrot', '#A3E635', 52, 24, 40],
-    [4, 'Doomed', '#9CA3AF', 56, 26, 44],
+    [0, 'Vibing', '#FACC15', 60, 20, 32],
+    [1, 'Cooked', '#FB923C', 60, 20, 32],
+    [2, 'Washed', '#F87171', 64, 22, 36],
+    [3, 'Brainrot', '#A3E635', 68, 24, 40],
+    [4, 'Doomed', '#9CA3AF', 72, 26, 44],
   ] as const)(
     'tier %i is %s with the right color and sizes',
     (tier, label, color, height, number, avatar) => {
@@ -92,14 +93,35 @@ describe('tier escalation (MASTER 2.1 and 2.2)', () => {
     },
   );
 
-  it('grows the border with the Tier', () => {
-    expect(TIERS.map((t) => pillAtTier(t).borderWidthDp)).toEqual([1, 1.5, 2, 2, 3]);
+  it('has no border: the Tier shows in the face, the label and a small accent dot', () => {
+    for (const t of TIERS) {
+      const pill = pillAtTier(t);
+      expect(pill).not.toHaveProperty('borderColor');
+      expect(pill).not.toHaveProperty('borderWidthDp');
+    }
+    expect(TIERS.map((t) => pillAtTier(t).accentDotColor)).toEqual([
+      '#FACC15',
+      '#FB923C',
+      '#F87171',
+      '#A3E635',
+      '#6B7280',
+    ]);
   });
 
-  it('draws the Tier 0 border at 40% opacity and the rest solid', () => {
-    expect(pillAtTier(0).borderColor).toBe('#66FACC15');
-    expect(pillAtTier(1).borderColor).toBe('#FB923C');
-    expect(pillAtTier(4).borderColor).toBe('#6B7280');
+  it('keeps the accent dot readable on the pill surface (3:1)', () => {
+    for (const t of TIERS) {
+      const pill = pillAtTier(t);
+      expect(contrastRatio(pill.accentDotColor, pill.surfaceColor)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('is soft and roomy: 20dp corners, 14dp vertical padding around the face', () => {
+    for (const t of TIERS) {
+      const pill = pillAtTier(t);
+      expect(pill.cornerRadiusDp).toBe(20);
+      expect(pill.verticalPaddingDp).toBe(14);
+      expect(pill.heightDp).toBe(pill.avatarSizeDp + 2 * 14);
+    }
   });
 
   it('pulses only from Tier 2, faster each Tier', () => {

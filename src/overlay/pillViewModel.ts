@@ -25,15 +25,13 @@ export interface MotionFlags {
   numberRoll: boolean;
   /** Avatar scale pop on a Tier change. */
   scalePop: boolean;
-  /** Spring on expanding and collapsing the panel. */
-  panelSpring: boolean;
-  /** 200ms border color crossfade on a Tier change. */
-  borderCrossfade: boolean;
+  /** Panel grows down on open (about 220ms) and shrinks up on close (about 150ms). */
+  panelGrow: boolean;
 }
 
 export function motionFlags(reducedMotion: boolean): MotionFlags {
   const on = !reducedMotion;
-  return { pulse: on, numberRoll: on, scalePop: on, panelSpring: on, borderCrossfade: on };
+  return { pulse: on, numberRoll: on, scalePop: on, panelGrow: on };
 }
 
 export interface PillViewModel {
@@ -46,8 +44,12 @@ export interface PillViewModel {
   avatar: string;
   /** Tier color; also used for the label. */
   accentColor: string;
-  borderColor: string;
-  borderWidthDp: number;
+  /** Small Tier-colored dot beside the label; the pill has no border (MASTER 6.1). */
+  accentDotColor: string;
+  /** Corner radius of the pill and the panel. */
+  cornerRadiusDp: number;
+  verticalPaddingDp: number;
+  /** Avatar plus the vertical padding on both sides. */
   heightDp: number;
   countSizeSp: number;
   avatarSizeDp: number;
@@ -119,8 +121,6 @@ const DRAG_RANGE_DP = PILL_DRAG_RANGE_DP;
 
 /** Pill sizing and motion per Tier; the Tier's name, avatar and color live in the catalog. */
 interface TierStyle {
-  borderWidthDp: number;
-  heightDp: number;
   countSizeSp: number;
   avatarSizeDp: number;
   pulseMs: number | null;
@@ -130,40 +130,30 @@ interface TierStyle {
 
 const TIER_STYLES: readonly TierStyle[] = [
   {
-    borderWidthDp: 1,
-    heightDp: 44,
     countSizeSp: 20,
     avatarSizeDp: 32,
     pulseMs: null,
     haptic: 'none',
   },
   {
-    borderWidthDp: 1.5,
-    heightDp: 44,
     countSizeSp: 20,
     avatarSizeDp: 32,
     pulseMs: null,
     haptic: 'light',
   },
   {
-    borderWidthDp: 2,
-    heightDp: 48,
     countSizeSp: 22,
     avatarSizeDp: 36,
     pulseMs: 2400,
     haptic: 'medium',
   },
   {
-    borderWidthDp: 2,
-    heightDp: 52,
     countSizeSp: 24,
     avatarSizeDp: 40,
     pulseMs: 1600,
     haptic: 'heavy',
   },
   {
-    borderWidthDp: 3,
-    heightDp: 56,
     countSizeSp: 26,
     avatarSizeDp: 44,
     pulseMs: 900,
@@ -171,8 +161,8 @@ const TIER_STYLES: readonly TierStyle[] = [
   },
 ];
 
-/** The Tier 0 border is drawn at 40% opacity (MASTER 2.2). */
-const TIER_0_BORDER_ALPHA = '66';
+const CORNER_RADIUS_DP = 20;
+const VERTICAL_PADDING_DP = 14;
 
 /** The pill for one engine state, with no knowledge of what came before. */
 export function pillViewModelFor(
@@ -193,9 +183,10 @@ export function pillViewModelFor(
     labelText: label,
     avatar,
     accentColor,
-    borderColor: tier === 0 ? `#${TIER_0_BORDER_ALPHA}${color.slice(1)}` : color,
-    borderWidthDp: style.borderWidthDp,
-    heightDp: style.heightDp,
+    accentDotColor: color,
+    cornerRadiusDp: CORNER_RADIUS_DP,
+    verticalPaddingDp: VERTICAL_PADDING_DP,
+    heightDp: style.avatarSizeDp + 2 * VERTICAL_PADDING_DP,
     countSizeSp: style.countSizeSp,
     avatarSizeDp: style.avatarSizeDp,
     pulseMs: reducedMotion ? null : style.pulseMs,

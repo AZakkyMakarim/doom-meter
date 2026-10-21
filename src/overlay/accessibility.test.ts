@@ -50,8 +50,7 @@ describe('reduced motion (MASTER 7, 11)', () => {
       pulse: true,
       numberRoll: true,
       scalePop: true,
-      panelSpring: true,
-      borderCrossfade: true,
+      panelGrow: true,
     });
   });
 
@@ -62,10 +61,9 @@ describe('reduced motion (MASTER 7, 11)', () => {
     expect(pill.motion.scalePop).toBe(false);
   });
 
-  it('also swaps the panel and the border instantly', () => {
+  it('also opens and closes the panel instantly', () => {
     const pill = pillViewModelFor(atTier(2), { reducedMotion: true });
-    expect(pill.motion.panelSpring).toBe(false);
-    expect(pill.motion.borderCrossfade).toBe(false);
+    expect(pill.motion.panelGrow).toBe(false);
   });
 
   it.each([2, 3, 4] as const)('Tier %i has no pulse period under reduced motion', (tier) => {
@@ -73,11 +71,11 @@ describe('reduced motion (MASTER 7, 11)', () => {
     expect(pillViewModelFor(atTier(tier), { reducedMotion: true }).pulseMs).toBeNull();
   });
 
-  it('keeps severity readable: same size, border, avatar and label', () => {
+  it('keeps severity readable: same size, accent dot, avatar and label', () => {
     const full = pillViewModelFor(atTier(4));
     const reduced = pillViewModelFor(atTier(4), { reducedMotion: true });
     expect(reduced.heightDp).toBe(full.heightDp);
-    expect(reduced.borderWidthDp).toBe(full.borderWidthDp);
+    expect(reduced.accentDotColor).toBe(full.accentDotColor);
     expect(reduced.avatar).toBe(full.avatar);
     expect(reduced.labelText).toBe(full.labelText);
     expect(reduced.accentColor).toBe(full.accentColor);
