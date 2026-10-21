@@ -15,6 +15,8 @@ import { settingsStore } from './src/settings/deviceSettings';
 import { useSettings } from './src/settings/useSettings';
 import { SettingsScreen } from './src/settings/SettingsScreen';
 import { TodayScreen } from './src/today/TodayScreen';
+import { ToastHost, toasts } from './src/toast/Toast';
+import { saveToastFor } from './src/toast/saveToast';
 import { OnboardingScreen } from './src/onboarding/OnboardingScreen';
 import { useOnboardingGate } from './src/onboarding/useOnboardingGate';
 import { PermissionBanner } from './src/permissions/PermissionBanner';
@@ -158,7 +160,12 @@ function Main() {
       {screen === 'settings' ? (
         <SettingsScreen
           settings={settings}
-          onUpdate={(patch) => settingsStore.update(patch)}
+          onUpdate={async (patch) => {
+            const result = await settingsStore.update(patch);
+            const toast = saveToastFor(patch, result);
+            if (toast !== null) toasts.show(toast);
+            return result;
+          }}
           overlayGranted={permitted}
           accessibilityOn={accessible}
           usageAccessGranted={permissionStatus?.usageAccess ?? false}
@@ -225,6 +232,7 @@ function Main() {
         </>
       )}
     </ScrollView>
+    <ToastHost />
     {nav}
     </View>
   );

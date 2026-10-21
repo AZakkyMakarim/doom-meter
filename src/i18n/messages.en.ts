@@ -191,6 +191,7 @@ export const en = {
   'settings.language.system': 'System',
   'settings.language.en': 'English',
   'settings.language.id': 'Bahasa Indonesia',
+  'settings.saved': 'Settings saved',
 
   // Why a setting was refused.
   'settings.error.videosWhole': '{tier} videos must be a whole number.',
