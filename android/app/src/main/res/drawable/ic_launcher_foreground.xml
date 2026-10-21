@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Split Face B2 (docs/brand/logo-b2-master.svg). 384 viewport = 108dp; the 256 logo grid is centred
+     (translate 64) so the face (r92 = 25.9dp) sits inside the 33dp adaptive safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="384"
+    android:viewportHeight="384">
+    <group android:translateX="64" android:translateY="64">
+        <path android:fillColor="#6B7280" android:pathData="M36,128a92,92 0 1,0 184,0a92,92 0 1,0 -184,0"/>
+        <group>
+            <clip-path android:pathData="M0,0H132C112,52 150,92 130,132C112,170 150,214 128,256H0Z"/>
+            <path android:fillColor="#FACC15" android:pathData="M36,128a92,92 0 1,0 184,0a92,92 0 1,0 -184,0"/>
+        </group>
+        <group android:pivotX="128" android:pivotY="128" android:scaleX="1.0952" android:scaleY="1.0952">
+            <path android:fillColor="#0B0D14" android:pathData="M88,106a10,10 0 1,0 20,0a10,10 0 1,0 -20,0"/>
+            <path android:strokeColor="#0B0D14" android:strokeWidth="10" android:strokeLineCap="round" android:pathData="M146,94l28,28M174,94l-28,28"/>
+            <path android:strokeColor="#0B0D14" android:strokeWidth="10" android:strokeLineCap="round" android:pathData="M80,148C96,182 124,186 142,170C156,158 168,162 180,178"/>
+        </group>
+    </group>
+</vector>
