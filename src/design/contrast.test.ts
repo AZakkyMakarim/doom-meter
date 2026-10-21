@@ -4,7 +4,8 @@ import { blend, contrastRatio } from './contrast';
 /**
  * MASTER.md section 8 sets the thresholds: normal text 4.5:1, non-text (icons, borders,
  * severity) 3:1, against the surface the element sits on. Section 2.2 aims higher for the
- * Tier colors on the pill surface (7:1); the one miss is recorded below, not hidden.
+ * Tier colors on the pill surface (7:1), met by the label text colors; the Doomed face grey
+ * (#6B7280) is a face/border color only and needs 3:1.
  */
 const TEXT = 4.5;
 const NON_TEXT = 3;
@@ -34,26 +35,20 @@ describe('blend', () => {
 });
 
 describe('Tier colors on the pill surface (MASTER 2.2, 8, 11)', () => {
-  it.each([0, 1, 2, 3, 4])('Tier %i color passes text and non-text contrast', (tier) => {
-    const ratio = contrastRatio(colors.sev[tier], colors.overlayBg);
-    expect(ratio).toBeGreaterThanOrEqual(TEXT);
-    expect(ratio).toBeGreaterThanOrEqual(NON_TEXT);
+  it.each([0, 1, 2, 3, 4])('Tier %i face color passes non-text contrast', (tier) => {
+    expect(contrastRatio(colors.sev[tier], colors.overlayBg)).toBeGreaterThanOrEqual(NON_TEXT);
+    expect(contrastRatio(colors.sev[tier], colors.overlayBgAlt)).toBeGreaterThanOrEqual(NON_TEXT);
   });
 
-  it.each([0, 1, 2, 3])('Tier %i meets the 7:1 target', (tier) => {
-    expect(contrastRatio(colors.sev[tier], colors.overlayBg)).toBeGreaterThanOrEqual(
+  it.each([0, 1, 2, 3, 4])('Tier %i label text color meets the 7:1 target', (tier) => {
+    expect(contrastRatio(colors.sevText[tier], colors.overlayBg)).toBeGreaterThanOrEqual(
       SEVERITY_TARGET,
     );
+    expect(contrastRatio(colors.sevText[tier], colors.overlayBgAlt)).toBeGreaterThanOrEqual(TEXT);
   });
 
-  it('records that Tier 4 (6.2:1) is under the 7:1 target but above the 4.5:1 text floor', () => {
-    const ratio = contrastRatio(colors.sev[4], colors.overlayBg);
-    expect(ratio).toBeLessThan(SEVERITY_TARGET);
-    expect(ratio).toBeGreaterThanOrEqual(TEXT);
-  });
-
-  it.each([0, 1, 2, 3, 4])('Tier %i also reads on the expanded panel rows', (tier) => {
-    expect(contrastRatio(colors.sev[tier], colors.overlayBgAlt)).toBeGreaterThanOrEqual(TEXT);
+  it('the Brainrot brain pink reads on the pill surface', () => {
+    expect(contrastRatio('#F9A8D4', colors.overlayBg)).toBeGreaterThanOrEqual(NON_TEXT);
   });
 
   it.each([1, 2, 3, 4])('the solid Tier %i border shows on a black video', (tier) => {
@@ -91,7 +86,7 @@ describe('text on surfaces', () => {
   });
 
   it('text on a filled Tier badge or chip (onSev)', () => {
-    for (const color of colors.sev) {
+    for (const color of colors.sevText) {
       expect(contrastRatio(colors.onSev, color)).toBeGreaterThanOrEqual(TEXT);
     }
   });

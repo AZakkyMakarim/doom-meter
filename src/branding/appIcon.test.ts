@@ -58,7 +58,7 @@ describe('notification silhouette', () => {
     expect(xml).toContain('android:width="24dp"');
     const svc = read(root, 'android', 'app', 'src', 'main', 'java', 'com', 'doommeter', 'detection', 'DetectionForegroundService.kt');
     expect(svc).toContain('.setSmallIcon(R.drawable.ic_stat_doommeter)');
-    expect(svc).not.toContain('mood_0_fresh');
+    expect(svc).not.toContain('mood_0_vibing');
   });
 });
 

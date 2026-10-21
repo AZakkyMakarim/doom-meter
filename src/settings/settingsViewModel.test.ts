@@ -12,10 +12,10 @@ describe('threshold drafts', () => {
   it('shows the saved thresholds as text, one row per Tier 1 to 4', () => {
     const d = draftsFor(DEFAULT_SETTINGS);
     expect(d.thresholds).toEqual([
-      { tierName: 'Drifting', videos: '10', minutes: '10' },
-      { tierName: 'Doomed', videos: '30', minutes: '30' },
-      { tierName: 'Cooked', videos: '60', minutes: '60' },
-      { tierName: 'Terminal', videos: '120', minutes: '120' },
+      { tierName: 'Cooked', videos: '10', minutes: '10' },
+      { tierName: 'Washed', videos: '30', minutes: '30' },
+      { tierName: 'Brainrot', videos: '60', minutes: '60' },
+      { tierName: 'Doomed', videos: '120', minutes: '120' },
     ]);
     expect(d.rolloverHour).toBe('4');
   });
@@ -35,7 +35,7 @@ describe('threshold drafts', () => {
     rows[1].minutes = 'abc';
     const result = parseThresholdDrafts(rows);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/Doomed.*minutes.*whole number/i);
+    if (!result.ok) expect(result.error).toMatch(/Washed.*minutes.*whole number/i);
   });
 
   it('refuses an empty field', () => {

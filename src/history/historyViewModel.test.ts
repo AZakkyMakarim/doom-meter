@@ -104,11 +104,11 @@ describe('History rows', () => {
     expect(yesterday.countText).toBe('50 videos');
     expect(yesterday.timeText).toBe('38:00');
     expect(yesterday.tier).toBe(2);
-    expect(yesterday.tierLabel).toBe('Doomed');
-    expect(yesterday.accentColor).toBe('#FB923C');
-    expect(yesterday.avatar).toBe('mood_2_doomed');
+    expect(yesterday.tierLabel).toBe('Washed');
+    expect(yesterday.accentColor).toBe('#F87171');
+    expect(yesterday.avatar).toBe('mood_2_washed');
     expect(earlier.tier).toBe(0);
-    expect(earlier.tierLabel).toBe('Fresh');
+    expect(earlier.tierLabel).toBe('Vibing');
   });
 
   it('takes the higher of the count Tier and the time Tier, like the engine', () => {
@@ -184,10 +184,10 @@ describe('History rows', () => {
       { today: TODAY },
     );
     expect(vm.rows[1].accessibilityLabel).toBe(
-      'Tuesday 13 October. 47 videos, 38 minutes 0 seconds. Level 3 of 5, Doomed.',
+      'Tuesday 13 October. 47 videos, 38 minutes 0 seconds. Level 3 of 5, Washed.',
     );
     expect(vm.rows[0].accessibilityLabel).toBe(
-      'Wednesday 14 October. 47 videos, 38 minutes 0 seconds. Level 3 of 5, Doomed. ' +
+      'Wednesday 14 October. 47 videos, 38 minutes 0 seconds. Level 3 of 5, Washed. ' +
         'Incomplete: detection stopped, the count may be low.',
     );
   });
@@ -345,7 +345,7 @@ describe('7-day chart', () => {
       { today: TODAY },
     );
     expect(chart.bars[6].tier).toBe(3);
-    expect(chart.bars[6].color).toBe('#F87171');
+    expect(chart.bars[6].color).toBe('#A3E635');
     expect(chart.bars[5].tier).toBe(0);
   });
 
@@ -364,10 +364,10 @@ describe('7-day chart', () => {
         'Saturday 10 October: nothing counted. ' +
         'Sunday 11 October: nothing counted. ' +
         'Monday 12 October: nothing counted. ' +
-        'Tuesday 13 October: 20 videos, 10 minutes 0 seconds, Level 2 of 5, Drifting. ' +
+        'Tuesday 13 October: 20 videos, 10 minutes 0 seconds, Level 2 of 5, Cooked. ' +
         'Incomplete: detection stopped, the count may be low. ' +
         'Wednesday 14 October: nothing counted. ' +
-        'Thursday 15 October: 40 videos, 30 minutes 0 seconds, Level 3 of 5, Doomed.',
+        'Thursday 15 October: 40 videos, 30 minutes 0 seconds, Level 3 of 5, Washed.',
     );
   });
 
@@ -394,6 +394,6 @@ describe('7-day chart', () => {
       today: TODAY,
     });
     expect(chart.bars[6].valueText).toBe('47');
-    expect(chart.bars[6].tierLabel).toBe('Doomed');
+    expect(chart.bars[6].tierLabel).toBe('Washed');
   });
 });

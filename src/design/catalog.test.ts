@@ -28,11 +28,11 @@ describe('Platform and Tier catalog', () => {
 
   it('lists the five Tiers once with label, mood avatar and color', () => {
     expect(TIER_CATALOG).toEqual([
-      { label: 'Fresh', avatar: 'mood_0_fresh', color: '#34D399' },
-      { label: 'Drifting', avatar: 'mood_1_drifting', color: '#FACC15' },
-      { label: 'Doomed', avatar: 'mood_2_doomed', color: '#FB923C' },
-      { label: 'Cooked', avatar: 'mood_3_cooked', color: '#F87171' },
-      { label: 'Terminal', avatar: 'mood_4_terminal', color: '#FF4D8D' },
+      { label: 'Vibing', avatar: 'mood_0_vibing', color: '#FACC15', textColor: '#FACC15' },
+      { label: 'Cooked', avatar: 'mood_1_cooked', color: '#FB923C', textColor: '#FB923C' },
+      { label: 'Washed', avatar: 'mood_2_washed', color: '#F87171', textColor: '#F87171' },
+      { label: 'Brainrot', avatar: 'mood_3_brainrot', color: '#A3E635', textColor: '#A3E635' },
+      { label: 'Doomed', avatar: 'mood_4_doomed', color: '#6B7280', textColor: '#9CA3AF' },
     ]);
   });
 
@@ -43,7 +43,15 @@ describe('Platform and Tier catalog', () => {
   });
 
   it('says a Tier as one sentence', () => {
-    expect(tierSentence(2)).toBe('Level 3 of 5, Doomed.');
+    expect(tierSentence(2)).toBe('Level 3 of 5, Washed.');
+  });
+
+  it('has an Android drawable and a design-system SVG for every mood avatar', () => {
+    const root = path.resolve(SRC, '..');
+    for (const t of TIER_CATALOG) {
+      expect(fs.existsSync(path.join(root, 'android/app/src/main/res/drawable', `${t.avatar}.xml`))).toBe(true);
+      expect(fs.existsSync(path.join(root, 'design-system/doommeter/assets', `${t.avatar.replace(/_/g, '-')}.svg`))).toBe(true);
+    }
   });
 
   it('keeps Tier names, mood avatars and Platform labels out of every other source file', () => {

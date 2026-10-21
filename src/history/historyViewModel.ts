@@ -166,7 +166,7 @@ export function historyViewModelFor(
       tier: figures.tier,
       tierLabel: style.label,
       avatar: style.avatar,
-      accentColor: style.color,
+      accentColor: style.textColor,
       incomplete: figures.incomplete,
       incompleteNote,
       accessibilityLabel:

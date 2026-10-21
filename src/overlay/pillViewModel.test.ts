@@ -43,7 +43,7 @@ describe('pill text', () => {
     expect(pill.countText).toBe('47');
     expect(pill.unitText).toBe('videos');
     expect(pill.timeText).toBe('38:12');
-    expect(pill.labelText).toBe('Doomed');
+    expect(pill.labelText).toBe('Washed');
   });
 
   it('switches to h:mm:ss from one hour', () => {
@@ -58,12 +58,12 @@ describe('pill text', () => {
   it('describes the whole state in one screen reader label', () => {
     const pill = pillViewModelFor(stateWith(47, 38 * MIN + 12_000));
     expect(pill.contentDescription).toBe(
-      'Doom meter. 47 videos, 38 minutes 12 seconds. Level 3 of 5, Doomed.',
+      'Doom meter. 47 videos, 38 minutes 12 seconds. Level 3 of 5, Washed.',
     );
   });
 
   it('announces only the Tier on its own', () => {
-    expect(pillViewModelFor(stateWith(47, 0)).tierAnnouncement).toBe('Level 3 of 5, Doomed.');
+    expect(pillViewModelFor(stateWith(47, 0)).tierAnnouncement).toBe('Level 3 of 5, Washed.');
   });
 
   it('includes hours in the screen reader label once past an hour', () => {
@@ -74,11 +74,11 @@ describe('pill text', () => {
 
 describe('tier escalation (MASTER 2.1 and 2.2)', () => {
   it.each([
-    [0, 'Fresh', '#34D399', 44, 20, 32],
-    [1, 'Drifting', '#FACC15', 44, 20, 32],
-    [2, 'Doomed', '#FB923C', 48, 22, 36],
-    [3, 'Cooked', '#F87171', 52, 24, 40],
-    [4, 'Terminal', '#FF4D8D', 56, 26, 44],
+    [0, 'Vibing', '#FACC15', 44, 20, 32],
+    [1, 'Cooked', '#FB923C', 44, 20, 32],
+    [2, 'Washed', '#F87171', 48, 22, 36],
+    [3, 'Brainrot', '#A3E635', 52, 24, 40],
+    [4, 'Doomed', '#9CA3AF', 56, 26, 44],
   ] as const)(
     'tier %i is %s with the right color and sizes',
     (tier, label, color, height, number, avatar) => {
@@ -97,9 +97,9 @@ describe('tier escalation (MASTER 2.1 and 2.2)', () => {
   });
 
   it('draws the Tier 0 border at 40% opacity and the rest solid', () => {
-    expect(pillAtTier(0).borderColor).toBe('#6634D399');
-    expect(pillAtTier(1).borderColor).toBe('#FACC15');
-    expect(pillAtTier(4).borderColor).toBe('#FF4D8D');
+    expect(pillAtTier(0).borderColor).toBe('#66FACC15');
+    expect(pillAtTier(1).borderColor).toBe('#FB923C');
+    expect(pillAtTier(4).borderColor).toBe('#6B7280');
   });
 
   it('pulses only from Tier 2, faster each Tier', () => {
@@ -108,11 +108,11 @@ describe('tier escalation (MASTER 2.1 and 2.2)', () => {
 
   it('uses a distinct mood avatar per Tier', () => {
     expect(TIERS.map((t) => pillAtTier(t).avatar)).toEqual([
-      'mood_0_fresh',
-      'mood_1_drifting',
-      'mood_2_doomed',
-      'mood_3_cooked',
-      'mood_4_terminal',
+      'mood_0_vibing',
+      'mood_1_cooked',
+      'mood_2_washed',
+      'mood_3_brainrot',
+      'mood_4_doomed',
     ]);
   });
 
@@ -178,7 +178,7 @@ describe('compact mode and panel (MASTER 6.1, 6.2)', () => {
 
   it('carries the panel and the drag range so native holds no rules', () => {
     const pill = pillViewModelFor(stateAtTier(3));
-    expect(pill.panel.tierName).toBe('Cooked');
+    expect(pill.panel.tierName).toBe('Brainrot');
     expect(pill.dragRangeDp).toBeGreaterThan(0);
   });
 

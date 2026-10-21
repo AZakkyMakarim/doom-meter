@@ -18,11 +18,13 @@ Tier = the **higher** of the count tier and the time tier. Thresholds are initia
 
 | Tier | Name (label) | Videos | Time | Color token | Hex | Icon (Phosphor) |
 |------|--------------|--------|------|-------------|-----|-----------------|
-| 0 | `Fresh` | 0–9 | 0–9 min | `--sev-0` | `#34D399` | `check-circle` |
-| 1 | `Drifting` | 10–29 | 10–29 min | `--sev-1` | `#FACC15` | `warning` |
-| 2 | `Doomed` | 30–59 | 30–59 min | `--sev-2` | `#FB923C` | `fire-simple` |
-| 3 | `Cooked` | 60–119 | 60–119 min | `--sev-3` | `#F87171` | `skull` |
-| 4 | `Terminal` | 120+ | 120+ min | `--sev-4` | `#FF4D8D` | `siren` |
+| 0 | `Vibing` | 0–9 | 0–9 min | `--sev-0` | `#FACC15` | `smiley` |
+| 1 | `Cooked` | 10–29 | 10–29 min | `--sev-1` | `#FB923C` | `fire-simple` |
+| 2 | `Washed` | 30–59 | 30–59 min | `--sev-2` | `#F87171` | `drop` |
+| 3 | `Brainrot` | 60–119 | 60–119 min | `--sev-3` | `#A3E635` | `brain` |
+| 4 | `Doomed` | 120+ | 120+ min | `--sev-4` | `#6B7280` | `skull` |
+
+`Doomed` is grey (`#6B7280`) for the face, border and bars, but its label text and filled badges use the lighter `#9CA3AF` so text keeps 4.5:1 (`sevText` in `src/design/catalog.ts`). All other Tiers use their Hex for text too.
 
 ### 2.1 Mood Avatar (mascot face)
 
@@ -30,14 +32,14 @@ Each tier has a round flat face that replaces the tier icon in the pill and pane
 
 | Tier | Mood | Face |
 |------|------|------|
-| 0 Fresh | happy | `^ ^` eyes, wide smile |
-| 1 Drifting | bored | half-lidded eyes, flat mouth |
-| 2 Doomed | tired | droopy brows, eye bags, frown |
-| 3 Cooked | panicking | wide white eyes with tiny pupils, wobbly mouth |
-| 4 Terminal | dead | `X X` eyes, tongue out |
+| 0 Vibing | cool | sunglasses, wide smile |
+| 1 Cooked | worried | round eyes, raised brows, wobbly mouth, one sweat drop |
+| 2 Washed | drained | heavy lids, eye bags, flat mouth turned slightly down, one sweat drop |
+| 3 Brainrot | fried | open skull with a pink brain (two hemispheres, centre fissure, dark red folds), one round white eye, one `X` eye, open mouth with teeth |
+| 4 Doomed | dead | skull: `X X` eyes, triangle nose, teeth |
 
 Rules:
-- Faces are filled with the tier color; features use `--color-overlay-bg` (`#0B0D14`). Hex is baked into the SVGs, so regenerate them if tier colors change.
+- Faces are filled with the tier color; features use `--color-overlay-bg` (`#0B0D14`). Brainrot is the exception: an open skull in lime with a pink brain (`#F9A8D4`, folds `#BE185D`), eye white `#F8FAFC`. Hex is baked into the SVGs, so regenerate them if tier colors change.
 - Sizes follow the pill: 32 (T0–T1), 36 (T2), 40 (T3), 44 (T4); 96 in the expanded panel.
 - The face is **decorative** next to the tier label (`aria-hidden`); the label carries the meaning. Shape of the face, not just its color, changes per tier.
 - Face changes on tier change only (swap with scale pop, see §6.3). No idle animation by default; optional blink every 4–6s on T0–T1 only, disabled under reduced motion.
@@ -45,7 +47,7 @@ Rules:
 
 ### 2.2 Severity rules
 - Color is **never the only signal**: every tier also has a distinct face/icon + text label (colorblind-safe, `color-not-only`).
-- All tier colors on the pill surface (`#0B0D14`) are ≥ 7:1 (verified by approximation; re-verify with a contrast tool before shipping).
+- Contrast on the pill surface (`#0B0D14`), checked with the contrast tool (`src/design/contrast.test.ts`): face colors ≥ 3:1 (Doomed grey 4.0:1), label text colors ≥ 7:1 (Doomed text `#9CA3AF` 7.6:1), Brainrot brain pink 10.7:1.
 - Escalation rules:
 
 | Property | T0 | T1 | T2 | T3 | T4 |
