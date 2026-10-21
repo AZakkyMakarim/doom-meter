@@ -7,6 +7,10 @@
  * Optional: Usage Access (Watch time fallback) and Notifications (foreground service, Android 13+).
  */
 
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { joinList, t } from '../i18n/translate';
+
 export type PermissionId = 'accessibility' | 'overlay' | 'usageAccess' | 'notifications';
 
 export const PERMISSION_IDS: readonly PermissionId[] = [
@@ -34,48 +38,32 @@ export interface PermissionInfo {
   required: boolean;
 }
 
-const INFO: Record<PermissionId, PermissionInfo> = {
-  accessibility: {
-    id: 'accessibility',
-    title: 'Accessibility service',
-    purpose:
-      'DoomMeter uses it to notice when a short-form feed is open and a new video comes up, so it can count them.',
-    required: true,
-  },
-  overlay: {
-    id: 'overlay',
-    title: 'Display over other apps',
-    purpose: 'DoomMeter uses it to show the pill at the top of the screen while you scroll.',
-    required: true,
-  },
-  usageAccess: {
-    id: 'usageAccess',
-    title: 'Usage access',
-    purpose:
-      'DoomMeter uses it only as a backup to keep Watch time right if video detection stops working.',
-    required: false,
-  },
-  notifications: {
-    id: 'notifications',
-    title: 'Notifications',
-    purpose: 'DoomMeter uses them to show the small notice that keeps counting alive in the background.',
-    required: false,
-  },
+/** Accessibility and Overlay are required; the other two only add to what the app can do. */
+const REQUIRED: Record<PermissionId, boolean> = {
+  accessibility: true,
+  overlay: true,
+  usageAccess: false,
+  notifications: false,
 };
 
-export function permissionInfo(id: PermissionId): PermissionInfo {
-  return INFO[id];
+export function permissionInfo(id: PermissionId, locale: Locale = DEFAULT_LOCALE): PermissionInfo {
+  return {
+    id,
+    title: t(locale, `permission.${id}.title`),
+    purpose: t(locale, `permission.${id}.purpose`),
+    required: REQUIRED[id],
+  };
 }
 
 /** Required permissions that are off, in the order the user should fix them. */
 export function missingRequired(status: PermissionStatus): PermissionId[] {
-  return PERMISSION_IDS.filter((id) => INFO[id].required && !status[id]);
+  return PERMISSION_IDS.filter((id) => REQUIRED[id] && !status[id]);
 }
 
 /** Optional permissions that are off; never a reason to warn. */
 export function missingOptional(status: PermissionStatus): PermissionId[] {
   return PERMISSION_IDS.filter((id) => {
-    if (INFO[id].required || status[id]) return false;
+    if (REQUIRED[id] || status[id]) return false;
     return id !== 'notifications' || status.notificationsApplicable;
   });
 }
@@ -100,17 +88,25 @@ export interface PermissionBanner {
  * The in-app banner for a revoked required permission. `null` status means the first
  * check has not finished yet: show nothing rather than flash a false warning.
  */
-export function permissionBanner(status: PermissionStatus | null): PermissionBanner | null {
+export function permissionBanner(
+  status: PermissionStatus | null,
+  locale: Locale = DEFAULT_LOCALE,
+): PermissionBanner | null {
   if (status === null) return null;
   const missing = missingRequired(status);
   if (missing.length === 0) return null;
-  const names = missing.map((id) => INFO[id].title).join(' and ');
+  const names = joinList(
+    locale,
+    missing.map((id) => permissionInfo(id, locale).title),
+  );
   return {
-    message: `DoomMeter is not counting. Turn on ${names}.`,
+    message: t(locale, 'permission.banner', { names }),
     fixes: missing.map((id) => ({
       permission: id,
-      label: 'Fix permission',
-      accessibilityLabel: `Fix permission: ${INFO[id].title}`,
+      label: t(locale, 'permission.fix'),
+      accessibilityLabel: t(locale, 'permission.fixNamed', {
+        name: permissionInfo(id, locale).title,
+      }),
     })),
   };
 }
@@ -121,10 +117,13 @@ export interface NotCountingNotice {
 }
 
 /** Replaces the Today empty state ("nothing watched yet"), which would be untrue when nothing is counted. */
-export function notCountingNotice(status: PermissionStatus | null): NotCountingNotice | null {
+export function notCountingNotice(
+  status: PermissionStatus | null,
+  locale: Locale = DEFAULT_LOCALE,
+): NotCountingNotice | null {
   if (status === null || isCounting(status)) return null;
   return {
-    title: 'Not counting yet',
-    message: 'DoomMeter cannot see your scrolling until the missing permission is turned on.',
+    title: t(locale, 'permission.notCountingTitle'),
+    message: t(locale, 'permission.notCountingMessage'),
   };
 }

@@ -1,3 +1,4 @@
+import { translate } from '../i18n/translate';
 import { DEFAULT_SETTINGS, POSITION_MAX_DP, POSITION_STEP_DP } from './settings';
 import {
   draftsFor,
@@ -35,7 +36,7 @@ describe('threshold drafts', () => {
     rows[1].minutes = 'abc';
     const result = parseThresholdDrafts(rows);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/Doomed.*minutes.*whole number/i);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/Doomed.*minutes.*whole number/i);
   });
 
   it('refuses an empty field', () => {
@@ -53,7 +54,7 @@ describe('rollover draft', () => {
   it('refuses text that is not a whole number', () => {
     const result = parseRolloverDraft('four');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/0 to 23/);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/0 to 23/);
   });
 
   it('leaves the range check (25) to the settings rules', () => {
@@ -143,5 +144,31 @@ describe('permission rows', () => {
     const [overlay] = permissionRows({ ...all, overlayGranted: false });
     expect(overlay.accessibilityLabel).toMatch(/Display over other apps/);
     expect(overlay.accessibilityLabel).toMatch(/missing|off|not/i);
+  });
+});
+
+describe('Settings text by locale', () => {
+  it('reads in English by default', () => {
+    expect(positionControl(0).valueText).toBe('Top');
+    expect(positionControl(16).valueText).toBe('16 dp below the top');
+    const [overlay] = permissionRows({
+      overlayGranted: false,
+      accessibilityOn: true,
+      usageAccessGranted: true,
+    });
+    expect(overlay.title).toBe('Display over other apps');
+    expect(overlay.explanation).toBe('Lets the pill appear on top of Instagram, YouTube and TikTok.');
+    expect(overlay.accessibilityLabel).toBe('Display over other apps: Missing');
+  });
+
+  it('takes the language as a parameter, with English where not translated yet', () => {
+    expect(positionControl(0, 'id').valueText).toBe('Top');
+    expect(draftsFor(DEFAULT_SETTINGS, 'id').thresholds[0].tierName).toBe('Drifting');
+    const rows = permissionRows(
+      { overlayGranted: true, accessibilityOn: false, usageAccessGranted: false },
+      'id',
+    );
+    expect(rows[1].fixLabel).toBe('Fix permission');
+    expect(rows[2].accessibilityLabel).toBe('Usage access, optional: Not granted');
   });
 });

@@ -1,3 +1,4 @@
+import { translate } from '../i18n/translate';
 import { createMemoryKeyValueStore } from '../storage';
 import { DEFAULT_SETTINGS } from './settings';
 import { SETTINGS_KEY, createSettingsStore } from './settingsStore';
@@ -30,7 +31,7 @@ describe('settings store', () => {
     store.subscribe(listener);
     const result = await store.update({ rolloverHour: 25 });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/0 to 23/);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/0 to 23/);
     expect(store.get().rolloverHour).toBe(DEFAULT_SETTINGS.rolloverHour);
     expect(listener).not.toHaveBeenCalled();
   });
@@ -108,7 +109,7 @@ describe('settings store', () => {
     const store = createSettingsStore({ store: kv });
     const result = await store.update({ haptics: false });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/could not save/i);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/could not save/i);
     expect(store.get().haptics).toBe(false);
   });
 

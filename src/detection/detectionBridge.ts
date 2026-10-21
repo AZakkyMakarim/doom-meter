@@ -17,6 +17,8 @@ interface NativeDetectionModule {
   /** Starts the foreground service that keeps detection alive in the background. */
   startForegroundService(): void;
   stopForegroundService(): void;
+  /** The foreground notification text, in the language of the app. */
+  setNotificationText(text: string): void;
 }
 
 const native: NativeDetectionModule | undefined =
@@ -40,5 +42,8 @@ export const detectionNative = {
   },
   stopForegroundService(): void {
     native?.stopForegroundService();
+  },
+  setNotificationText(text: string): void {
+    native?.setNotificationText(text);
   },
 };

@@ -1,5 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../design/tokens';
+import { useLocale } from '../i18n/LocaleContext';
+import { t } from '../i18n/translate';
 import { platformColors } from '../design/platformTokens';
 import type { EngineState } from '../engine';
 import type { NotCountingNotice } from '../permissions/permissionState';
@@ -53,6 +55,7 @@ function PlatformRow({ row }: { row: PlatformRowViewModel }) {
 
 /** Names the Platform whose detection is not responding. Text first, colour second. */
 function DetectionWarning({ warning }: { warning: DetectionWarningViewModel }) {
+  const locale = useLocale();
   return (
     <View
       style={styles.warningCard}
@@ -60,7 +63,7 @@ function DetectionWarning({ warning }: { warning: DetectionWarningViewModel }) {
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
       accessibilityLabel={warning.accessibilityLabel}>
-      <Text style={styles.warningKicker}>Warning</Text>
+      <Text style={styles.warningKicker}>{t(locale, 'today.warningKicker')}</Text>
       <Text style={styles.warningTitle}>{warning.title}</Text>
       <Text style={styles.warningMessage}>{warning.message}</Text>
     </View>
@@ -97,19 +100,20 @@ function EmptyState({
   onEnableOverlay: (() => void) | null;
   notice: NotCountingNotice | null;
 }) {
+  const locale = useLocale();
   return (
     <View style={styles.card}>
       <View style={styles.emptyAvatar}>
         <Avatar name={vm.avatar} size={96} />
       </View>
-      <Text style={styles.emptyTitle}>{notice?.title ?? 'No data yet'}</Text>
+      <Text style={styles.emptyTitle}>{notice?.title ?? t(locale, 'today.emptyTitle')}</Text>
       <Text style={styles.body}>{notice?.message ?? vm.emptyMessage}</Text>
       {onEnableOverlay !== null && (
         <Pressable
           accessibilityRole="button"
           onPress={onEnableOverlay}
           style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-          <Text style={styles.primaryButtonLabel}>Enable overlay</Text>
+          <Text style={styles.primaryButtonLabel}>{t(locale, 'today.enableOverlay')}</Text>
         </Pressable>
       )}
     </View>
@@ -135,11 +139,12 @@ export function TodayScreen({
   notCountingNotice = null,
   usageAccess = false,
 }: TodayScreenProps) {
-  const vm = todayViewModelFor(state, { usageAccess });
+  const locale = useLocale();
+  const vm = todayViewModelFor(state, { usageAccess, locale });
   return (
     <View style={styles.screen}>
       <Text accessibilityRole="header" style={styles.title}>
-        Today
+        {t(locale, 'today.title')}
       </Text>
       {vm.warnings.map((warning) => (
         <DetectionWarning key={warning.platform} warning={warning} />
@@ -156,7 +161,7 @@ export function TodayScreen({
         <>
           <Summary vm={vm} />
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>By platform</Text>
+            <Text style={styles.sectionTitle}>{t(locale, 'today.byPlatform')}</Text>
             {vm.rows.map((row) => (
               <PlatformRow key={row.platform} row={row} />
             ))}

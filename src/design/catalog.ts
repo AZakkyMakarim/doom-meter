@@ -24,11 +24,6 @@ export const TIER_CATALOG = [
   { label: 'Terminal', avatar: 'mood_4_terminal', color: '#FF4D8D' },
 ] as const;
 
-/** The Tier on its own for screen readers, e.g. "Level 3 of 5, Doomed.". */
-export function tierSentence(tier: number): string {
-  return `Level ${tier + 1} of ${TIER_CATALOG.length}, ${TIER_CATALOG[tier].label}.`;
-}
-
 export const PLATFORM_BY_ID = Object.fromEntries(PLATFORM_CATALOG.map((p) => [p.id, p])) as {
   [P in Platform]: Extract<(typeof PLATFORM_CATALOG)[number], { id: P }>;
 };

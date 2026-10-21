@@ -1,5 +1,7 @@
 import { AccessibilityInfo, AppState, DeviceEventEmitter } from 'react-native';
 import { createCountingEngine } from '../engine';
+import { deviceLocaleTag } from '../i18n/deviceLocale';
+import { t } from '../i18n/translate';
 import { overlay } from '../overlay/overlayBridge';
 import { setPillPreferences } from '../overlay/pillViewModel';
 import { watchReducedMotion } from '../overlay/reducedMotion';
@@ -55,14 +57,17 @@ export function startDetection(): void {
   started = true;
   const active = getDetectionRunner();
   // Settings reach the engine, the pill and the recorder at startup and on every change.
-  settingsStore.subscribe((settings) =>
-    applySettings(settings, {
+  const applyCurrent = () =>
+    applySettings(settingsStore.get(), {
       engine,
       runner: active,
       setPillPreferences,
       setRecorderRolloverHour: recorder.setRolloverHour,
-    }),
-  );
+      deviceLocale: deviceLocaleTag,
+      // Native owns the notification text; the pill's texts travel inside the pill itself.
+      setLocale: (locale) => detectionNative.setNotificationText(t(locale, 'notification.text')),
+    });
+  settingsStore.subscribe(applyCurrent);
   // "Remove animations" turns the pill's pulse, number roll and scale pop off (MASTER 7).
   // The pill redraws every second, so the change shows up on the next tick.
   watchReducedMotion(
@@ -82,6 +87,8 @@ export function startDetection(): void {
   active.subscribe(() => recorder.observe(active.getState(), active.activePlatform() === null));
   AppState.addEventListener('change', (next) => {
     if (next !== 'active') recorder.flush();
+    // The device language may have changed while the app was away; System follows it.
+    else applyCurrent();
   });
   // The saved rollover hour must be in force before any event is counted or the current Day
   // is looked up, so detection is only switched on after settings and saved counts are back.

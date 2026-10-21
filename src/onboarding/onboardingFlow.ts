@@ -1,3 +1,6 @@
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { t } from '../i18n/translate';
 import { permissionInfo } from '../permissions/permissionState';
 import type { PermissionId, PermissionStatus } from '../permissions/permissionState';
 import type { KeyValueStore } from '../storage';
@@ -8,8 +11,6 @@ import type { KeyValueStore } from '../storage';
  */
 
 export type OnboardingStep = 'intro' | PermissionId;
-
-export const PRIVACY_STATEMENT = 'No data leaves your device. Only counts are kept, on this phone.';
 
 const ORDER: readonly OnboardingStep[] = [
   'intro',
@@ -28,8 +29,8 @@ export interface OnboardingStepViewModel {
   step: OnboardingStep;
   title: string;
   body: string;
-  /** "Required", "Optional", or null on the intro. */
-  badge: 'Required' | 'Optional' | null;
+  /** "Required" or "Optional" in the language shown, or null on the intro. */
+  badge: string | null;
   granted: boolean;
   /** `open` goes to the system settings screen, `next` moves on. */
   primaryAction: 'open' | 'next';
@@ -39,44 +40,36 @@ export interface OnboardingStepViewModel {
   footnote: string | null;
 }
 
-const OPEN_LABEL: Record<PermissionId, string> = {
-  accessibility: 'Open Accessibility settings',
-  overlay: 'Open Overlay settings',
-  usageAccess: 'Open Usage access settings',
-  notifications: 'Open Notification settings',
-};
-
 export function onboardingStepViewModel(
   step: OnboardingStep,
   status: PermissionStatus,
+  locale: Locale = DEFAULT_LOCALE,
 ): OnboardingStepViewModel {
   if (step === 'intro') {
     return {
       step,
-      title: 'Welcome to DoomMeter',
-      body:
-        'DoomMeter counts the short videos you watch and how long you spend on them. ' +
-        'It needs a couple of permissions to do that. No data leaves your device.',
+      title: t(locale, 'onboarding.welcomeTitle'),
+      body: t(locale, 'onboarding.welcomeBody'),
       badge: null,
       granted: false,
       primaryAction: 'next',
-      primaryLabel: 'Get started',
+      primaryLabel: t(locale, 'onboarding.getStarted'),
       skipLabel: null,
       footnote: null,
     };
   }
-  const info = permissionInfo(step);
+  const info = permissionInfo(step, locale);
   const granted = status[step];
   return {
     step,
     title: info.title,
     body: info.purpose,
-    badge: info.required ? 'Required' : 'Optional',
+    badge: t(locale, info.required ? 'permission.required' : 'permission.optional'),
     granted,
     primaryAction: granted ? 'next' : 'open',
-    primaryLabel: granted ? 'Continue' : OPEN_LABEL[step],
-    skipLabel: granted ? null : info.required ? 'Not now' : 'Skip',
-    footnote: PRIVACY_STATEMENT,
+    primaryLabel: t(locale, granted ? 'onboarding.continue' : `onboarding.open.${step}`),
+    skipLabel: granted ? null : t(locale, info.required ? 'onboarding.notNow' : 'onboarding.skip'),
+    footnote: t(locale, 'onboarding.privacy'),
   };
 }
 

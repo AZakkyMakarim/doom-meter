@@ -6,6 +6,7 @@ import {
   positionFromDrag,
   sanitizeSettings,
 } from './settings';
+import { translate } from '../i18n/translate';
 
 describe('applyPatch', () => {
   it('accepts a valid change and leaves the rest alone', () => {
@@ -19,7 +20,7 @@ describe('applyPatch', () => {
   it.each([24, 25, -1, 3.5, Number.NaN])('rejects rollover hour %p with a message', (hour) => {
     const result = applyPatch(DEFAULT_SETTINGS, { rolloverHour: hour });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/0 to 23/);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/0 to 23/);
   });
 
   it('accepts hour 0 and 23', () => {
@@ -39,13 +40,13 @@ describe('applyPatch', () => {
       thresholds: { videos: [10, 30, 30, 120], minutes: [10, 30, 60, 120] },
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/videos.*ascend/i);
+    if (!result.ok) expect(translate('en', result.error)).toMatch(/videos.*ascend/i);
 
     const minutes = applyPatch(DEFAULT_SETTINGS, {
       thresholds: { videos: [10, 30, 60, 120], minutes: [40, 30, 60, 120] },
     });
     expect(minutes.ok).toBe(false);
-    if (!minutes.ok) expect(minutes.error).toMatch(/minutes/i);
+    if (!minutes.ok) expect(translate('en', minutes.error)).toMatch(/minutes/i);
   });
 
   it('rejects thresholds below 1 or not whole numbers', () => {
@@ -111,5 +112,28 @@ describe('sanitizeSettings', () => {
     expect(saved.rolloverHour).toBe(DEFAULT_SETTINGS.rolloverHour);
     expect(saved.positionDp).toBe(40);
     expect(saved.thresholds).toEqual(DEFAULT_SETTINGS.thresholds);
+  });
+});
+
+describe('language', () => {
+  it('follows the device language until the user picks one', () => {
+    expect(DEFAULT_SETTINGS.language).toBe('system');
+  });
+
+  it('accepts System, English and Indonesian, and refuses anything else', () => {
+    for (const language of ['system', 'en', 'id'] as const) {
+      expect(applyPatch(DEFAULT_SETTINGS, { language })).toEqual({
+        ok: true,
+        settings: { ...DEFAULT_SETTINGS, language },
+      });
+    }
+    const refused = applyPatch(DEFAULT_SETTINGS, { language: 'de' as never });
+    expect(refused.ok).toBe(false);
+  });
+
+  it('reads Days saved before the language existed as System, and ignores a bad saved value', () => {
+    expect(sanitizeSettings({ compactMode: true }).language).toBe('system');
+    expect(sanitizeSettings({ language: 'id' }).language).toBe('id');
+    expect(sanitizeSettings({ language: 'xx' }).language).toBe('system');
   });
 });

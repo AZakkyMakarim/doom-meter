@@ -1,4 +1,10 @@
-import { PLATFORM_CATALOG, TIER_CATALOG } from '../design/catalog';
+import { PLATFORM_CATALOG } from '../design/catalog';
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import type { MessageId } from '../i18n/messages.en';
+import { tierLabel } from '../i18n/text';
+import { joinList, msg, t } from '../i18n/translate';
+import type { MessageRef } from '../i18n/translate';
 import { permissionInfo } from '../permissions/permissionState';
 import type { PermissionId } from '../permissions/permissionState';
 import type { TierBounds, TierThresholds } from '../engine';
@@ -10,14 +16,6 @@ import type { Settings } from './settings';
  * validation messages and the position and permission logic are unit tested; the
  * screen only draws this (MASTER.md 6.4).
  */
-
-/** Tiers 1 to 4: the ones with thresholds. */
-const TIER_NAMES = TIER_CATALOG.slice(1).map(t => t.label);
-
-const PLATFORM_NAMES = PLATFORM_CATALOG.map(p => p.name);
-const PLATFORM_NAME_LIST = `${PLATFORM_NAMES.slice(0, -1).join(', ')} and ${
-  PLATFORM_NAMES[PLATFORM_NAMES.length - 1]
-}`;
 
 export interface ThresholdDraftRow {
   /** Name of the Tier these numbers start (Tiers 1 to 4). */
@@ -31,13 +29,14 @@ export interface SettingsDrafts {
   rolloverHour: string;
 }
 
-export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
+export type Parsed<T> = { ok: true; value: T } | { ok: false; error: MessageRef };
 
 /** The text fields as they read for the saved settings. */
-export function draftsFor(settings: Settings): SettingsDrafts {
+export function draftsFor(settings: Settings, locale: Locale = DEFAULT_LOCALE): SettingsDrafts {
   return {
-    thresholds: TIER_NAMES.map((tierName, i) => ({
-      tierName,
+    // Tiers 1 to 4: the ones with thresholds.
+    thresholds: [1, 2, 3, 4].map((tier, i) => ({
+      tierName: tierLabel(tier, locale),
       videos: String(settings.thresholds.videos[i]),
       minutes: String(settings.thresholds.minutes[i]),
     })),
@@ -51,9 +50,9 @@ export function parseThresholdDrafts(rows: readonly ThresholdDraftRow[]): Parsed
   const minutes: number[] = [];
   for (const row of rows) {
     const v = parseNumberDraft(row.videos);
-    if (v === null) return { ok: false, error: `${row.tierName} videos must be a whole number.` };
+    if (v === null) return { ok: false, error: msg('settings.error.videosWhole', { tier: row.tierName }) };
     const m = parseNumberDraft(row.minutes);
-    if (m === null) return { ok: false, error: `${row.tierName} minutes must be a whole number.` };
+    if (m === null) return { ok: false, error: msg('settings.error.minutesWhole', { tier: row.tierName }) };
     videos.push(v);
     minutes.push(m);
   }
@@ -66,7 +65,7 @@ export function parseThresholdDrafts(rows: readonly ThresholdDraftRow[]): Parsed
 export function parseRolloverDraft(text: string): Parsed<number> {
   const hour = parseNumberDraft(text);
   if (hour === null) {
-    return { ok: false, error: 'Day rollover hour must be a whole number from 0 to 23.' };
+    return { ok: false, error: msg('settings.error.rollover') };
   }
   return { ok: true, value: hour };
 }
@@ -85,9 +84,12 @@ export interface PositionControl {
 }
 
 /** The Position control: stepping buttons instead of the drag gesture (MASTER 6.1). */
-export function positionControl(positionDp: number): PositionControl {
+export function positionControl(positionDp: number, locale: Locale = DEFAULT_LOCALE): PositionControl {
   return {
-    valueText: positionDp === 0 ? 'Top' : `${positionDp} dp below the top`,
+    valueText:
+      positionDp === 0
+        ? t(locale, 'settings.position.top')
+        : t(locale, 'settings.position.below', { dp: positionDp }),
     canMoveUp: positionDp > POSITION_MIN_DP,
     canMoveDown: positionDp < POSITION_MAX_DP,
     nextUp: Math.max(POSITION_MIN_DP, positionDp - POSITION_STEP_DP),
@@ -99,7 +101,7 @@ export interface PermissionRow {
   id: Extract<PermissionId, 'overlay' | 'accessibility' | 'usageAccess'>;
   title: string;
   /** Same wording as the onboarding badge. */
-  badge: 'Required' | 'Optional';
+  badge: string;
   required: boolean;
   granted: boolean;
   statusText: string;
@@ -110,60 +112,64 @@ export interface PermissionRow {
   accessibilityLabel: string;
 }
 
-export function permissionRows(status: {
-  overlayGranted: boolean;
-  accessibilityOn: boolean;
-  usageAccessGranted: boolean;
-}): PermissionRow[] {
+export function permissionRows(
+  status: {
+    overlayGranted: boolean;
+    accessibilityOn: boolean;
+    usageAccessGranted: boolean;
+  },
+  locale: Locale = DEFAULT_LOCALE,
+): PermissionRow[] {
   const row = (
     id: PermissionRow['id'],
-    title: string,
     granted: boolean,
-    grantedText: string,
-    missingText: string,
+    grantedText: MessageId,
+    missingText: MessageId,
     explanation: string,
   ): PermissionRow => {
-    const required = permissionInfo(id).required;
-    const badge = required ? 'Required' : 'Optional';
-    const stateText = granted ? grantedText : missingText;
+    const { title, required } = permissionInfo(id, locale);
+    const stateText = t(locale, granted ? grantedText : missingText);
     return {
       id,
       title,
-      badge,
+      badge: t(locale, required ? 'permission.required' : 'permission.optional'),
       required,
       granted,
       statusText: stateText,
       explanation,
-      fixLabel: granted ? null : 'Fix permission',
-      accessibilityLabel: required
-        ? `${title}: ${stateText}`
-        : `${title}, ${badge.toLowerCase()}: ${stateText}`,
+      fixLabel: granted ? null : t(locale, 'permission.fix'),
+      accessibilityLabel: t(locale, required ? 'settings.permission.rowRequired' : 'settings.permission.rowOptional', {
+        title,
+        state: stateText,
+      }),
     };
   };
   return [
     row(
       'overlay',
-      'Display over other apps',
       status.overlayGranted,
-      'Granted',
-      'Missing',
-      `Lets the pill appear on top of ${PLATFORM_NAME_LIST}.`,
+      'settings.permission.granted',
+      'settings.permission.missing',
+      t(locale, 'settings.permission.overlayWhy', {
+        platforms: joinList(
+          locale,
+          PLATFORM_CATALOG.map((p) => p.name),
+        ),
+      }),
     ),
     row(
       'accessibility',
-      'Accessibility service',
       status.accessibilityOn,
-      'On',
-      'Off',
-      'Lets DoomMeter see when you scroll short videos. Only counts are kept; no video content is read or stored.',
+      'settings.permission.on',
+      'settings.permission.off',
+      t(locale, 'settings.permission.accessibilityWhy'),
     ),
     row(
       'usageAccess',
-      permissionInfo('usageAccess').title,
       status.usageAccessGranted,
-      'Granted',
-      'Not granted',
-      permissionInfo('usageAccess').purpose,
+      'settings.permission.granted',
+      'settings.permission.notGranted',
+      permissionInfo('usageAccess', locale).purpose,
     ),
   ];
 }

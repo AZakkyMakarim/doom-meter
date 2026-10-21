@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { PLATFORMS, PLATFORM_CATALOG, TIER_CATALOG, tierSentence } from './catalog';
+import { PLATFORMS, PLATFORM_CATALOG, TIER_CATALOG } from './catalog';
 import { colors } from './tokens';
 import { platformColors } from './platformTokens';
 import { PLATFORMS as ENGINE_PLATFORMS } from '../engine';
@@ -40,10 +40,6 @@ describe('Platform and Tier catalog', () => {
     expect(colors.sev).toEqual(TIER_CATALOG.map((t) => t.color));
     expect(platformColors).toEqual(colors.platform);
     expect(Object.keys(colors.platform)).toEqual([...PLATFORMS]);
-  });
-
-  it('says a Tier as one sentence', () => {
-    expect(tierSentence(2)).toBe('Level 3 of 5, Doomed.');
   });
 
   it('keeps Tier names, mood avatars and Platform labels out of every other source file', () => {
