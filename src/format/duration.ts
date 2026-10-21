@@ -1,4 +1,7 @@
 /** Shared text formatting for counts and Watch time (MASTER.md section 6.1). */
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { t } from '../i18n/translate';
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
@@ -13,20 +16,25 @@ function split(ms: number) {
   };
 }
 
-/** `mm:ss`, or `h:mm:ss` from one hour on. */
+/** `mm:ss`, or `h:mm:ss` from one hour on. Digits and colons read the same in every language. */
 export function formatClock(ms: number): string {
   const { hours, minutes, seconds } = split(ms);
   return hours > 0 ? `${hours}:${pad2(minutes)}:${pad2(seconds)}` : `${pad2(minutes)}:${pad2(seconds)}`;
 }
 
-export function plural(n: number, unit: string): string {
-  return `${n} ${unit}${n === 1 ? '' : 's'}`;
+/** `1 video`, `2 videos`: the number with its unit, in the plural form of the language. */
+export function plural(
+  n: number,
+  unit: 'video' | 'hour' | 'minute' | 'second',
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return t(locale, `count.${unit}`, { count: n });
 }
 
 /** For screen readers: `38 minutes 12 seconds`. */
-export function spokenDuration(ms: number): string {
+export function spokenDuration(ms: number, locale: Locale = DEFAULT_LOCALE): string {
   const { hours, minutes, seconds } = split(ms);
-  const parts = [plural(minutes, 'minute'), plural(seconds, 'second')];
-  if (hours > 0) parts.unshift(plural(hours, 'hour'));
+  const parts = [plural(minutes, 'minute', locale), plural(seconds, 'second', locale)];
+  if (hours > 0) parts.unshift(plural(hours, 'hour', locale));
   return parts.join(' ');
 }

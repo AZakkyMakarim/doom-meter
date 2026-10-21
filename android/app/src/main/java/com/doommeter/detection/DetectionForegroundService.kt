@@ -24,6 +24,7 @@ class DetectionForegroundService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        running = true
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(
@@ -64,13 +65,26 @@ class DetectionForegroundService : Service() {
         return builder
             .setSmallIcon(R.drawable.ic_stat_doommeter)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.detection_notification_text))
+            .setContentText(notificationText ?: getString(R.string.detection_notification_text))
             .setContentIntent(open)
             .setOngoing(true)
             .build()
     }
 
+    override fun onDestroy() {
+        running = false
+        super.onDestroy()
+    }
+
     companion object {
+        /**
+         * The notification text in the app language, set from JavaScript so a language change
+         * shows at once. Null until JavaScript has sent it; the string resource is the fallback.
+         */
+        @Volatile var notificationText: String? = null
+
+        @Volatile var running = false
+
         const val ACTION_STOP = "com.doommeter.detection.STOP"
         private const val CHANNEL_ID = "detection"
         private const val NOTIFICATION_ID = 1

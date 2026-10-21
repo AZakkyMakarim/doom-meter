@@ -13,6 +13,8 @@ data class PillModel(
     val unitText: String,
     val timeText: String,
     val labelText: String,
+    /** Spoken as the pill's state while the panel is closed. */
+    val collapsedLabel: String,
     val avatar: String,
     val accentColor: Int,
     val accentDotColor: Int,
@@ -47,6 +49,7 @@ data class PillModel(
                 unitText = o.getString("unitText"),
                 timeText = o.getString("timeText"),
                 labelText = o.getString("labelText"),
+                collapsedLabel = o.optString("collapsedLabel", "Collapsed"),
                 avatar = o.getString("avatar"),
                 accentColor = Color.parseColor(o.getString("accentColor")),
                 accentDotColor = Color.parseColor(o.getString("accentDotColor")),

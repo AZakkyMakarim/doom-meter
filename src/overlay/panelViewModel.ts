@@ -1,7 +1,11 @@
-import { PLATFORMS, PLATFORM_BY_ID, TIER_CATALOG, tierSentence } from '../design/catalog';
+import { PLATFORMS, PLATFORM_BY_ID, TIER_CATALOG } from '../design/catalog';
 import { colors } from '../design/tokens';
 import type { Platform } from '../design/catalog';
 import type { EngineState } from '../engine';
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { tierLabel, tierSentence } from '../i18n/text';
+import { formatNumber, t } from '../i18n/translate';
 import { formatTime, plural, spokenTime } from './format';
 
 /**
@@ -77,7 +81,7 @@ function shares(values: number[]): number[] {
   return floors;
 }
 
-export function panelViewModelFor(state: EngineState): PanelViewModel {
+export function panelViewModelFor(state: EngineState, locale: Locale = DEFAULT_LOCALE): PanelViewModel {
   const { tier, totals } = state;
   const percents = shares(PLATFORMS.map(p => state.platforms[p].watchTimeMs));
   const rows = PLATFORMS.map((platform, i): PlatformRowViewModel => {
@@ -87,29 +91,31 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
       platform,
       label,
       color,
-      countText: `${watchedVideos}`,
-      unitText: watchedVideos === 1 ? 'video' : 'videos',
+      countText: formatNumber(locale, watchedVideos),
+      unitText: t(locale, 'unit.video', { count: watchedVideos }),
       timeText: formatTime(watchTimeMs),
       percent: percents[i],
       percentText: `${percents[i]}%`,
-      contentDescription:
-        `${label}, ${plural(watchedVideos, 'video')}, ${spokenTime(
-          watchTimeMs,
-        )}, ` + `${percents[i]} percent`,
+      contentDescription: t(locale, 'panel.rowDescription', {
+        label,
+        videos: plural(watchedVideos, 'video', locale),
+        time: spokenTime(watchTimeMs, locale),
+        percent: percents[i],
+      }),
     };
   });
   const count = totals.watchedVideos;
-  const { label: tierName, avatar, textColor: accentColor } = TIER_CATALOG[tier];
+  const { avatar, textColor: accentColor } = TIER_CATALOG[tier];
   return {
     avatar,
     avatarSizeDp: PANEL_AVATAR_DP,
-    tierName,
+    tierName: tierLabel(tier, locale),
     accentColor,
-    countText: `${count}`,
-    unitText: count === 1 ? 'video' : 'videos',
+    countText: formatNumber(locale, count),
+    unitText: t(locale, 'unit.video', { count }),
     timeText: formatTime(totals.watchTimeMs),
-    dayText: 'Today',
-    closeLabel: 'Close',
+    dayText: t(locale, 'day.today'),
+    closeLabel: t(locale, 'panel.close'),
     rows,
     surfaceColor: colors.overlayBg,
     rowColor: colors.overlayBgAlt,
@@ -118,8 +124,10 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
     mutedTextColor: colors.textMuted,
     widthDp: PANEL_WIDTH_DP,
     landscapeMaxHeightFraction: LANDSCAPE_MAX_HEIGHT_FRACTION,
-    contentDescription:
-      `Doom meter details for today. ${plural(count, 'video')}, ` +
-      `${spokenTime(totals.watchTimeMs)}. ${tierSentence(tier)}`,
+    contentDescription: t(locale, 'panel.description', {
+      videos: plural(count, 'video', locale),
+      time: spokenTime(totals.watchTimeMs, locale),
+      tier: tierSentence(tier, locale),
+    }),
   };
 }

@@ -3,6 +3,8 @@ import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 
 import { TIER_CATALOG } from '../design/catalog';
 import { colors } from '../design/tokens';
 import { useSafeAreaPadding } from '../design/useSafeAreaPadding';
+import { useLocale } from '../i18n/LocaleContext';
+import { t } from '../i18n/translate';
 import type { PermissionId, PermissionStatus } from '../permissions/permissionState';
 import { onboardingStepViewModel, onboardingSteps } from './onboardingFlow';
 
@@ -24,12 +26,13 @@ const UNKNOWN: PermissionStatus = {
 
 /** First run: a welcome with the privacy statement, then one screen per permission. */
 export function OnboardingScreen({ status, onOpenSettings, onFinish }: OnboardingScreenProps) {
+  const locale = useLocale();
   const screenPadding = useSafeAreaPadding({ top: 24, bottom: 48, horizontal: 16 });
   const current = status ?? UNKNOWN;
   const steps = onboardingSteps(current);
   const [index, setIndex] = useState(0);
   const step = steps[Math.min(index, steps.length - 1)];
-  const vm = onboardingStepViewModel(step, current);
+  const vm = onboardingStepViewModel(step, current, locale);
 
   const next = () => {
     if (index >= steps.length - 1) onFinish();
@@ -44,7 +47,7 @@ export function OnboardingScreen({ status, onOpenSettings, onFinish }: Onboardin
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, screenPadding]}>
       <StatusBar barStyle="light-content" />
-      <Text style={styles.progress}>{`Step ${index + 1} of ${steps.length}`}</Text>
+      <Text style={styles.progress}>{t(locale, 'onboarding.step', { step: index + 1, total: steps.length })}</Text>
       {step === 'intro' && (
         <View style={styles.avatar}>
           <Image
@@ -66,7 +69,7 @@ export function OnboardingScreen({ status, onOpenSettings, onFinish }: Onboardin
         </Text>
         <Text style={styles.body}>{vm.body}</Text>
         {vm.badge !== null && (
-          <Text style={styles.status}>{vm.granted ? 'Granted' : 'Not granted yet'}</Text>
+          <Text style={styles.status}>{t(locale, vm.granted ? 'onboarding.granted' : 'onboarding.notGrantedYet')}</Text>
         )}
       </View>
       {vm.footnote !== null && <Text style={styles.footnote}>{vm.footnote}</Text>}

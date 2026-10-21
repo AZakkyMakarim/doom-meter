@@ -90,6 +90,14 @@ class DoomMeterDetectionModule(private val reactContext: ReactApplicationContext
         }
     }
 
+    /** The notification text in the app language; a running notification is redrawn with it. */
+    @ReactMethod
+    fun setNotificationText(text: String) {
+        DetectionForegroundService.notificationText = text
+        // Starting a running service again only re-posts its notification.
+        if (DetectionForegroundService.running) startForegroundService()
+    }
+
     @ReactMethod
     fun stopForegroundService() {
         reactContext.stopService(Intent(reactContext, DetectionForegroundService::class.java))

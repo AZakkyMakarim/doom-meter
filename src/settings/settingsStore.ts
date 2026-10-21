@@ -1,3 +1,4 @@
+import { msg } from '../i18n/translate';
 import type { KeyValueStore } from '../storage';
 import { DEFAULT_SETTINGS, applyPatch, sanitizeSettings } from './settings';
 import type { Settings, SettingsPatch, SettingsResult } from './settings';
@@ -95,7 +96,7 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
         }
         return { ok: true, settings: current };
       } catch {
-        return { ok: false, error: 'Could not save this setting on the device.' };
+        return { ok: false, error: msg('settings.error.save') };
       }
     },
 

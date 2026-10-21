@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { colors } from '../design/tokens';
+import { LANGUAGE_PREFERENCES } from '../i18n/locale';
+import type { LanguagePreference, Locale } from '../i18n/locale';
+import { useLocale } from '../i18n/LocaleContext';
+import { tierLabel } from '../i18n/text';
+import { t } from '../i18n/translate';
+import type { MessageRef } from '../i18n/translate';
 import type { Settings, SettingsPatch, SettingsResult } from './settings';
 import {
   draftsFor,
@@ -99,12 +105,48 @@ function PrimaryButton({ label, onPress }: { label: string; onPress: () => void 
   );
 }
 
-function ErrorText({ message }: { message: string | null }) {
+function ErrorText({ message, locale }: { message: MessageRef | null; locale: Locale }) {
   if (message === null) return null;
   return (
     <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.error}>
-      {`Error: ${message}`}
+      {t(locale, 'settings.error', { message })}
     </Text>
+  );
+}
+
+/** System, English or Bahasa Indonesia: one choice, applied the moment it is tapped. */
+function LanguageChoice({
+  value,
+  locale,
+  onChange,
+}: {
+  value: LanguagePreference;
+  locale: Locale;
+  onChange: (language: LanguagePreference) => void;
+}) {
+  return (
+    <View accessibilityRole="radiogroup" style={styles.languageOptions}>
+      {LANGUAGE_PREFERENCES.map((option) => {
+        const selected = option === value;
+        const label = t(locale, `settings.language.${option}`);
+        return (
+          <Pressable
+            key={option}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={label}
+            onPress={() => onChange(option)}
+            style={({ pressed }) => [
+              styles.button,
+              styles.buttonSecondary,
+              selected && styles.languageSelected,
+              pressed && styles.pressed,
+            ]}>
+            <Text style={[styles.buttonLabel, selected && styles.languageSelectedLabel]}>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -154,9 +196,10 @@ export function SettingsScreen({
   onFixPermission,
 }: SettingsScreenProps) {
   const [drafts, setDrafts] = useState<SettingsDrafts>(() => draftsFor(settings));
-  const [thresholdError, setThresholdError] = useState<string | null>(null);
-  const [rolloverError, setRolloverError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const locale = useLocale();
+  const [thresholdError, setThresholdError] = useState<MessageRef | null>(null);
+  const [rolloverError, setRolloverError] = useState<MessageRef | null>(null);
+  const [saveError, setSaveError] = useState<MessageRef | null>(null);
 
   // Show the saved values again whenever they change (a save, or a drag of the pill).
   const thresholdsKey = JSON.stringify(settings.thresholds);
@@ -174,7 +217,10 @@ export function SettingsScreen({
   }
 
   async function saveThresholds() {
-    const parsed = parseThresholdDrafts(drafts.thresholds);
+    // Error messages name the Tier in the language shown now.
+    const parsed = parseThresholdDrafts(
+      drafts.thresholds.map((row, i) => ({ ...row, tierName: tierLabel(i + 1, locale) })),
+    );
     if (!parsed.ok) return setThresholdError(parsed.error);
     const result = await onUpdate({ thresholds: parsed.value });
     setThresholdError(result.ok ? null : result.error);
@@ -187,18 +233,27 @@ export function SettingsScreen({
     setRolloverError(result.ok ? null : result.error);
   }
 
-  const position = positionControl(settings.positionDp);
-  const permissions = permissionRows({ overlayGranted, accessibilityOn, usageAccessGranted });
+  const position = positionControl(settings.positionDp, locale);
+  const permissions = permissionRows({ overlayGranted, accessibilityOn, usageAccessGranted }, locale);
   // The primary action is for a missing required permission; an optional one stays secondary.
   const firstMissing = permissions.find((row) => row.required && !row.granted)?.id;
 
   return (
     <View style={styles.screen}>
       <Text accessibilityRole="header" style={styles.title}>
-        Settings
+        {t(locale, 'settings.title')}
       </Text>
 
-      <Card title="Permissions">
+      <Card title={t(locale, 'settings.language.title')}>
+        <Text style={styles.caption}>{t(locale, 'settings.language.hint')}</Text>
+        <LanguageChoice
+          value={settings.language}
+          locale={locale}
+          onChange={(language) => change({ language })}
+        />
+      </Card>
+
+      <Card title={t(locale, 'settings.permissions.title')}>
         {permissions.map((row) => (
           <PermissionBlock
             key={row.id}
@@ -209,31 +264,31 @@ export function SettingsScreen({
         ))}
       </Card>
 
-      <Card title="Overlay">
+      <Card title={t(locale, 'settings.overlay.title')}>
         <ToggleRow
-          label="Show overlay pill"
-          hint="Appears only while a short-form feed is open."
+          label={t(locale, 'settings.overlay.show')}
+          hint={t(locale, 'settings.overlay.showHint')}
           value={settings.overlayEnabled}
           onChange={(overlayEnabled) => change({ overlayEnabled })}
         />
         <ToggleRow
-          label="Compact mode"
-          hint="Face and count only."
+          label={t(locale, 'settings.overlay.compact')}
+          hint={t(locale, 'settings.overlay.compactHint')}
           value={settings.compactMode}
           onChange={(compactMode) => change({ compactMode })}
         />
         <ToggleRow
-          label="Haptics"
-          hint="A vibration when your Tier goes up."
+          label={t(locale, 'settings.overlay.haptics')}
+          hint={t(locale, 'settings.overlay.hapticsHint')}
           value={settings.haptics}
           onChange={(haptics) => change({ haptics })}
         />
         <View style={styles.positionBlock}>
-          <Text style={styles.body}>Position</Text>
-          <Text style={styles.caption}>You can also drag the pill itself.</Text>
+          <Text style={styles.body}>{t(locale, 'settings.position.label')}</Text>
+          <Text style={styles.caption}>{t(locale, 'settings.position.hint')}</Text>
           <View style={styles.positionRow}>
             <SecondaryButton
-              label="Move up"
+              label={t(locale, 'settings.position.up')}
               disabled={!position.canMoveUp}
               onPress={() => change({ positionDp: position.nextUp })}
             />
@@ -241,29 +296,26 @@ export function SettingsScreen({
               {position.valueText}
             </Text>
             <SecondaryButton
-              label="Move down"
+              label={t(locale, 'settings.position.down')}
               disabled={!position.canMoveDown}
               onPress={() => change({ positionDp: position.nextDown })}
             />
           </View>
         </View>
-        <ErrorText message={saveError} />
+        <ErrorText message={saveError} locale={locale} />
       </Card>
 
-      <Card title="Tier thresholds">
-        <Text style={styles.caption}>
-          Each Tier starts at the numbers below. Your Tier is the higher of the videos Tier and
-          the minutes Tier. Numbers must go up from one Tier to the next.
-        </Text>
+      <Card title={t(locale, 'settings.thresholds.title')}>
+        <Text style={styles.caption}>{t(locale, 'settings.thresholds.hint')}</Text>
         {drafts.thresholds.map((row, i) => (
-          <View key={row.tierName} style={styles.thresholdRow}>
+          <View key={i} style={styles.thresholdRow}>
             <View style={styles.tierName}>
               <View style={[styles.tierDot, { backgroundColor: colors.sev[i + 1] }]} />
-              <Text style={styles.body}>{row.tierName}</Text>
+              <Text style={styles.body}>{tierLabel(i + 1, locale)}</Text>
             </View>
             <NumberField
-              label={`${row.tierName} videos`}
-              caption="Videos"
+              label={t(locale, 'settings.thresholds.videosLabel', { tier: tierLabel(i + 1, locale) })}
+              caption={t(locale, 'settings.thresholds.videos')}
               value={row.videos}
               onChange={(videos) =>
                 setDrafts((d) => ({
@@ -273,8 +325,8 @@ export function SettingsScreen({
               }
             />
             <NumberField
-              label={`${row.tierName} minutes`}
-              caption="Minutes"
+              label={t(locale, 'settings.thresholds.minutesLabel', { tier: tierLabel(i + 1, locale) })}
+              caption={t(locale, 'settings.thresholds.minutes')}
               value={row.minutes}
               onChange={(minutes) =>
                 setDrafts((d) => ({
@@ -285,24 +337,24 @@ export function SettingsScreen({
             />
           </View>
         ))}
-        <ErrorText message={thresholdError} />
-        <SecondaryButton label="Save thresholds" onPress={saveThresholds} />
+        <ErrorText message={thresholdError} locale={locale} />
+        <SecondaryButton label={t(locale, 'settings.thresholds.save')} onPress={saveThresholds} />
       </Card>
 
-      <Card title="Day">
+      <Card title={t(locale, 'settings.day.title')}>
         <Text style={styles.caption}>
-          {`A new Day starts at ${rolloverLabel(settings.rolloverHour)} local time, so late-night scrolling stays in the same Day. Enter an hour from 0 to 23.`}
+          {t(locale, 'settings.day.hint', { time: rolloverLabel(settings.rolloverHour) })}
         </Text>
         <View style={styles.rolloverRow}>
           <NumberField
-            label="Day rollover hour"
-            caption="Hour (0-23)"
+            label={t(locale, 'settings.day.fieldLabel')}
+            caption={t(locale, 'settings.day.fieldCaption')}
             value={drafts.rolloverHour}
             onChange={(rolloverHour) => setDrafts((d) => ({ ...d, rolloverHour }))}
           />
         </View>
-        <ErrorText message={rolloverError} />
-        <SecondaryButton label="Save rollover hour" onPress={saveRollover} />
+        <ErrorText message={rolloverError} locale={locale} />
+        <SecondaryButton label={t(locale, 'settings.day.save')} onPress={saveRollover} />
       </Card>
     </View>
   );
@@ -514,6 +566,16 @@ const styles = StyleSheet.create({
   },
   buttonLabelPrimary: {
     color: colors.onAction,
+  },
+  languageOptions: {
+    gap: 8,
+  },
+  languageSelected: {
+    borderWidth: 2,
+    borderColor: colors.action,
+  },
+  languageSelectedLabel: {
+    fontWeight: '700',
   },
   disabled: {
     opacity: 0.4,

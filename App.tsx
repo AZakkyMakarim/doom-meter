@@ -3,6 +3,8 @@ import { AppState, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } fr
 import { colors } from './src/design/tokens';
 import { useSafeAreaPadding } from './src/design/useSafeAreaPadding';
 import { detectionNative } from './src/detection/detectionBridge';
+import { LocaleContext, useLocale, useResolvedLocale } from './src/i18n/LocaleContext';
+import { t } from './src/i18n/translate';
 import { debugClock, getDetectionRunner, whenRestored } from './src/detection/runtime';
 import { overlay } from './src/overlay/overlayBridge';
 import { pillViewModelFor } from './src/overlay/pillViewModel';
@@ -10,6 +12,7 @@ import { createSimulator } from './src/overlay/simulator';
 import { BottomNav } from './src/history/BottomNav';
 import { HistoryScreen } from './src/history/HistoryScreen';
 import { settingsStore } from './src/settings/deviceSettings';
+import { useSettings } from './src/settings/useSettings';
 import { SettingsScreen } from './src/settings/SettingsScreen';
 import { TodayScreen } from './src/today/TodayScreen';
 import { OnboardingScreen } from './src/onboarding/OnboardingScreen';
@@ -19,12 +22,8 @@ import { permissions } from './src/permissions/permissionsBridge';
 import { isCounting, notCountingNotice, permissionBanner } from './src/permissions/permissionState';
 import { usePermissionStatus } from './src/permissions/usePermissionStatus';
 
-const NAV_ITEMS = [
-  { key: 'today', label: 'Today' },
-  { key: 'history', label: 'History' },
-  { key: 'settings', label: 'Settings' },
-] as const;
-type ScreenKey = (typeof NAV_ITEMS)[number]['key'];
+const NAV_KEYS = ['today', 'history', 'settings'] as const;
+type ScreenKey = (typeof NAV_KEYS)[number];
 
 /** The bottom bar sits under the scroll area and handles the bottom inset itself. */
 const SCREEN_PADDING = { top: 24, bottom: 24, horizontal: 16 };
@@ -52,7 +51,9 @@ function Button({
   );
 }
 
-function App() {
+function Main() {
+  const locale = useLocale();
+  const navItems = NAV_KEYS.map((key) => ({ key, label: t(locale, `nav.${key}`) }));
   // Edge to edge: keep content clear of the status bar, cutout and gesture bar (MASTER 8).
   // The bottom bar below the scroll area owns the bottom inset, so only the sides and top here.
   const screenPadding = useSafeAreaPadding(SCREEN_PADDING, false);
@@ -100,7 +101,7 @@ function App() {
   // First-run gate and permission banner (re-checked whenever the app returns to the foreground).
   const permissionStatus = usePermissionStatus();
   const { gate, complete: completeOnboarding } = useOnboardingGate();
-  const banner = permissionBanner(permissionStatus);
+  const banner = permissionBanner(permissionStatus, locale);
   useEffect(() => {
     // A revoked required permission removes the pill; the banner says why.
     if (permissionStatus && !isCounting(permissionStatus)) overlay.hide();
@@ -137,7 +138,7 @@ function App() {
     );
   }
 
-  const nav = <BottomNav items={NAV_ITEMS} active={screen} onSelect={setScreen} />;
+  const nav = <BottomNav items={navItems} active={screen} onSelect={setScreen} />;
 
   if (screen === 'history') {
     return (
@@ -169,38 +170,35 @@ function App() {
         state={state}
         overlayActive={showing}
         onEnableOverlay={enableOverlay}
-        notCountingNotice={notCountingNotice(permissionStatus)}
+        notCountingNotice={notCountingNotice(permissionStatus, locale)}
         usageAccess={permissionStatus?.usageAccess ?? false}
       />
 
-      <Text style={styles.sectionTitle}>Setup</Text>
+      <Text style={styles.sectionTitle}>{t(locale, 'today.setupTitle')}</Text>
 
       <Text style={styles.body}>
-        {accessible
-          ? 'Detection is on. Scroll TikTok and the pill follows along.'
-          : 'Detection is off. Enable the DoomMeter Accessibility service so it can see when you scroll short videos. Only counts are kept; no video content is read or stored.'}
+        {t(locale, accessible ? 'today.detectionOn' : 'today.detectionOff')}
       </Text>
       {!accessible && (
         <View style={styles.row}>
           <Button
             primary
-            label="Open Accessibility settings"
+            label={t(locale, 'today.openAccessibility')}
             onPress={() => detectionNative.openAccessibilitySettings()}
           />
         </View>
       )}
 
       <Text style={styles.body}>
-        {showing
-          ? 'Overlay is on. It shows only while a short-form feed is open.'
-          : enabled
-            ? 'Overlay permission is missing. Grant "Display over other apps", then come back.'
-            : 'Overlay is off.'}
+        {t(
+          locale,
+          showing ? 'today.overlayOn' : enabled ? 'today.overlayNoPermission' : 'today.overlayOff',
+        )}
       </Text>
       <View style={styles.row}>
         <Button
           primary={accessible}
-          label={enabled ? 'Disable overlay' : 'Enable overlay'}
+          label={t(locale, enabled ? 'today.disableOverlay' : 'today.enableOverlay')}
           onPress={toggleOverlay}
         />
       </View>
@@ -288,5 +286,15 @@ const styles = StyleSheet.create({
     color: colors.onAction,
   },
 });
+
+/** The language is chosen in Settings, so the root reads it and hands it to every screen. */
+function App() {
+  const locale = useResolvedLocale(useSettings().language);
+  return (
+    <LocaleContext.Provider value={locale}>
+      <Main />
+    </LocaleContext.Provider>
+  );
+}
 
 export default App;

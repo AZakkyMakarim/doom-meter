@@ -1,5 +1,9 @@
 import { DEFAULT_ROLLOVER_HOUR, DEFAULT_TIER_THRESHOLDS } from '../engine';
 import type { TierThresholds } from '../engine';
+import { isLanguagePreference } from '../i18n/locale';
+import type { LanguagePreference } from '../i18n/locale';
+import { msg } from '../i18n/translate';
+import type { MessageRef } from '../i18n/translate';
 import { PILL_DRAG_RANGE_DP } from '../overlay/pillViewModel';
 
 /**
@@ -18,6 +22,8 @@ export interface Settings {
   /** Local hour (0-23) at which a new Day starts. */
   rolloverHour: number;
   thresholds: TierThresholds;
+  /** The language of the app, the pill and the notification; System follows the device. */
+  language: LanguagePreference;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   positionDp: 0,
   rolloverHour: DEFAULT_ROLLOVER_HOUR,
   thresholds: DEFAULT_TIER_THRESHOLDS,
+  language: 'system',
 };
 
 export const POSITION_MIN_DP = 0;
@@ -38,7 +45,7 @@ export const MAX_MINUTE_THRESHOLD = 1440;
 
 export type SettingsPatch = Partial<Settings>;
 
-export type SettingsResult = { ok: true; settings: Settings } | { ok: false; error: string };
+export type SettingsResult = { ok: true; settings: Settings } | { ok: false; error: MessageRef };
 
 function isWhole(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value);
@@ -61,43 +68,46 @@ function boundsError(
   bounds: readonly unknown[],
   series: 'videos' | 'minutes',
   max: number,
-): string | null {
+): MessageRef | null {
+  const seriesName = msg(`series.${series}`);
   if (bounds.length !== 4 || !bounds.every(isWhole)) {
-    return `Tier thresholds for ${series} must be whole numbers.`;
+    return msg('settings.error.thresholdsWhole', { series: seriesName });
   }
   const values = bounds as number[];
   if (values.some((v) => v < 1 || v > max)) {
-    return `Tier thresholds for ${series} must be between 1 and ${max}.`;
+    return msg('settings.error.thresholdsRange', { series: seriesName, max });
   }
   for (let i = 1; i < values.length; i += 1) {
     if (values[i] <= values[i - 1]) {
-      return `Tier thresholds for ${series} must ascend: each Tier starts higher than the one before (${values.join(', ')}).`;
+      return msg('settings.error.thresholdsAscend', { series: seriesName, values: values.join(', ') });
     }
   }
   return null;
 }
 
-function thresholdsError(t: TierThresholds): string | null {
+function thresholdsError(t: TierThresholds): MessageRef | null {
   return (
     boundsError(t?.videos ?? [], 'videos', MAX_VIDEO_THRESHOLD) ??
     boundsError(t?.minutes ?? [], 'minutes', MAX_MINUTE_THRESHOLD)
   );
 }
 
-function rolloverError(hour: unknown): string | null {
-  return isWhole(hour) && hour >= 0 && hour <= 23
-    ? null
-    : 'Day rollover hour must be a whole number from 0 to 23.';
+function rolloverError(hour: unknown): MessageRef | null {
+  return isWhole(hour) && hour >= 0 && hour <= 23 ? null : msg('settings.error.rollover');
 }
 
-function positionError(position: unknown): string | null {
+function positionError(position: unknown): MessageRef | null {
   return isWhole(position) && position >= POSITION_MIN_DP && position <= POSITION_MAX_DP
     ? null
-    : `Position must be a whole number from ${POSITION_MIN_DP} to ${POSITION_MAX_DP}.`;
+    : msg('settings.error.position', { min: POSITION_MIN_DP, max: POSITION_MAX_DP });
+}
+
+function languageError(language: unknown): MessageRef | null {
+  return isLanguagePreference(language) ? null : msg('settings.error.language');
 }
 
 /** The first problem with a patch, or null when every field in it is valid. */
-function patchError(patch: SettingsPatch): string | null {
+function patchError(patch: SettingsPatch): MessageRef | null {
   if (patch.rolloverHour !== undefined) {
     const e = rolloverError(patch.rolloverHour);
     if (e) return e;
@@ -108,6 +118,10 @@ function patchError(patch: SettingsPatch): string | null {
   }
   if (patch.thresholds !== undefined) {
     const e = thresholdsError(patch.thresholds);
+    if (e) return e;
+  }
+  if (patch.language !== undefined) {
+    const e = languageError(patch.language);
     if (e) return e;
   }
   return null;
@@ -123,6 +137,7 @@ export function applyPatch(current: Settings, patch: SettingsPatch): SettingsRes
   if (patch.haptics !== undefined) settings.haptics = patch.haptics;
   if (patch.positionDp !== undefined) settings.positionDp = patch.positionDp;
   if (patch.rolloverHour !== undefined) settings.rolloverHour = patch.rolloverHour;
+  if (patch.language !== undefined) settings.language = patch.language;
   if (patch.thresholds !== undefined) {
     const { videos, minutes } = patch.thresholds;
     settings.thresholds = {
@@ -144,6 +159,7 @@ export function sanitizeSettings(raw: unknown): Settings {
   for (const key of ['overlayEnabled', 'compactMode', 'haptics'] as const) {
     if (typeof saved[key] === 'boolean') patch[key] = saved[key] as boolean;
   }
+  if (languageError(saved.language) === null) patch.language = saved.language as LanguagePreference;
   if (rolloverError(saved.rolloverHour) === null) patch.rolloverHour = saved.rolloverHour as number;
   if (positionError(saved.positionDp) === null) patch.positionDp = saved.positionDp as number;
   const thresholds = saved.thresholds as TierThresholds | undefined;

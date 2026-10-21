@@ -56,6 +56,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
     private var pulseAnimator: ObjectAnimator? = null
     private var lastPulseMs: Long? = null
     private var lastAvatar: String? = null
+    private var collapsedLabel = "Collapsed"
     private var panelView: ExpandedPanel? = null
     private var expanded = false
     private var revealAnimator: ValueAnimator? = null
@@ -117,6 +118,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
         val firstDraw = root == null
         if (firstDraw && !attach()) return
         val v = views ?: return
+        collapsedLabel = model.collapsedLabel
         apply(model, v, animate = !firstDraw)
         dragRangePx = dp(model.dragRangeDp)
         // A new position from Settings moves the pill; a drag in progress is never overridden
@@ -216,7 +218,7 @@ class OverlayPill(context: Context, private val onMoved: (Float) -> Unit = {}) {
                     info.className = "android.widget.Button"
                     info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        info.stateDescription = "Collapsed"
+                        info.stateDescription = collapsedLabel
                     }
                 }
 

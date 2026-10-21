@@ -1,6 +1,10 @@
-import { TIER_CATALOG, tierSentence } from '../design/catalog';
+import { TIER_CATALOG } from '../design/catalog';
 import { colors } from '../design/tokens';
 import type { EngineState, Tier } from '../engine';
+import { formatNumber, t } from '../i18n/translate';
+import { DEFAULT_LOCALE } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { tierLabel, tierSentence } from '../i18n/text';
 import { formatTime, plural, spokenTime } from './format';
 import { panelViewModelFor } from './panelViewModel';
 import type { PanelViewModel } from './panelViewModel';
@@ -40,6 +44,8 @@ export interface PillViewModel {
   unitText: string;
   timeText: string;
   labelText: string;
+  /** What a screen reader hears as the pill's state while it is closed (the panel is the other state). */
+  collapsedLabel: string;
   /** Name of the mood avatar drawable (MASTER 2.1). */
   avatar: string;
   /** Tier color; also used for the label. */
@@ -90,6 +96,8 @@ export interface PillOptions {
   positionDp?: number;
   /** The system asked to remove animations (MASTER 7). Default false. */
   reducedMotion?: boolean;
+  /** The language of every text on the pill and its panel. Default English. */
+  locale?: Locale;
 }
 
 /**
@@ -101,6 +109,7 @@ const pillPreferences: PillOptions = {
   haptics: true,
   positionDp: 0,
   reducedMotion: false,
+  locale: DEFAULT_LOCALE,
 };
 
 export function setPillPreferences(preferences: PillOptions): void {
@@ -171,16 +180,18 @@ export function pillViewModelFor(
 ): PillViewModel {
   const { tier, totals } = state;
   const style = TIER_STYLES[tier];
-  const { label, avatar, color, textColor: accentColor } = TIER_CATALOG[tier];
+  const { avatar, color, textColor: accentColor } = TIER_CATALOG[tier];
+  const locale = options.locale ?? DEFAULT_LOCALE;
   const count = totals.watchedVideos;
-  const tierAnnouncement = tierSentence(tier);
+  const tierAnnouncement = tierSentence(tier, locale);
   const reducedMotion = options.reducedMotion ?? false;
   return {
     tier,
-    countText: `${count}`,
-    unitText: count === 1 ? 'video' : 'videos',
+    countText: formatNumber(locale, count),
+    unitText: t(locale, 'unit.video', { count }),
     timeText: formatTime(totals.watchTimeMs),
-    labelText: label,
+    labelText: tierLabel(tier, locale),
+    collapsedLabel: t(locale, 'pill.collapsed'),
     avatar,
     accentColor,
     accentDotColor: color,
@@ -194,9 +205,11 @@ export function pillViewModelFor(
     surfaceColor: colors.overlayBg,
     textColor: colors.text,
     mutedTextColor: colors.textMuted,
-    contentDescription:
-      `Doom meter. ${plural(count, 'video')}, ${spokenTime(totals.watchTimeMs)}. ` +
-      tierAnnouncement,
+    contentDescription: t(locale, 'pill.description', {
+      videos: plural(count, 'video', locale),
+      time: spokenTime(totals.watchTimeMs, locale),
+      tier: tierAnnouncement,
+    }),
     tierAnnouncement,
     announcement: null,
     tierChange: 'none',
@@ -204,7 +217,7 @@ export function pillViewModelFor(
     compact: options.compact ?? false,
     dragRangeDp: DRAG_RANGE_DP,
     positionDp: Math.min(DRAG_RANGE_DP, Math.max(0, options.positionDp ?? 0)),
-    panel: panelViewModelFor(state),
+    panel: panelViewModelFor(state, locale),
   };
 }
 
