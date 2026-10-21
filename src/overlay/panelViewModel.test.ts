@@ -39,10 +39,10 @@ const mixed = () =>
 describe('panel header (MASTER 6.2 items 1 and 2)', () => {
   it('shows the large avatar, Tier name in the Tier color, and the totals', () => {
     const panel = panelViewModelFor(mixed());
-    expect(panel.avatar).toBe('mood_2_doomed');
+    expect(panel.avatar).toBe('mood_2_washed');
     expect(panel.avatarSizeDp).toBe(96);
-    expect(panel.tierName).toBe('Doomed');
-    expect(panel.accentColor).toBe('#FB923C');
+    expect(panel.tierName).toBe('Washed');
+    expect(panel.accentColor).toBe('#F87171');
     expect(panel.countText).toBe('47');
     expect(panel.unitText).toBe('videos');
     expect(panel.timeText).toBe('40:00');
@@ -135,7 +135,7 @@ describe('per-Platform breakdown (MASTER 6.2 item 3)', () => {
 describe('screen reader summary', () => {
   it('describes the panel once, with the Day context', () => {
     expect(panelViewModelFor(mixed()).contentDescription).toBe(
-      'Doom meter details for today. 47 videos, 40 minutes 0 seconds. Level 3 of 5, Doomed.',
+      'Doom meter details for today. 47 videos, 40 minutes 0 seconds. Level 3 of 5, Washed.',
     );
   });
 });

@@ -99,7 +99,7 @@ export function panelViewModelFor(state: EngineState): PanelViewModel {
     };
   });
   const count = totals.watchedVideos;
-  const { label: tierName, avatar, color: accentColor } = TIER_CATALOG[tier];
+  const { label: tierName, avatar, textColor: accentColor } = TIER_CATALOG[tier];
   return {
     avatar,
     avatarSizeDp: PANEL_AVATAR_DP,

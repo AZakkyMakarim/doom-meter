@@ -24,7 +24,8 @@ describe('design tokens (MASTER 3, 10)', () => {
   });
 
   it('has the five Tier colors in order', () => {
-    expect(colors.sev).toEqual(['#34D399', '#FACC15', '#FB923C', '#F87171', '#FF4D8D']);
+    expect(colors.sev).toEqual(['#FACC15', '#FB923C', '#F87171', '#A3E635', '#6B7280']);
+    expect(colors.sevText).toEqual(['#FACC15', '#FB923C', '#F87171', '#A3E635', '#9CA3AF']);
   });
 
   it('shares one set of Platform colors', () => {

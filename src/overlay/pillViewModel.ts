@@ -181,7 +181,7 @@ export function pillViewModelFor(
 ): PillViewModel {
   const { tier, totals } = state;
   const style = TIER_STYLES[tier];
-  const { label, avatar, color: accentColor } = TIER_CATALOG[tier];
+  const { label, avatar, color, textColor: accentColor } = TIER_CATALOG[tier];
   const count = totals.watchedVideos;
   const tierAnnouncement = tierSentence(tier);
   const reducedMotion = options.reducedMotion ?? false;
@@ -193,7 +193,7 @@ export function pillViewModelFor(
     labelText: label,
     avatar,
     accentColor,
-    borderColor: tier === 0 ? `#${TIER_0_BORDER_ALPHA}${accentColor.slice(1)}` : accentColor,
+    borderColor: tier === 0 ? `#${TIER_0_BORDER_ALPHA}${color.slice(1)}` : color,
     borderWidthDp: style.borderWidthDp,
     heightDp: style.heightDp,
     countSizeSp: style.countSizeSp,

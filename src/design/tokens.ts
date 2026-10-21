@@ -32,4 +32,6 @@ export const colors = {
   >,
   /** Tier colors, indexed by Tier. */
   sev: TIER_CATALOG.map((t) => t.color) as readonly string[],
+  /** Tier colors for label text and filled badges, indexed by Tier (>= 4.5:1 both ways). */
+  sevText: TIER_CATALOG.map((t) => t.textColor) as readonly string[],
 };

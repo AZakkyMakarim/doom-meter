@@ -15,13 +15,16 @@ export const PLATFORMS = PLATFORM_CATALOG.map((p) => p.id) as unknown as readonl
 /** One of the sources of short-form video (see CONTEXT.md). */
 export type Platform = (typeof PLATFORM_CATALOG)[number]['id'];
 
-/** Index is the Tier number, 0 to 4. `avatar` is the mood drawable name. */
+/**
+ * Index is the Tier number, 0 to 4. `avatar` is the mood drawable name; `color` is the face,
+ * border and bar color; `textColor` is for label text (Doomed grey is lifted to pass 4.5:1).
+ */
 export const TIER_CATALOG = [
-  { label: 'Fresh', avatar: 'mood_0_fresh', color: '#34D399' },
-  { label: 'Drifting', avatar: 'mood_1_drifting', color: '#FACC15' },
-  { label: 'Doomed', avatar: 'mood_2_doomed', color: '#FB923C' },
-  { label: 'Cooked', avatar: 'mood_3_cooked', color: '#F87171' },
-  { label: 'Terminal', avatar: 'mood_4_terminal', color: '#FF4D8D' },
+  { label: 'Vibing', avatar: 'mood_0_vibing', color: '#FACC15', textColor: '#FACC15' },
+  { label: 'Cooked', avatar: 'mood_1_cooked', color: '#FB923C', textColor: '#FB923C' },
+  { label: 'Washed', avatar: 'mood_2_washed', color: '#F87171', textColor: '#F87171' },
+  { label: 'Brainrot', avatar: 'mood_3_brainrot', color: '#A3E635', textColor: '#A3E635' },
+  { label: 'Doomed', avatar: 'mood_4_doomed', color: '#6B7280', textColor: '#9CA3AF' },
 ] as const;
 
 /** The Tier on its own for screen readers, e.g. "Level 3 of 5, Doomed.". */

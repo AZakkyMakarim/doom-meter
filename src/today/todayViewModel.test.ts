@@ -42,9 +42,9 @@ describe('Today view model', () => {
     expect(vm.countText).toBe('47');
     expect(vm.unitText).toBe('videos');
     expect(vm.timeText).toBe('38:12');
-    expect(vm.tierLabel).toBe('Doomed');
-    expect(vm.avatar).toBe('mood_2_doomed');
-    expect(vm.accentColor).toBe('#FB923C');
+    expect(vm.tierLabel).toBe('Washed');
+    expect(vm.avatar).toBe('mood_2_washed');
+    expect(vm.accentColor).toBe('#F87171');
   });
 
   it('uses the singular unit for one video and hours for long time', () => {
@@ -87,7 +87,7 @@ describe('Today view model', () => {
   it('gives screen readers one summary and a label per row', () => {
     const vm = todayViewModelFor(state({ tiktok: [47, 2_292_000] }, 2));
     expect(vm.summaryLabel).toBe(
-      'Today. 47 videos, 38 minutes 12 seconds. Level 3 of 5, Doomed.',
+      'Today. 47 videos, 38 minutes 12 seconds. Level 3 of 5, Washed.',
     );
     expect(vm.rows[2].accessibilityLabel).toBe('TikTok. 47 videos, 38 minutes 12 seconds, 100 percent.');
   });

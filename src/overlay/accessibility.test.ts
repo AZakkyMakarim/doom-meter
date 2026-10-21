@@ -113,10 +113,10 @@ describe('screen reader announcements (MASTER 8, 11)', () => {
   });
 
   it.each([
-    [1, 'Level 2 of 5, Drifting.'],
-    [2, 'Level 3 of 5, Doomed.'],
-    [3, 'Level 4 of 5, Cooked.'],
-    [4, 'Level 5 of 5, Terminal.'],
+    [1, 'Level 2 of 5, Cooked.'],
+    [2, 'Level 3 of 5, Washed.'],
+    [3, 'Level 4 of 5, Brainrot.'],
+    [4, 'Level 5 of 5, Doomed.'],
   ] as const)('announce entering Tier %i once', (tier, spoken) => {
     const present = createPillPresenter();
     present(atTier((tier - 1) as Tier));
@@ -128,12 +128,12 @@ describe('screen reader announcements (MASTER 8, 11)', () => {
   it('announce a decrease (Day rollover) too, since the Tier changed', () => {
     const present = createPillPresenter();
     present(atTier(3));
-    expect(present(atTier(0)).announcement).toBe('Level 1 of 5, Fresh.');
+    expect(present(atTier(0)).announcement).toBe('Level 1 of 5, Vibing.');
   });
 
   it('keep the label read on focus separate from the announcement', () => {
     const pill = pillViewModelFor(stateWith(47));
-    expect(pill.contentDescription).toMatch(/^Doom meter\. 47 videos, .*Level 3 of 5, Doomed\.$/);
+    expect(pill.contentDescription).toMatch(/^Doom meter\. 47 videos, .*Level 3 of 5, Washed\.$/);
     expect(pill.announcement).toBeNull();
   });
 });

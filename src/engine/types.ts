@@ -54,7 +54,7 @@ export interface Totals {
   watchTimeMs: number;
 }
 
-/** Severity level 0-4 (Fresh, Drifting, Doomed, Cooked, Terminal). */
+/** Severity level 0-4 (Vibing, Cooked, Washed, Brainrot, Doomed). */
 export type Tier = 0 | 1 | 2 | 3 | 4;
 
 /** Lower bounds (inclusive) for Tiers 1 to 4, ascending. */
